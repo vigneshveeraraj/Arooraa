@@ -1,0 +1,27 @@
+name: Deploy Arooraa Website
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/arooraa/app/arooraa-web
+            git pull origin main
+            rm -rf /var/www/arooraa/*
+            cp -r /opt/arooraa/app/arooraa-web/deploy/* /var/www/arooraa/
+            chown -R www-data:www-data /var/www/arooraa
+            nginx -t
+            systemctl reload nginx
