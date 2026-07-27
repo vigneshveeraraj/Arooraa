@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8090}
+
+spring:
+  application:
+    name: arooraa-lead-service
+  datasource:
+    url: ${AROORAA_DB_URL}
+    username: ${AROORAA_DB_USERNAME}
+    password: ${AROORAA_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+arooraa:
+  ip-hash-secret: ${AROORAA_IP_HASH_SECRET}
+  trusted-proxies: ${AROORAA_TRUSTED_PROXIES:}
+  rate-limit:
+    max-requests: ${AROORAA_RATE_LIMIT_MAX_REQUESTS:5}
+    window-minutes: ${AROORAA_RATE_LIMIT_WINDOW_MINUTES:10}
+  duplicate:
+    window-minutes: ${AROORAA_DUPLICATE_WINDOW_MINUTES:5}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.arooraa.leads: INFO

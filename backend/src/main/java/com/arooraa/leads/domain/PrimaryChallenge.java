@@ -1,0 +1,14 @@
+package com.arooraa.leads.domain;
+
+public enum PrimaryChallenge {
+    SLOW_ORDERING,
+    MENU_MANAGEMENT,
+    KITCHEN_COORDINATION,
+    BILLING_POS,
+    TABLE_MANAGEMENT,
+    MULTI_OUTLET,
+    SALES_REPORTING,
+    CUSTOMER_ENGAGEMENT,
+    COMPLETE_PLATFORM,
+    OTHER
+}
