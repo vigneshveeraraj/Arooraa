@@ -1,0 +1,44 @@
+name: arooraa-leads
+
+services:
+  arooraa-leads-postgres:
+    image: postgres:16-alpine
+    container_name: arooraa-leads-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arooraa_leads
+      POSTGRES_USER: arooraa_leads_app
+      POSTGRES_PASSWORD: ${AROORAA_DB_PASSWORD:-changeme}
+    ports:
+      - "${AROORAA_DB_LOCAL_PORT:-5433}:5432"
+    volumes:
+      - arooraa_leads_pgdata:/var/lib/postgresql/data
+    networks:
+      - arooraa-leads-net
+
+  arooraa-lead-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arooraa-lead-service
+    restart: unless-stopped
+    depends_on:
+      - arooraa-leads-postgres
+    environment:
+      AROORAA_DB_URL: jdbc:postgresql://arooraa-leads-postgres:5432/arooraa_leads
+      AROORAA_DB_USERNAME: arooraa_leads_app
+      AROORAA_DB_PASSWORD: ${AROORAA_DB_PASSWORD:-changeme}
+      AROORAA_IP_HASH_SECRET: ${AROORAA_IP_HASH_SECRET:-changeme}
+      SERVER_PORT: 8090
+    ports:
+      - "${AROORAA_APP_LOCAL_PORT:-8090}:8090"
+    networks:
+      - arooraa-leads-net
+
+networks:
+  arooraa-leads-net:
+    name: arooraa-leads-net
+
+volumes:
+  arooraa_leads_pgdata:
+    name: arooraa_leads_pgdata
