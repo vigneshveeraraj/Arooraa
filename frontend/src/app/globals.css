@@ -1,0 +1,164 @@
+:root {
+  --accent: #6d5dfb;
+  --accent-2: #9b7bff;
+  --accent-orange: #e0803a;
+  --ink: #0b0b12;
+  --muted: #5b5b6b;
+  --muted-on-dark: rgba(255, 255, 255, 0.68);
+  --bg-dark: #08080c;
+  --bg-light: #ffffff;
+  --bg-light-alt: #f6f6f9;
+  --border-on-dark: rgba(255, 255, 255, 0.12);
+  --border-on-light: rgba(11, 11, 18, 0.08);
+  --gradient-text: linear-gradient(100deg, var(--accent-2), var(--accent-orange));
+  --gradient-pill: linear-gradient(135deg, var(--accent-orange), var(--accent-2));
+  --container-width: 1220px;
+  --radius-sm: 11px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg-dark);
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+[id] {
+  scroll-margin-top: 96px;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+.container {
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin: 0 0 14px;
+}
+
+.gradientText {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  font-family: inherit;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btnPrimary {
+  background: var(--accent-orange);
+  color: #fff;
+}
+
+.btnLight {
+  background: #fff;
+  color: var(--ink);
+}
+
+.btnGhostOnDark {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid var(--border-on-dark);
+}
+
+.btnDarkOnLight {
+  background: var(--ink);
+  color: #fff;
+}
+
+@keyframes aroo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes aroo-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes aroo-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
