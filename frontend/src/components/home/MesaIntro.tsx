@@ -17,7 +17,7 @@ const FEATURES = [
 
 export function MesaIntro() {
   return (
-    <section id="mesa" className={styles.section}>
+    <section className={styles.section}>
       <div className={`container ${styles.grid}`}>
         <div>
           <p className="eyebrow">Flagship product</p>

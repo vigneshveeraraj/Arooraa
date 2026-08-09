@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BookDemoButton } from "@/components/demo-request/BookDemoButton";
 import styles from "./FinalCta.module.css";
 
@@ -5,19 +6,15 @@ export function FinalCta() {
   return (
     <section id="contact" className={styles.section}>
       <div className={`container ${styles.inner}`}>
-        <h2 className={styles.heading}>
-          Ready to build smarter
-          <br />
-          business operations?
-        </h2>
+        <h2 className={styles.heading}>Ready to build something?</h2>
         <p className={styles.subtitle}>
-          Book a MESA demo, or talk to us about an AI or software product for your business.
+          Start a project with our engineering team, or book a personalised MESA demo.
         </p>
         <div className={styles.ctaRow}>
-          <BookDemoButton className="btn btnPrimary">Book a Demo</BookDemoButton>
-          <a href="#contact" className="btn btnGhostOnDark">
-            Contact Arooraa
-          </a>
+          <Link href="/start-project" className="btn btnPrimary">
+            Start a Project
+          </Link>
+          <BookDemoButton className="btn btnGhostOnDark">Book a MESA Demo</BookDemoButton>
         </div>
       </div>
     </section>

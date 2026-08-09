@@ -1,8 +1,7 @@
 export const NAV_LINKS = [
+  { label: "Services", href: "/services" },
+  { label: "How We Work", href: "#how-we-work" },
   { label: "MESA", href: "#mesa" },
-  { label: "Platform", href: "#journey" },
-  { label: "AI Solutions", href: "#solutions" },
-  { label: "Services", href: "#services" },
   { label: "Smart Mirror", href: "/smart-mirror.html", badge: "Soon" },
 ] as const;
 
@@ -15,8 +14,8 @@ export const FOOTER_PRODUCT_LINKS = [
 ] as const;
 
 export const FOOTER_COMPANY_LINKS = [
-  { label: "AI Solutions", href: "#solutions" },
-  { label: "Services", href: "#services" },
+  { label: "Services", href: "/services" },
+  { label: "How We Work", href: "#how-we-work" },
   { label: "Blog", href: "/blog.html" },
   { label: "Contact", href: "#contact" },
 ] as const;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FOOTER_COMPANY_LINKS, FOOTER_PRODUCT_LINKS } from "@/lib/site-content";
 import { BookDemoButton } from "@/components/demo-request/BookDemoButton";
 import styles from "./Footer.module.css";
@@ -52,7 +53,12 @@ export function Footer() {
 
         <div className={styles.col}>
           <h3 className={styles.colTitle}>Get Started</h3>
-          <BookDemoButton className={styles.demoButton}>Book a Demo</BookDemoButton>
+          <div className={styles.getStartedButtons}>
+            <Link href="/start-project" className={styles.demoButton}>
+              Start a Project
+            </Link>
+            <BookDemoButton className={styles.secondaryButton}>Book a MESA Demo</BookDemoButton>
+          </div>
         </div>
       </div>
 

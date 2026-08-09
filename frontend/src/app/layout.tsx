@@ -21,9 +21,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Arooraa — AI-first Software Products",
+  title: "Arooraa — Product Engineering & Innovation Partner",
   description:
-    "Arooraa builds intelligent platforms for restaurants and modern businesses. Our flagship product, MESA, simplifies ordering, kitchen workflows, billing, and AI-powered insights.",
+    "Arooraa helps businesses and founders go from idea to production — discovery, product definition, design, architecture, development, testing, deployment and ongoing support. MESA, our restaurant operating platform, is proof of how we build.",
 };
 
 export default function RootLayout({

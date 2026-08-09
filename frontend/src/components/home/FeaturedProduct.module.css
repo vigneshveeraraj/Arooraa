@@ -1,0 +1,26 @@
+.section {
+  background: var(--bg-light);
+  color: var(--ink);
+  padding: 90px 0 0;
+}
+
+.inner {
+  text-align: center;
+  max-width: 64ch;
+  margin: 0 auto;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.4vw, 44px);
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 16.5px;
+  line-height: 1.6;
+  margin: 0;
+}

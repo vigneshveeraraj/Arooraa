@@ -86,7 +86,7 @@
   font-weight: 600;
 }
 
-.demoButton {
+.startProjectButton {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -103,7 +103,28 @@
   font-family: inherit;
 }
 
-.demoButton:hover {
+.startProjectButton:hover {
+  transform: translateY(-1px);
+}
+
+.demoLinkBtn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-on-dark);
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-family: inherit;
+}
+
+.demoLinkBtn:hover {
   transform: translateY(-1px);
 }
 
@@ -114,7 +135,8 @@
 }
 
 @media (max-width: 640px) {
-  .contactLink {
+  .contactLink,
+  .demoLinkBtn {
     display: none;
   }
 }

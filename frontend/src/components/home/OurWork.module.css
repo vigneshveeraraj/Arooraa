@@ -1,0 +1,88 @@
+.section {
+  background: var(--bg-light);
+  color: var(--ink);
+  padding: 110px 0;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.4vw, 44px);
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  max-width: 20ch;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 60ch;
+  margin: 0 0 56px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: var(--bg-light-alt);
+  border: 1px solid var(--border-on-light);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.bulletList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.bulletList li {
+  padding-left: 18px;
+  position: relative;
+}
+
+.bulletList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-orange);
+}
+
+.proofLink {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.proofLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

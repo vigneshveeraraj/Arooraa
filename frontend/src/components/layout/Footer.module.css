@@ -63,7 +63,17 @@
   color: #fff;
 }
 
+.getStartedButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 .demoButton {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   background: var(--accent-orange);
   color: #fff;
   font-weight: 700;
@@ -71,6 +81,21 @@
   padding: 11px 18px;
   border-radius: var(--radius-sm);
   border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-on-dark);
   cursor: pointer;
   font-family: inherit;
 }

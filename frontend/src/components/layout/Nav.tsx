@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { NAV_LINKS } from "@/lib/site-content";
 import { BookDemoButton } from "@/components/demo-request/BookDemoButton";
 import styles from "./Nav.module.css";
@@ -49,7 +50,10 @@ export function Nav() {
           <a href="#contact" className={styles.contactLink}>
             Contact
           </a>
-          <BookDemoButton className={styles.demoButton}>Book a Demo</BookDemoButton>
+          <BookDemoButton className={styles.demoLinkBtn}>Book a Demo</BookDemoButton>
+          <Link href="/start-project" className={styles.startProjectButton}>
+            Start a Project
+          </Link>
         </div>
       </div>
     </nav>
