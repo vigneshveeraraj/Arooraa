@@ -23,6 +23,12 @@ arooraa:
     window-minutes: ${AROORAA_RATE_LIMIT_WINDOW_MINUTES:10}
   duplicate:
     window-minutes: ${AROORAA_DUPLICATE_WINDOW_MINUTES:5}
+  project-enquiry:
+    duplicate:
+      window-minutes: ${AROORAA_PROJECT_ENQUIRY_DUPLICATE_WINDOW_MINUTES:5}
+    rate-limit:
+      max-requests: ${AROORAA_PROJECT_ENQUIRY_RATE_LIMIT_MAX_REQUESTS:5}
+      window-minutes: ${AROORAA_PROJECT_ENQUIRY_RATE_LIMIT_WINDOW_MINUTES:10}
 
 management:
   endpoints:
