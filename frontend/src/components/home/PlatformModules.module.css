@@ -1,0 +1,95 @@
+.section {
+  background: var(--bg-light-alt);
+  color: var(--ink);
+  padding: 110px 0;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.4vw, 46px);
+  letter-spacing: -0.025em;
+  margin: 0 0 16px;
+  max-width: 18ch;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 60ch;
+  margin: 0 0 56px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: var(--bg-light);
+  border: 1px solid var(--border-on-light);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.icon {
+  font-size: 22px;
+}
+
+.status {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  border-radius: 100px;
+}
+
+.statusAvailable {
+  color: #0f8a52;
+  background: rgba(15, 138, 82, 0.12);
+}
+
+.statusPreview {
+  color: #b5590c;
+  background: rgba(224, 128, 58, 0.14);
+}
+
+.statusRoadmap {
+  color: var(--muted);
+  background: rgba(91, 91, 107, 0.12);
+}
+
+.cardTitle {
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.cardBody {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

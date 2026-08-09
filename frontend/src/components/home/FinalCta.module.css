@@ -1,0 +1,32 @@
+.section {
+  background: var(--bg-dark);
+  border-top: 1px solid var(--border-on-dark);
+  padding: 110px 0;
+}
+
+.inner {
+  text-align: center;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 20px;
+}
+
+.subtitle {
+  color: var(--muted-on-dark);
+  font-size: 17px;
+  margin: 0 0 36px;
+}
+
+.ctaRow {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}

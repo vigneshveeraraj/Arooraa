@@ -1,0 +1,89 @@
+.section {
+  background: var(--bg-dark);
+  padding: 110px 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.4vw, 44px);
+  letter-spacing: -0.025em;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.subtitle {
+  color: var(--muted-on-dark);
+  font-size: 16.5px;
+  line-height: 1.6;
+  margin: 0 0 30px;
+  max-width: 52ch;
+}
+
+.mirrorWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.mirror {
+  width: 100%;
+  max-width: 230px;
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(160deg, #14141c, #08080c);
+  border: 1px solid var(--border-on-dark);
+  border-radius: 28px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: aroo-float 8s ease-in-out infinite;
+}
+
+.mirrorTime {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mirrorMeta {
+  font-size: 12.5px;
+  color: var(--muted-on-dark);
+  margin-top: -10px;
+}
+
+.mirrorCard {
+  margin-top: auto;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mirrorCardLabel {
+  font-size: 10.5px;
+  color: var(--accent-2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mirrorCardValue {
+  font-size: 12.5px;
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
