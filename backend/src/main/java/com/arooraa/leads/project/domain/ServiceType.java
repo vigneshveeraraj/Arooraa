@@ -1,0 +1,13 @@
+package com.arooraa.leads.project.domain;
+
+public enum ServiceType {
+    IDEA_PRODUCT_CONSULTING,
+    WEBSITE_DIGITAL_PLATFORM,
+    CUSTOM_SOFTWARE,
+    SAAS_PRODUCT,
+    MOBILE_APPLICATION,
+    AI_AUTOMATION,
+    APPLICATION_MODERNIZATION,
+    CLOUD_DEVOPS,
+    NOT_SURE
+}
