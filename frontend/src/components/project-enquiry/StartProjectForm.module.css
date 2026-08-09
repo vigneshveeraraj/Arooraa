@@ -1,0 +1,176 @@
+.form {
+  max-width: 560px;
+}
+
+.progress {
+  display: flex;
+  list-style: none;
+  margin: 0 0 32px;
+  padding: 0;
+  gap: 8px;
+}
+
+.progressStep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  opacity: 0.5;
+}
+
+.progressStepActive,
+.progressStepDone {
+  opacity: 1;
+}
+
+.progressDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-on-dark);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.progressStepActive .progressDot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.progressStepDone .progressDot {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+.progressLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  display: none;
+}
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 8px;
+}
+
+.stepHeading {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-on-dark);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 14.5px;
+  font-family: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: #e05a3a;
+}
+
+.fieldError {
+  color: #ff9d7a;
+  font-size: 12.5px;
+}
+
+.formError {
+  background: rgba(224, 90, 58, 0.12);
+  border: 1px solid rgba(224, 90, 58, 0.3);
+  color: #ff9d7a;
+  font-size: 13.5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.navRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.nextBtn {
+  min-width: 140px;
+  justify-content: center;
+}
+
+.nextBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.successPanel {
+  max-width: 560px;
+  padding: 24px 0;
+}
+
+.successTitle {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.enquiryNumber {
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+
+.successMessage {
+  color: var(--muted-on-dark);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+@media (min-width: 560px) {
+  .progressLabel {
+    display: inline;
+  }
+}

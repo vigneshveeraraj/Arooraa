@@ -1,0 +1,23 @@
+.page {
+  background: var(--bg-dark);
+  padding: 140px 0 110px;
+  min-height: 60vh;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(30px, 4vw, 44px);
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 16px;
+  max-width: 20ch;
+}
+
+.subtitle {
+  color: var(--muted-on-dark);
+  font-size: 16.5px;
+  line-height: 1.6;
+  max-width: 56ch;
+  margin: 0 0 44px;
+}
