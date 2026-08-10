@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -99,6 +100,10 @@ public class ProjectEnquiry {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     protected ProjectEnquiry() {
     }
@@ -235,6 +240,11 @@ public class ProjectEnquiry {
         return status;
     }
 
+    /** Admin-only mutation (Milestone 2C). Public submission always starts at NEW. */
+    public void updateStatus(EnquiryStatus newStatus) {
+        this.status = newStatus;
+    }
+
     public String getIpHash() {
         return ipHash;
     }
@@ -249,5 +259,9 @@ public class ProjectEnquiry {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public long getVersion() {
+        return version;
     }
 }
