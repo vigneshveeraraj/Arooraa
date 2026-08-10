@@ -280,7 +280,12 @@ public class AdminLeadQueryService {
     /**
      * DemoRequest has no stored reference number (unlike ProjectEnquiry.enquiryNumber) —
      * deliberately not added in Milestone 2C to avoid touching the tested MESA write path.
-     * This derives a stable, unique, human-readable label purely from the existing id.
+     * This derives a label purely from the existing id: a pure function of {@code id}, so
+     * it is stable/deterministic for a given lead (calling it twice for the same id always
+     * returns the same string) without persisting anything new. It is NOT a database
+     * business identifier — it is computed on read, never stored, and exists only to give
+     * the admin UI something reference-shaped to display and search on. See
+     * docs/mesa-reference-number.md for the full rationale and search behaviour.
      */
     static String syntheticMesaReference(UUID id) {
         return "MESA-" + id.toString().replace("-", "").substring(0, 8).toUpperCase(Locale.ROOT);

@@ -3,6 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StartProjectForm } from "./StartProjectForm";
 
+// Each full-flow test drives four wizard steps of real userEvent typing/selecting, which is
+// inherently slower than the default 5s Vitest budget, especially under host CPU contention.
+// A genuine hang would still fail at this longer timeout — this only gives real, sequential
+// interaction time enough room.
+vi.setConfig({ testTimeout: 15000 });
+
 async function fillStep0(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText("I'm looking for"), "CUSTOM_SOFTWARE");
   await user.click(screen.getByRole("button", { name: "Next" }));

@@ -133,6 +133,13 @@ class AdminIT {
         }
 
         HttpHeaders headers() {
+            return headers(true);
+        }
+
+        /** With {@code includeCsrfHeader=false}, omits X-XSRF-TOKEN while still sending the
+         * session (and, if present, XSRF-TOKEN) cookies — used to prove CSRF is enforced even
+         * for an otherwise-authenticated request. */
+        HttpHeaders headers(boolean includeCsrfHeader) {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             if (!cookies.isEmpty()) {
@@ -145,16 +152,22 @@ class AdminIT {
                 });
                 headers.set(HttpHeaders.COOKIE, sb.toString());
             }
-            String csrf = cookies.get("XSRF-TOKEN");
-            if (csrf != null) {
-                headers.set("X-XSRF-TOKEN", csrf);
+            if (includeCsrfHeader) {
+                String csrf = cookies.get("XSRF-TOKEN");
+                if (csrf != null) {
+                    headers.set("X-XSRF-TOKEN", csrf);
+                }
             }
             return headers;
         }
     }
 
     private <T> ResponseEntity<T> call(CookieJar jar, HttpMethod method, String path, Object body, Class<T> type) {
-        ResponseEntity<T> response = restTemplate.exchange(baseUrl() + path, method, new HttpEntity<>(body, jar.headers()), type);
+        return call(jar, method, path, body, type, jar.headers());
+    }
+
+    private <T> ResponseEntity<T> call(CookieJar jar, HttpMethod method, String path, Object body, Class<T> type, HttpHeaders headers) {
+        ResponseEntity<T> response = restTemplate.exchange(baseUrl() + path, method, new HttpEntity<>(body, headers), type);
         jar.update(response);
         return response;
     }
@@ -196,6 +209,16 @@ class AdminIT {
 
         <T> ResponseEntity<T> call(HttpMethod method, String path, Object body, Class<T> type) {
             return AdminIT.this.call(jar, method, path, body, type);
+        }
+
+        <T> ResponseEntity<T> callWithoutCsrfToken(HttpMethod method, String path, Object body, Class<T> type) {
+            return AdminIT.this.call(jar, method, path, body, type, jar.headers(false));
+        }
+
+        <T> ResponseEntity<T> callWithWrongCsrfToken(HttpMethod method, String path, Object body, Class<T> type) {
+            HttpHeaders headers = jar.headers(false);
+            headers.set("X-XSRF-TOKEN", "not-the-real-token-" + UUID.randomUUID());
+            return AdminIT.this.call(jar, method, path, body, type, headers);
         }
     }
 
@@ -290,6 +313,91 @@ class AdminIT {
         assertEquals(HttpStatus.UNAUTHORIZED, r2.getStatusCode());
         assertEquals(HttpStatus.UNAUTHORIZED, r3.getStatusCode());
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, r4.getStatusCode());
+    }
+
+    // ---- CSRF ----
+    //
+    // These prove the double-submit CSRF setup actually rejects a mismatched/missing token
+    // for an authenticated admin mutation, not just that a valid token happens to work (every
+    // other mutating test in this class already proves the valid-token path implicitly, since
+    // LoggedInSession.call() always sends a correct X-XSRF-TOKEN derived from the real cookie).
+
+    @Test
+    void adminMutationWithoutCsrfTokenIsRejected() {
+        ProjectEnquiry project = seedProjectEnquiry("Csrf Missing Token Person", "csrf-missing@example.com");
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Map> response = session.callWithoutCsrfToken(HttpMethod.PATCH,
+                "/api/v1/admin/leads/PROJECT_ENQUIRY/" + project.getId() + "/status",
+                Map.of("status", "CONTACTED"), Map.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("FORBIDDEN", response.getBody().get("code"));
+    }
+
+    @Test
+    void adminMutationWithWrongCsrfTokenIsRejected() {
+        ProjectEnquiry project = seedProjectEnquiry("Csrf Wrong Token Person", "csrf-wrong@example.com");
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Map> response = session.callWithWrongCsrfToken(HttpMethod.PATCH,
+                "/api/v1/admin/leads/PROJECT_ENQUIRY/" + project.getId() + "/status",
+                Map.of("status", "CONTACTED"), Map.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals("FORBIDDEN", response.getBody().get("code"));
+    }
+
+    @Test
+    void adminMutationWithValidCsrfTokenSucceeds() {
+        ProjectEnquiry project = seedProjectEnquiry("Csrf Valid Token Person", "csrf-valid@example.com");
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Void> response = session.call(HttpMethod.PATCH,
+                "/api/v1/admin/leads/PROJECT_ENQUIRY/" + project.getId() + "/status",
+                Map.of("status", "CONTACTED"), Void.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+    }
+
+    @Test
+    void publicProjectEnquirySubmissionRemainsCsrfExempt() {
+        // Deliberately no cookie jar, no session, and no CSRF token/cookie at all — proves
+        // the public path is exempt outright, not merely tolerant of a primed-but-unused token.
+        Map<String, Object> enquiryBody = new LinkedHashMap<>();
+        enquiryBody.put("name", "Csrf Exempt Enquiry Person");
+        enquiryBody.put("businessEmail", "csrf-exempt-enquiry@example.com");
+        enquiryBody.put("phone", "+919876500197");
+        enquiryBody.put("country", "India");
+        enquiryBody.put("serviceType", "CUSTOM_SOFTWARE");
+        enquiryBody.put("projectType", "NEW_PRODUCT");
+        enquiryBody.put("description", "Proves the project-enquiry submission endpoint stays CSRF-exempt.");
+        enquiryBody.put("existingSystem", false);
+        enquiryBody.put("budgetRange", "FROM_2L_TO_5L");
+        enquiryBody.put("timeline", "FROM_1_TO_3_MONTHS");
+        enquiryBody.put("preferredContactMethod", "PHONE");
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                baseUrl() + "/api/v1/project-enquiries", enquiryBody, Map.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+    }
+
+    @Test
+    void publicMesaDemoSubmissionRemainsCsrfExempt() {
+        Map<String, Object> demoBody = new LinkedHashMap<>();
+        demoBody.put("contactName", "Csrf Exempt Demo Contact");
+        demoBody.put("restaurantName", "Csrf Exempt Demo Kitchen");
+        demoBody.put("whatsappNumber", "9876500196");
+        demoBody.put("city", "Chennai");
+        demoBody.put("outletCount", "ONE");
+        demoBody.put("restaurantType", "CASUAL_DINING");
+        demoBody.put("primaryChallenge", "BILLING_POS");
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                baseUrl() + "/api/v1/demo-requests", demoBody, Map.class);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
     @Test

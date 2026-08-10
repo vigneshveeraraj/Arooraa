@@ -65,6 +65,15 @@ public class AdminUser {
         this.lastLoginAt = at;
     }
 
+    /** Operational password reset (see AdminAccountMaintenanceRunner) — never accepts a raw password. */
+    public void resetPasswordHash(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     public UUID getId() {
         return id;
     }
