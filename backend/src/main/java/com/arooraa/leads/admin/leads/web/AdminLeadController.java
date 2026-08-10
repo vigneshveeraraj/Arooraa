@@ -89,7 +89,7 @@ public class AdminLeadController {
 
     @PatchMapping("/{type}/{id}/estimated-value")
     public ResponseEntity<Void> updateEstimatedValue(@PathVariable String type, @PathVariable UUID id,
-                                                       @RequestBody EstimatedValueUpdateRequest request,
+                                                       @Valid @RequestBody EstimatedValueUpdateRequest request,
                                                        @AuthenticationPrincipal AdminPrincipal principal) {
         managementService.updateEstimatedValue(requireLeadType(type), id, request.estimatedValue(), request.currency(),
                 request.expectedVersion(), principal.getId());

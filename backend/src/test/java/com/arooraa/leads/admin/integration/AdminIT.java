@@ -419,6 +419,18 @@ class AdminIT {
     }
 
     @Test
+    void negativeEstimatedValueReturns400() {
+        ProjectEnquiry project = seedProjectEnquiry("Negative Value Person", "negative-value@example.com");
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Map> response = session.call(HttpMethod.PATCH,
+                "/api/v1/admin/leads/PROJECT_ENQUIRY/" + project.getId() + "/estimated-value",
+                Map.of("estimatedValue", -500), Map.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
     void fullLeadLifecycle_statusFollowUpAssignmentValueLostReasonNotesAndActivity() {
         ProjectEnquiry project = seedProjectEnquiry("Lifecycle Test Person", "lifecycle-test@example.com");
         LoggedInSession session = loginAsNewAdmin();
