@@ -1,0 +1,123 @@
+.heading {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 24px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.typeFilter {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-on-dark);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.typeButton {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.typeButtonActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-on-dark);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.searchForm {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.searchInput {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-on-dark);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.searchButton {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-on-dark);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.error {
+  background: rgba(224, 90, 58, 0.12);
+  border: 1px solid rgba(224, 90, 58, 0.3);
+  color: #ff9d7a;
+  font-size: 13.5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.loading {
+  color: var(--muted-on-dark);
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.pageButton {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-on-dark);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}

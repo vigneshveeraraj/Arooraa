@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/layout/Nav";
-import { Footer } from "@/components/layout/Footer";
-import { DemoModalProvider } from "@/components/demo-request/DemoModalContext";
-import { DemoRequestModal } from "@/components/demo-request/DemoRequestModal";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -33,14 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
-      <body>
-        <DemoModalProvider>
-          <Nav />
-          {children}
-          <Footer />
-          <DemoRequestModal />
-        </DemoModalProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
