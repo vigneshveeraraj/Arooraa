@@ -1,5 +1,12 @@
 server:
   port: ${SERVER_PORT:8090}
+  # Behind Nginx terminating TLS, the raw connection to this app is plain HTTP — without
+  # this, request.isSecure()/getScheme() read as insecure regardless of the real client
+  # protocol, which affects Spring Security's own secure-cookie derivation (e.g. the CSRF
+  # cookie, whose Secure attribute defaults from request.isSecure() when not explicit).
+  # ForwardedHeaderFilter only rewrites scheme/host/port from X-Forwarded-*, not the peer
+  # address, so it doesn't interact with ClientIpResolver's own trusted-proxy IP logic.
+  forward-headers-strategy: framework
   servlet:
     session:
       cookie:

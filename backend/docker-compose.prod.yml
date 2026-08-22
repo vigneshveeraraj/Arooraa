@@ -1,0 +1,75 @@
+# Production compose for the AROORAA lead-service stack — a separate file from
+# docker-compose.yml (local dev), not an override of it, because the two have
+# deliberately different concerns: dev binds ports to all interfaces for convenience
+# and defaults secrets to "changeme"; this file binds only to localhost, publishes no
+# database port to the host at all, and requires real secrets to be present in the
+# environment (no defaults for anything sensitive).
+#
+# Usage: docker compose -f docker-compose.prod.yml --env-file /opt/arooraa/config/production.env up -d
+
+name: arooraa-leads-prod
+
+services:
+  arooraa-leads-postgres:
+    image: postgres:16-alpine
+    container_name: arooraa-leads-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arooraa_leads
+      POSTGRES_USER: arooraa_leads_app
+      POSTGRES_PASSWORD: ${AROORAA_DB_PASSWORD:?AROORAA_DB_PASSWORD must be set}
+    volumes:
+      - arooraa_leads_pgdata:/var/lib/postgresql/data
+    networks:
+      - arooraa-leads-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arooraa_leads_app -d arooraa_leads"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Deliberately no `ports:` — only arooraa-lead-service needs to reach this, over the
+    # internal Docker network by service name. Not reachable from the host or the public
+    # internet at all.
+
+  arooraa-lead-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arooraa-lead-service
+    restart: unless-stopped
+    depends_on:
+      arooraa-leads-postgres:
+        condition: service_healthy
+    environment:
+      AROORAA_DB_URL: jdbc:postgresql://arooraa-leads-postgres:5432/arooraa_leads
+      AROORAA_DB_USERNAME: arooraa_leads_app
+      AROORAA_DB_PASSWORD: ${AROORAA_DB_PASSWORD:?AROORAA_DB_PASSWORD must be set}
+      AROORAA_IP_HASH_SECRET: ${AROORAA_IP_HASH_SECRET:?AROORAA_IP_HASH_SECRET must be set}
+      AROORAA_TRUSTED_PROXIES: 127.0.0.1
+      AROORAA_ADMIN_COOKIE_SECURE: "true"
+      AROORAA_ADMIN_BOOTSTRAP_EMAIL: ${AROORAA_ADMIN_BOOTSTRAP_EMAIL:-}
+      AROORAA_ADMIN_BOOTSTRAP_PASSWORD: ${AROORAA_ADMIN_BOOTSTRAP_PASSWORD:-}
+      AROORAA_ADMIN_BOOTSTRAP_NAME: ${AROORAA_ADMIN_BOOTSTRAP_NAME:-Admin}
+      SERVER_PORT: 8090
+    ports:
+      # Localhost-only — Nginx reverse-proxies to this; never exposed publicly.
+      - "127.0.0.1:8090:8090"
+    networks:
+      - arooraa-leads-net
+    healthcheck:
+      # The runtime image (eclipse-temurin:*-jre) has no curl/wget, only bash — this uses
+      # bash's own /dev/tcp to issue a real HTTP GET against /actuator/health rather than
+      # adding packages to the image just for a healthcheck.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8090 && printf 'GET /actuator/health HTTP/1.0\r\n\r\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+networks:
+  arooraa-leads-net:
+    name: arooraa-leads-net
+
+volumes:
+  arooraa_leads_pgdata:
+    name: arooraa_leads_pgdata
