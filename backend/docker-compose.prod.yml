@@ -50,6 +50,13 @@ services:
       AROORAA_ADMIN_BOOTSTRAP_EMAIL: ${AROORAA_ADMIN_BOOTSTRAP_EMAIL:-}
       AROORAA_ADMIN_BOOTSTRAP_PASSWORD: ${AROORAA_ADMIN_BOOTSTRAP_PASSWORD:-}
       AROORAA_ADMIN_BOOTSTRAP_NAME: ${AROORAA_ADMIN_BOOTSTRAP_NAME:-Admin}
+      # Only meaningful when explicitly set for a one-off account-recovery restart (see
+      # docs/admin-account-recovery.md) — SPRING_PROFILES_ACTIVE stays unset/empty for
+      # normal operation, which leaves AdminAccountMaintenanceRunner entirely inert.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+      AROORAA_ADMIN_RESET_EMAIL: ${AROORAA_ADMIN_RESET_EMAIL:-}
+      AROORAA_ADMIN_RESET_PASSWORD: ${AROORAA_ADMIN_RESET_PASSWORD:-}
+      AROORAA_ADMIN_RESET_NAME: ${AROORAA_ADMIN_RESET_NAME:-Admin}
       SERVER_PORT: 8090
     ports:
       # Localhost-only — Nginx reverse-proxies to this; never exposed publicly.
