@@ -1,0 +1,33 @@
+.list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: var(--space-4);
+}
+
+.row dt {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--admin-text-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--admin-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

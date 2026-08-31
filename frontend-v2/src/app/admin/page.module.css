@@ -1,0 +1,24 @@
+.heading {
+  margin: 0 0 var(--space-5);
+}
+
+.subheading {
+  margin: 0 0 var(--space-3);
+}
+
+.error {
+  background: var(--admin-danger-bg);
+  border: 1px solid rgba(179, 38, 30, 0.3);
+  color: var(--admin-danger);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.loading {
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+  padding: var(--space-8) 0;
+}

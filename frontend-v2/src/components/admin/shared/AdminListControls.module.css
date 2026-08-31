@@ -1,0 +1,159 @@
+/*
+ * Shared list-page chrome — heading, filter toolbar, error/loading states,
+ * pagination. Used by both the Leads and Project Enquiries pages so the two
+ * lists feel like one consistent application (W3.2D.1 Phases 6–7).
+ */
+
+.heading {
+  margin: 0 0 var(--space-5);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  align-items: center;
+}
+
+.typeFilter {
+  display: flex;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--radius-md);
+  padding: 3px;
+}
+
+.typeButton {
+  background: none;
+  border: none;
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  padding: 7px 14px;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+}
+
+.typeButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: 1px;
+}
+
+.typeButtonActive {
+  background: var(--admin-accent);
+  color: var(--admin-accent-contrast);
+}
+
+.select {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  color: var(--admin-text);
+  font-size: var(--text-body-sm);
+  font-family: inherit;
+}
+
+.select:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.searchForm {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 240px;
+}
+
+.searchInput {
+  flex: 1;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  color: var(--admin-text);
+  font-size: var(--text-body-sm);
+  font-family: inherit;
+}
+
+.searchInput:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.searchButton {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  color: var(--admin-text);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.searchButton:hover {
+  background: var(--admin-surface-muted);
+}
+
+.searchButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.error {
+  background: var(--admin-danger-bg);
+  border: 1px solid rgba(179, 38, 30, 0.3);
+  color: var(--admin-danger);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.loading {
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+  padding: var(--space-8) 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.pageButton {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  color: var(--admin-text);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: var(--admin-surface-muted);
+}
+
+.pageButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: var(--text-body-sm);
+  color: var(--admin-text-muted);
+}

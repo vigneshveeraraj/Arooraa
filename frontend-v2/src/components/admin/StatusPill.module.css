@@ -1,0 +1,45 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.statusNew {
+  color: var(--admin-status-new-fg);
+  background: var(--admin-status-new-bg);
+}
+
+.statusContacted {
+  color: var(--admin-status-contacted-fg);
+  background: var(--admin-status-contacted-bg);
+}
+
+.statusQualified {
+  color: var(--admin-status-qualified-fg);
+  background: var(--admin-status-qualified-bg);
+}
+
+.statusProposal {
+  color: var(--admin-status-proposal-fg);
+  background: var(--admin-status-proposal-bg);
+}
+
+.statusNegotiation {
+  color: var(--admin-status-negotiation-fg);
+  background: var(--admin-status-negotiation-bg);
+}
+
+.statusWon {
+  color: var(--admin-status-won-fg);
+  background: var(--admin-status-won-bg);
+}
+
+.statusLost {
+  color: var(--admin-status-lost-fg);
+  background: var(--admin-status-lost-bg);
+}

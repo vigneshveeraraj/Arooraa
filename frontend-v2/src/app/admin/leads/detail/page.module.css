@@ -1,0 +1,104 @@
+.backLink {
+  display: inline-block;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--admin-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.backLink:hover {
+  color: var(--admin-accent);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.reference {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--admin-text-muted);
+  margin: 0 0 2px;
+}
+
+.heading {
+  margin: 0;
+}
+
+.headerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.typeTag {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--admin-text-muted);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--admin-border-strong);
+}
+
+.createdAt {
+  font-size: var(--text-body-sm);
+  color: var(--admin-text-muted);
+}
+
+.conflict {
+  background: var(--admin-status-proposal-bg);
+  border: 1px solid var(--admin-status-proposal-fg);
+  color: var(--admin-status-proposal-fg);
+  font-size: var(--text-body-sm);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+}
+
+.reloadButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.loading {
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+  padding: var(--space-8) 0;
+}
+
+.errorPage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-8) 0;
+}
+
+.errorPage p {
+  color: var(--admin-danger);
+  font-weight: var(--weight-medium);
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr 380px;
+    align-items: start;
+  }
+}

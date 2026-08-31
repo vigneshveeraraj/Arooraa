@@ -1,0 +1,8 @@
+.loading {
+  min-height: 40vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+}

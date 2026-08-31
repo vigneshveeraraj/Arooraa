@@ -1,0 +1,140 @@
+/*
+ * Shared responsive table shell for LeadsTable and ProjectEnquiriesTable
+ * (W3.2D.1 Phase 13: "choose an intentional pattern... do not allow
+ * arbitrary broken overflow"). Below 700px each row becomes a labelled
+ * stacked card via the data-label attribute already on every <td> —
+ * genuinely usable for a quick lead check from a phone.
+ */
+
+.wrap {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-sm);
+}
+
+.table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--admin-surface-muted);
+}
+
+.table tbody tr:focus-within {
+  background: var(--admin-surface-muted);
+}
+
+.primary {
+  font-weight: var(--weight-semibold);
+}
+
+.secondary {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: var(--weight-regular);
+  color: var(--admin-text-muted);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.overdue {
+  color: var(--admin-danger);
+  font-weight: var(--weight-semibold);
+}
+
+.openLink {
+  color: var(--admin-accent);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-body-sm);
+  white-space: nowrap;
+}
+
+.openLink:hover {
+  text-decoration: underline;
+}
+
+.openLink:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+.empty {
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  color: var(--admin-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+@media (max-width: 760px) {
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .table td {
+    border: none;
+    padding: 3px 0;
+    white-space: normal;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .secondary {
+    text-align: right;
+  }
+}

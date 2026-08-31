@@ -1,0 +1,56 @@
+/*
+ * W3.2D.1 — admin-only token extension. Imported ONLY by app/admin/layout.tsx,
+ * never by the public site, so none of this can leak into or be affected by
+ * public-page styling (Phase "Do not modify public product/service pages").
+ *
+ * Builds on tokens.css's existing scale (spacing, radius, type, the base
+ * --color-accent brand indigo) rather than reinventing it — this file only
+ * adds what an operational, data-dense workspace needs beyond the marketing
+ * site's token set: a light neutral workspace surface, a dark branded top
+ * bar (restrained — header only, not a full dark app), and seven readable,
+ * never color-only status colors for the CRM pipeline.
+ */
+
+:root {
+  --admin-bg: #f5f6f9;
+  --admin-surface: #ffffff;
+  --admin-surface-muted: #f0f1f5;
+  --admin-border: #e2e4ea;
+  --admin-border-strong: #cbced9;
+  --admin-text: #14151a;
+  --admin-text-muted: #5b5d6b;
+
+  /* Dark branded top bar — the one deliberate dark element (Phase 2: "A dark
+     sidebar/header may be used if it genuinely improves hierarchy"). Reuses
+     the same navy as the public site's own dark-section tokens. */
+  --admin-header-bg: #0d0e13;
+  --admin-header-border: rgba(244, 244, 246, 0.12);
+  --admin-header-text: #f4f4f6;
+  --admin-header-text-muted: rgba(244, 244, 246, 0.65);
+
+  --admin-accent: var(--color-accent);
+  --admin-accent-hover: var(--color-accent-hover);
+  --admin-accent-contrast: var(--color-accent-contrast);
+  --admin-focus: var(--color-focus);
+
+  --admin-danger: #b3261e;
+  --admin-danger-bg: #fbe9e8;
+
+  /* Status pipeline — text label always renders alongside color (never
+     color-only), but each still gets a genuinely distinct hue so a quick
+     scan of a dense table is possible. */
+  --admin-status-new-fg: #1d4ed8;
+  --admin-status-new-bg: #e6edfd;
+  --admin-status-contacted-fg: #0f766e;
+  --admin-status-contacted-bg: #e1f4f1;
+  --admin-status-qualified-fg: #2a359c;
+  --admin-status-qualified-bg: #eaebf9;
+  --admin-status-proposal-fg: #92620a;
+  --admin-status-proposal-bg: #fbf0dc;
+  --admin-status-negotiation-fg: #c2410c;
+  --admin-status-negotiation-bg: #fdeade;
+  --admin-status-won-fg: #157a4b;
+  --admin-status-won-bg: #e6f4ec;
+  --admin-status-lost-fg: #6b7280;
+  --admin-status-lost-bg: #eceef1;
+}

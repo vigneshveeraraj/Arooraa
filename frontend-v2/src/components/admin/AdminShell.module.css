@@ -1,0 +1,116 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: var(--admin-header-bg);
+  color: var(--admin-header-text);
+  border-bottom: 1px solid var(--admin-header-border);
+  padding: 0 var(--space-5);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 56px;
+}
+
+.brand {
+  font-weight: var(--weight-bold);
+  font-size: var(--text-body);
+  letter-spacing: 0.02em;
+  color: var(--admin-header-text);
+}
+
+.brandSub {
+  font-weight: var(--weight-medium);
+  color: var(--admin-header-text-muted);
+}
+
+.userArea {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.userName {
+  font-size: var(--text-body-sm);
+  color: var(--admin-header-text-muted);
+  white-space: nowrap;
+}
+
+.logoutButton {
+  background: transparent;
+  border: 1px solid var(--admin-header-border);
+  color: var(--admin-header-text);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  background: rgba(244, 244, 246, 0.08);
+}
+
+.logoutButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-5);
+  padding-bottom: var(--space-3);
+  overflow-x: auto;
+}
+
+.navLink {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--admin-header-text-muted);
+  white-space: nowrap;
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid transparent;
+}
+
+.navLink:hover {
+  color: var(--admin-header-text);
+}
+
+.navLinkActive {
+  color: var(--admin-header-text);
+  border-bottom-color: var(--color-accent-on-dark);
+}
+
+.navLink:focus-visible {
+  outline: var(--focus-ring-width) solid var(--admin-focus);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-6) var(--space-5) var(--space-9);
+  max-width: 1400px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+@media (min-width: 700px) {
+  .header {
+    padding: 0 var(--space-6);
+  }
+
+  .main {
+    padding: var(--space-7) var(--space-6) var(--space-9);
+  }
+}
