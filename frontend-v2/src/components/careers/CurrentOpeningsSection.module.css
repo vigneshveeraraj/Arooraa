@@ -1,0 +1,117 @@
+.title {
+  margin: var(--space-2) 0 0;
+  max-width: 40ch;
+}
+
+.toolbar {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.searchField,
+.teamField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.searchInput,
+.teamSelect {
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border-interactive);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-body);
+}
+
+.searchInput:focus-visible,
+.teamSelect:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.count {
+  margin-top: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.subheading {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.description {
+  color: var(--color-text-muted);
+}
+
+.grid {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.empty {
+  margin-top: var(--space-6);
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+  background: var(--color-bg-subtle);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.emptyActions {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+@media (min-width: 700px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .searchField {
+    flex: 1;
+  }
+
+  .teamField {
+    width: 240px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1025px) {
+  .toolbar {
+    padding: var(--space-6);
+  }
+}

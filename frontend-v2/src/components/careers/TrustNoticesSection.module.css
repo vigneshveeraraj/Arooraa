@@ -1,0 +1,23 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.notice {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.body {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

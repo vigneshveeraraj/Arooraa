@@ -1,0 +1,31 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  grid-template-areas:
+    "header"
+    "panel"
+    "body";
+}
+
+.headerArea {
+  grid-area: header;
+}
+
+.panelArea {
+  grid-area: panel;
+}
+
+.bodyArea {
+  grid-area: body;
+}
+
+@media (min-width: 1025px) {
+  .grid {
+    grid-template-columns: 1fr 320px;
+    column-gap: var(--space-8);
+    grid-template-areas:
+      "header header"
+      "body   panel";
+  }
+}

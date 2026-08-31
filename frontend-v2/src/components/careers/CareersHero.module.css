@@ -1,0 +1,38 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+@media (min-width: 1025px) {
+  .layout {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--space-9);
+  }
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.headline {
+  color: var(--color-text);
+}
+
+.supporting {
+  color: var(--color-text-muted);
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.visual {
+  display: flex;
+  justify-content: center;
+}
