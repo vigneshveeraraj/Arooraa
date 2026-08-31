@@ -1,0 +1,64 @@
+.form {
+  /* W3.2A.2: was max-width: 760px, which forced the whole guided form —
+     including Step 1's card grids — into a narrow, mobile-width column
+     even on wide desktop. The wrapping page Container now supplies the
+     desktop-width cap ("wide", 1280px); individual steps cap their own
+     prose/textarea elements narrower where reading comfort — not the
+     control itself — calls for it (see StepSituation's textarea and
+     ReviewStep's prose paragraphs). */
+  max-width: none;
+}
+
+.draftRestoredNote {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+  display: inline-flex;
+}
+
+.philosophy {
+  color: var(--color-accent-text);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.stepHeading {
+  margin: 0 0 var(--space-6);
+}
+
+.contextNote {
+  margin: calc(-1 * var(--space-4)) 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+.stepHeading:focus-visible {
+  outline: none;
+}
+
+.srOnlyHeading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.navRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.navRow > *:only-child {
+  margin-left: auto;
+}

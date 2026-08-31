@@ -1,0 +1,41 @@
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  background: var(--color-surface);
+}
+
+.chip:hover {
+  border-color: var(--color-border-interactive);
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+}
+
+.chip:has(.input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.selected {
+  border-color: var(--color-accent);
+  background: rgba(42, 53, 156, 0.08);
+  color: var(--color-accent-text);
+  font-weight: var(--weight-semibold);
+}
+
+.checkMark {
+  font-size: 0.7rem;
+}

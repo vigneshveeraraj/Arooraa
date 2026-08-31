@@ -9,9 +9,13 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ProjectEnquiryRepository extends JpaRepository<ProjectEnquiry, UUID> {
+
+    /** Idempotency-key replay lookup (W3.2B §23) — distinct from the time-window duplicate check below. */
+    Optional<ProjectEnquiry> findByIdempotencyKey(String idempotencyKey);
 
     @Query("""
             select p from ProjectEnquiry p

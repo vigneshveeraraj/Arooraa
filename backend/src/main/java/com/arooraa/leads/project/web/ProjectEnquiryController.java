@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,12 +35,13 @@ public class ProjectEnquiryController {
 
     @PostMapping
     public ResponseEntity<ProjectEnquiryResponse> submit(@Valid @RequestBody ProjectEnquiryCreateRequest request,
+                                                           @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                                                            HttpServletRequest httpRequest) {
         String clientIp = clientIpResolver.resolve(httpRequest);
         String ipHash = ipHasher.hash(clientIp);
         String userAgent = truncate(httpRequest.getHeader("User-Agent"), MAX_USER_AGENT_LENGTH);
 
-        ProjectEnquirySubmitOutcome outcome = service.submit(request, ipHash, userAgent);
+        ProjectEnquirySubmitOutcome outcome = service.submit(request, ipHash, userAgent, idempotencyKey);
         return switch (outcome) {
             case ProjectEnquirySubmitOutcome.Created created ->
                     ResponseEntity.status(HttpStatus.CREATED).body(created.body());

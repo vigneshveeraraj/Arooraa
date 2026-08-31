@@ -1,0 +1,21 @@
+.line {
+  text-align: center;
+  color: var(--color-dark-text-muted);
+  margin-bottom: var(--space-5);
+}
+
+.products {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-6);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+  font-weight: var(--weight-semibold);
+}
+
+.products li {
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--color-accent-on-dark);
+}

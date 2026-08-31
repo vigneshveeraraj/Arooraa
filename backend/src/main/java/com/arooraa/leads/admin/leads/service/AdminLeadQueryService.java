@@ -146,19 +146,46 @@ public class AdminLeadQueryService {
                 .orElseThrow(() -> new LeadNotFoundException("Project enquiry not found"));
 
         Map<String, String> fields = new LinkedHashMap<>();
-        putIfPresent(fields, "Service type", humanize(pe.getServiceType().name()));
-        putIfPresent(fields, "Project type", humanize(pe.getProjectType().name()));
+        fields.put("Submission type", humanize(pe.getSubmissionVersion().name()));
+
+        // Legacy-only fields — null for GUIDED rows (W3.2B additive schema), so every one of
+        // these must be null-guarded rather than calling .name() unconditionally as before.
+        putIfPresent(fields, "Service type", humanizeEnum(pe.getServiceType()));
+        putIfPresent(fields, "Project type", humanizeEnum(pe.getProjectType()));
         putIfPresent(fields, "Description", pe.getDescription());
-        fields.put("Existing system", pe.isExistingSystem() ? "Yes" : "No");
-        putIfPresent(fields, "Budget range", humanize(pe.getBudgetRange().name()));
-        putIfPresent(fields, "Timeline", humanize(pe.getTimeline().name()));
-        putIfPresent(fields, "Preferred contact method", humanize(pe.getPreferredContactMethod().name()));
+        if (pe.getExistingSystem() != null) {
+            fields.put("Existing system", pe.getExistingSystem() ? "Yes" : "No");
+        }
+        putIfPresent(fields, "Budget range", humanizeEnum(pe.getBudgetRange()));
+        putIfPresent(fields, "Timeline", humanizeEnum(pe.getTimeline()));
+
+        // Guided-only fields — null for LEGACY rows.
+        putIfPresent(fields, "Solution model", humanizeEnum(pe.getSolutionModel()));
+        putIfPresent(fields, "Engagement model", humanizeEnum(pe.getEngagementModel()));
+        putIfPresent(fields, "Problem statement", pe.getProblemStatement());
+        putIfPresent(fields, "Project stage", humanizeEnum(pe.getProjectStage()));
+        if (pe.getProductTypes() != null && !pe.getProductTypes().isEmpty()) {
+            fields.put("Product types", pe.getProductTypes().stream()
+                    .map(pt -> humanize(pt.name())).sorted().collect(Collectors.joining(", ")));
+        }
+        putIfPresent(fields, "Timeline", humanizeEnum(pe.getGuidedTimeline()));
+        putIfPresent(fields, "Budget range", humanizeEnum(pe.getGuidedBudgetRange()));
+        putIfPresent(fields, "Existing system context", pe.getExistingSystemContext());
+        putIfPresent(fields, "Role", pe.getRole());
+        putIfPresent(fields, "Preferred contact time", humanizeEnum(pe.getPreferredContactTime()));
+        fields.put("WhatsApp consent", pe.isWhatsappConsent() ? "Yes" : "No");
+
+        putIfPresent(fields, "Preferred contact method", humanizeEnum(pe.getPreferredContactMethod()));
+        putIfPresent(fields, "Country code", pe.getCountryCode());
         putIfPresent(fields, "Source", pe.getSource());
         putIfPresent(fields, "Source page", pe.getSourcePage());
+        putIfPresent(fields, "Entry route", pe.getEntryRoute());
         putIfPresent(fields, "Referrer", pe.getReferrer());
         putIfPresent(fields, "UTM source", pe.getUtmSource());
         putIfPresent(fields, "UTM medium", pe.getUtmMedium());
         putIfPresent(fields, "UTM campaign", pe.getUtmCampaign());
+        putIfPresent(fields, "UTM content", pe.getUtmContent());
+        putIfPresent(fields, "Source context", pe.getSourceContext());
 
         return new AdminLeadDetail(pe.getId(), LeadType.PROJECT_ENQUIRY, pe.getEnquiryNumber(), pe.getStatus().name(),
                 pe.getVersion(), pe.getCreatedAt(), pe.getName(), pe.getCompanyName(), pe.getBusinessEmail(),
@@ -256,7 +283,8 @@ public class AdminLeadQueryService {
             String assignedName = m.getAssignedAdminId() == null ? null : adminNames.get(m.getAssignedAdminId());
             decorated.add(new AdminLeadSummary(s.id(), s.leadType(), s.referenceNumber(), s.customerName(),
                     s.companyOrRestaurant(), s.email(), s.phone(), s.cityOrCountry(), s.status(), s.createdAt(),
-                    m.getFollowUpAt(), assignedName, m.getEstimatedValue(), m.getEstimatedValueCurrency()));
+                    m.getFollowUpAt(), assignedName, m.getEstimatedValue(), m.getEstimatedValueCurrency(),
+                    s.maskedPhone(), s.direction(), s.preferredContactMethod()));
         }
         return decorated;
     }
@@ -268,13 +296,46 @@ public class AdminLeadQueryService {
     private static AdminLeadSummary toSummary(ProjectEnquiry pe) {
         return new AdminLeadSummary(pe.getId(), LeadType.PROJECT_ENQUIRY, pe.getEnquiryNumber(), pe.getName(),
                 pe.getCompanyName(), pe.getBusinessEmail(), pe.getPhone(), pe.getCountry(), pe.getStatus().name(),
-                pe.getCreatedAt(), null, null, null, null);
+                pe.getCreatedAt(), null, null, null, null,
+                maskPhone(pe.getPhone()), resolveDirection(pe), humanizeEnum(pe.getPreferredContactMethod()));
     }
 
     private static AdminLeadSummary toSummary(DemoRequest dr) {
         return new AdminLeadSummary(dr.getId(), LeadType.MESA_DEMO, syntheticMesaReference(dr.getId()),
                 dr.getContactName(), dr.getRestaurantName(), dr.getBusinessEmail(), dr.getNormalizedWhatsappNumber(),
-                dr.getCity(), dr.getStatus().name(), dr.getCreatedAt(), null, null, null, null);
+                dr.getCity(), dr.getStatus().name(), dr.getCreatedAt(), null, null, null, null, null, null, null);
+    }
+
+    /**
+     * "Solution / project direction" for the admin list (W3.2D §Phase 2) — the guided flow's
+     * own solution model when present, otherwise the legacy flow's project type. The two
+     * enums share the same NEW_PRODUCT-style vocabulary by design, so this reads naturally
+     * regardless of which flow the enquiry came through.
+     */
+    private static String resolveDirection(ProjectEnquiry pe) {
+        String guided = humanizeEnum(pe.getSolutionModel());
+        return guided != null ? guided : humanizeEnum(pe.getProjectType());
+    }
+
+    /**
+     * Keeps the first 3 and last 2 characters visible, masking the rest — the same shape
+     * used on the public Start a Project success screen (see frontend-v2's
+     * lib/start-project/validation.ts#maskPhone), applied here so the admin list view never
+     * shows a customer's full number before an admin opens the record. The detail view still
+     * shows the real number (Identity fields are never masked there).
+     */
+    private static String maskPhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String trimmed = phone.trim();
+        if (trimmed.length() <= 6) {
+            return trimmed;
+        }
+        String visibleStart = trimmed.substring(0, 3);
+        String visibleEnd = trimmed.substring(trimmed.length() - 2);
+        int maskedLength = Math.max(trimmed.length() - 5, 3);
+        return visibleStart + "•".repeat(maskedLength) + visibleEnd;
     }
 
     /**
@@ -289,6 +350,10 @@ public class AdminLeadQueryService {
      */
     static String syntheticMesaReference(UUID id) {
         return "MESA-" + id.toString().replace("-", "").substring(0, 8).toUpperCase(Locale.ROOT);
+    }
+
+    private static String humanizeEnum(Enum<?> value) {
+        return value == null ? null : humanize(value.name());
     }
 
     private static String humanize(String enumName) {

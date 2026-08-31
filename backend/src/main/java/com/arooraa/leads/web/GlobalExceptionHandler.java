@@ -1,6 +1,7 @@
 package com.arooraa.leads.web;
 
 import com.arooraa.leads.exception.RateLimitExceededException;
+import com.arooraa.leads.project.exception.IdempotencyConflictException;
 import com.arooraa.leads.web.dto.ErrorResponse;
 import tools.jackson.databind.exc.InvalidFormatException;
 import org.slf4j.Logger;
@@ -53,6 +54,13 @@ public class GlobalExceptionHandler {
         log.warn("demo-request rejected reason=RATE_LIMITED");
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new ErrorResponse("RATE_LIMITED", ex.getMessage(), Map.of()));
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<ErrorResponse> handleIdempotencyConflict(IdempotencyConflictException ex) {
+        log.warn("project-enquiry rejected reason=IDEMPOTENCY_CONFLICT");
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("IDEMPOTENCY_CONFLICT", ex.getMessage(), Map.of()));
     }
 
     @ExceptionHandler(Exception.class)

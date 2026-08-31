@@ -1,0 +1,53 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field :global(input),
+.field :global(select),
+.field :global(textarea) {
+  font: inherit;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: 100%;
+}
+
+.field :global(input:focus-visible),
+.field :global(select:focus-visible),
+.field :global(textarea:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.field :global(input[aria-invalid="true"]),
+.field :global(select[aria-invalid="true"]),
+.field :global(textarea[aria-invalid="true"]) {
+  border-color: var(--color-error);
+}
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-error);
+}
+
+.helper {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-error);
+  font-weight: var(--weight-medium);
+}

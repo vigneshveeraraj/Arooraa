@@ -78,15 +78,50 @@ class ProjectEnquiryIT {
     private JdbcTemplate jdbcTemplate;
 
     private ResponseEntity<Map> post(String path, String syntheticClientIp, Map<String, Object> body) {
+        return post(path, syntheticClientIp, body, null);
+    }
+
+    private ResponseEntity<Map> post(String path, String syntheticClientIp, Map<String, Object> body,
+                                      String idempotencyKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Forwarded-For", syntheticClientIp);
+        if (idempotencyKey != null) {
+            headers.set("Idempotency-Key", idempotencyKey);
+        }
         return restTemplate.exchange("http://localhost:" + port + path,
                 HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
     }
 
     private ResponseEntity<Map> postEnquiry(String syntheticClientIp, Map<String, Object> body) {
         return post("/api/v1/project-enquiries", syntheticClientIp, body);
+    }
+
+    private ResponseEntity<Map> postEnquiry(String syntheticClientIp, Map<String, Object> body, String idempotencyKey) {
+        return post("/api/v1/project-enquiries", syntheticClientIp, body, idempotencyKey);
+    }
+
+    private static Map<String, Object> validGuidedBody(String email, String phone) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("submissionVersion", "GUIDED");
+        body.put("name", "Priya Nair");
+        body.put("companyName", "Nair Foods");
+        body.put("businessEmail", email);
+        body.put("phone", phone);
+        body.put("country", "India");
+        body.put("countryCode", "IN");
+        body.put("solutionModel", "NEW_PRODUCT");
+        body.put("engagementModel", "DESIGN_BUILD");
+        body.put("problemStatement", "We want to launch a new customer ordering app for our restaurant chain.");
+        body.put("projectStage", "IDEA");
+        body.put("productTypes", List.of("MOBILE_APPLICATION", "BACKEND_APIS"));
+        body.put("guidedTimeline", "WITHIN_1_TO_3_MONTHS");
+        body.put("guidedBudgetRange", "UNDER_5L");
+        body.put("preferredContactMethod", "EMAIL");
+        body.put("whatsappConsent", true);
+        body.put("source", "WEBSITE");
+        body.put("sourcePage", "/start-project");
+        return body;
     }
 
     private static Map<String, Object> validBody(String email, String phone) {
@@ -235,8 +270,91 @@ class ProjectEnquiryIT {
 
         for (String expected : List.of("id", "enquiry_number", "name", "business_email", "normalized_phone",
                 "service_type", "project_type", "budget_range", "timeline", "status", "ip_hash",
-                "created_at", "updated_at")) {
+                "created_at", "updated_at", "submission_version", "solution_model", "guided_timeline",
+                "idempotency_key", "request_fingerprint", "whatsapp_consent")) {
             assertTrue(columns.contains(expected), "missing expected column: " + expected);
         }
+    }
+
+    @Test
+    void guidedSubmissionPersistsGuidedFieldsWithNullLegacyFieldsAndProductTypes() {
+        ResponseEntity<Map> response = postEnquiry("10.20.10.60",
+                validGuidedBody("guided-persist@example.com", "+919876500201"));
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        String enquiryNumber = (String) response.getBody().get("enquiryNumber");
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "select submission_version, service_type, project_type, budget_range, timeline, "
+                        + "solution_model, guided_timeline, whatsapp_consent, id "
+                        + "from project_enquiries where enquiry_number = ?",
+                enquiryNumber);
+        assertEquals("GUIDED", row.get("submission_version"));
+        assertEquals(null, row.get("service_type"));
+        assertEquals(null, row.get("project_type"));
+        assertEquals(null, row.get("budget_range"));
+        assertEquals(null, row.get("timeline"));
+        assertEquals("NEW_PRODUCT", row.get("solution_model"));
+        assertEquals("WITHIN_1_TO_3_MONTHS", row.get("guided_timeline"));
+        assertEquals(Boolean.TRUE, row.get("whatsapp_consent"));
+
+        List<String> productTypes = jdbcTemplate.queryForList(
+                "select product_type from project_enquiry_product_types where enquiry_id = ?",
+                String.class, row.get("id"));
+        assertEquals(Set.of("MOBILE_APPLICATION", "BACKEND_APIS"), Set.copyOf(productTypes));
+    }
+
+    @Test
+    void legacySubmissionStillLeavesGuidedOnlyColumnsNull() {
+        ResponseEntity<Map> response =
+                postEnquiry("10.20.10.61", validBody("legacy-still-works@example.com", "+919876500202"));
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        String enquiryNumber = (String) response.getBody().get("enquiryNumber");
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "select submission_version, solution_model, guided_timeline, service_type "
+                        + "from project_enquiries where enquiry_number = ?",
+                enquiryNumber);
+        assertEquals("LEGACY", row.get("submission_version"));
+        assertEquals(null, row.get("solution_model"));
+        assertEquals(null, row.get("guided_timeline"));
+        assertEquals("CUSTOM_SOFTWARE", row.get("service_type"));
+    }
+
+    @Test
+    void idempotencyKeyReplayWithSamePayloadReturns200AndDoesNotCreateASecondRow() {
+        Map<String, Object> body = validGuidedBody("idempotent-replay@example.com", "+919876500203");
+
+        ResponseEntity<Map> first = postEnquiry("10.20.10.62", body, "it-idempotency-key-1");
+        assertEquals(HttpStatus.CREATED, first.getStatusCode());
+        String firstNumber = (String) first.getBody().get("enquiryNumber");
+
+        ResponseEntity<Map> second = postEnquiry("10.20.10.62", body, "it-idempotency-key-1");
+        assertEquals(HttpStatus.OK, second.getStatusCode());
+        assertEquals("ALREADY_RECEIVED", second.getBody().get("status"));
+        assertEquals(firstNumber, second.getBody().get("enquiryNumber"));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "select count(*) from project_enquiries where idempotency_key = ?",
+                Integer.class, "it-idempotency-key-1");
+        assertEquals(1, count, "a replayed idempotency key must never create a second row");
+    }
+
+    @Test
+    void idempotencyKeyReusedWithADifferentPayloadReturns409Conflict() {
+        ResponseEntity<Map> first = postEnquiry("10.20.10.63",
+                validGuidedBody("idempotent-conflict-a@example.com", "+919876500204"), "it-idempotency-key-2");
+        assertEquals(HttpStatus.CREATED, first.getStatusCode());
+
+        ResponseEntity<Map> second = postEnquiry("10.20.10.63",
+                validGuidedBody("idempotent-conflict-b@example.com", "+919876500205"), "it-idempotency-key-2");
+        assertEquals(HttpStatus.CONFLICT, second.getStatusCode());
+        assertEquals("IDEMPOTENCY_CONFLICT", second.getBody().get("code"));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "select count(*) from project_enquiries where idempotency_key = ?",
+                Integer.class, "it-idempotency-key-2");
+        assertEquals(1, count, "a conflicting replay must never create a second row");
     }
 }

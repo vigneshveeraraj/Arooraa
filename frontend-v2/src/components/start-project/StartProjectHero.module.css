@@ -1,0 +1,17 @@
+.headline {
+  margin-top: var(--space-3);
+  max-width: 820px;
+}
+
+.supporting {
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+  max-width: 680px;
+}
+
+.reassurance {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-6);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}

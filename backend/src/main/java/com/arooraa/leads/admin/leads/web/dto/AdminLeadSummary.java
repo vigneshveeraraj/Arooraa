@@ -20,6 +20,10 @@ public record AdminLeadSummary(
         Instant followUpAt,
         String assignedTo,
         BigDecimal estimatedValue,
-        String estimatedValueCurrency
+        String estimatedValueCurrency,
+        /** W3.2D — project-enquiry-only list fields, null for MESA_DEMO rows. */
+        String maskedPhone,
+        String direction,
+        String preferredContactMethod
 ) {
 }

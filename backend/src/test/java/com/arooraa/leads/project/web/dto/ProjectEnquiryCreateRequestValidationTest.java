@@ -1,9 +1,16 @@
 package com.arooraa.leads.project.web.dto;
 
 import com.arooraa.leads.project.domain.BudgetRange;
+import com.arooraa.leads.project.domain.EngagementModel;
+import com.arooraa.leads.project.domain.GuidedBudgetRange;
+import com.arooraa.leads.project.domain.GuidedTimeline;
 import com.arooraa.leads.project.domain.PreferredContactMethod;
+import com.arooraa.leads.project.domain.ProductType;
+import com.arooraa.leads.project.domain.ProjectStage;
 import com.arooraa.leads.project.domain.ProjectType;
 import com.arooraa.leads.project.domain.ServiceType;
+import com.arooraa.leads.project.domain.SolutionModel;
+import com.arooraa.leads.project.domain.SubmissionVersion;
 import com.arooraa.leads.project.domain.Timeline;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -13,9 +20,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProjectEnquiryCreateRequestValidationTest {
@@ -153,6 +162,65 @@ class ProjectEnquiryCreateRequestValidationTest {
                 v.preferredContactMethod(), v.source(), v.sourcePage(), v.referrer(), v.utmSource(), v.utmMedium(),
                 v.utmCampaign(), v.website());
         assertTrue(req.name().equals("Arun Kumar"));
+    }
+
+    private static ProjectEnquiryCreateRequest guidedValid() {
+        return new ProjectEnquiryCreateRequest(
+                SubmissionVersion.GUIDED, "Priya Nair", "Nair Foods", "priya@example.com", "+919876500200",
+                "India", "IN", "Founder",
+                null, null, null, null, null, null,
+                SolutionModel.NEW_PRODUCT, EngagementModel.DESIGN_BUILD,
+                "We want to launch a new customer ordering app for our restaurant chain.", ProjectStage.IDEA,
+                List.of(ProductType.MOBILE_APPLICATION), GuidedTimeline.WITHIN_1_TO_3_MONTHS,
+                GuidedBudgetRange.UNDER_5L, null,
+                PreferredContactMethod.EMAIL, null, true,
+                "WEBSITE", "/start-project", null, null, null, null, null, null, null,
+                "");
+    }
+
+    @Test
+    void validGuidedRequestHasNoViolations() {
+        assertTrue(validator.validate(guidedValid()).isEmpty());
+    }
+
+    @Test
+    void guidedRequestMissingSolutionModelIsRejected() {
+        ProjectEnquiryCreateRequest v = guidedValid();
+        ProjectEnquiryCreateRequest req = new ProjectEnquiryCreateRequest(
+                v.submissionVersion(), v.name(), v.companyName(), v.businessEmail(), v.phone(), v.country(),
+                v.countryCode(), v.role(), v.serviceType(), v.projectType(), v.description(), v.existingSystem(),
+                v.budgetRange(), v.timeline(), null, v.engagementModel(), v.problemStatement(), v.projectStage(),
+                v.productTypes(), v.guidedTimeline(), v.guidedBudgetRange(), v.existingSystemContext(),
+                v.preferredContactMethod(), v.preferredContactTime(), v.whatsappConsent(), v.source(),
+                v.sourcePage(), v.referrer(), v.utmSource(), v.utmMedium(), v.utmCampaign(), v.utmContent(),
+                v.sourceContext(), v.entryRoute(), v.website());
+        assertHasViolationOn(req, "solutionModel");
+    }
+
+    @Test
+    void guidedRequestWithNoProductTypesIsRejected() {
+        ProjectEnquiryCreateRequest v = guidedValid();
+        ProjectEnquiryCreateRequest req = new ProjectEnquiryCreateRequest(
+                v.submissionVersion(), v.name(), v.companyName(), v.businessEmail(), v.phone(), v.country(),
+                v.countryCode(), v.role(), v.serviceType(), v.projectType(), v.description(), v.existingSystem(),
+                v.budgetRange(), v.timeline(), v.solutionModel(), v.engagementModel(), v.problemStatement(),
+                v.projectStage(), List.of(), v.guidedTimeline(), v.guidedBudgetRange(), v.existingSystemContext(),
+                v.preferredContactMethod(), v.preferredContactTime(), v.whatsappConsent(), v.source(),
+                v.sourcePage(), v.referrer(), v.utmSource(), v.utmMedium(), v.utmCampaign(), v.utmContent(),
+                v.sourceContext(), v.entryRoute(), v.website());
+        assertHasViolationOn(req, "productTypes");
+    }
+
+    @Test
+    void guidedRequestDoesNotRequireLegacyOnlyFields() {
+        // No serviceType/projectType/description/budgetRange/timeline supplied at all —
+        // must not be rejected, since those only apply to the LEGACY shape (W3.2B §3).
+        assertTrue(validator.validate(guidedValid()).isEmpty());
+    }
+
+    @Test
+    void legacyShapedConstructorDefaultsSubmissionVersionToLegacy() {
+        assertEquals(SubmissionVersion.LEGACY, valid().submissionVersion());
     }
 
     private static ProjectEnquiryCreateRequest withName(String name) {

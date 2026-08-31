@@ -1,0 +1,85 @@
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.supporting {
+  color: var(--color-text-muted);
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+.reference {
+  display: inline-block;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  margin-bottom: var(--space-6);
+}
+
+.details {
+  display: grid;
+  /* minmax(0, 1fr), not minmax(160px, 1fr) — a fixed minimum lets a long,
+     unbreakable value (a long email) force its own track wider than
+     intended, squeezing or overlapping the neighbouring columns. Zero
+     removes that implicit content-based minimum entirely (W3.2A.1 §19). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-4);
+  text-align: left;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  margin: 0 0 var(--space-7);
+}
+
+.details > div {
+  min-width: 0;
+}
+
+.details dt {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.details dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.nextSteps {
+  text-align: left;
+}
+
+.nextStepsLabel {
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+  display: block;
+}
+
+.nextSteps ol {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.startOver {
+  margin-top: var(--space-7);
+  text-align: center;
+}

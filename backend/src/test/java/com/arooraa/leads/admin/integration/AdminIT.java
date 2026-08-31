@@ -479,6 +479,28 @@ class AdminIT {
     }
 
     @Test
+    void projectEnquiryListShowsMaskedPhoneAndDirectionButNeverTheRawPhone() {
+        ProjectEnquiry project = seedProjectEnquiry("List Masking Person", "list-masking@example.com");
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Map> response = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?leadType=PROJECT_ENQUIRY&search=List+Masking+Person&page=0&size=20", null, Map.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<Map<String, Object>> content = (List<Map<String, Object>>) response.getBody().get("content");
+        Map<String, Object> row = content.stream()
+                .filter(l -> project.getId().toString().equals(l.get("id")))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("New Product", row.get("direction"));
+        assertEquals("Phone", row.get("preferredContactMethod"));
+        assertNotNull(row.get("maskedPhone"));
+        assertFalse(row.get("maskedPhone").equals(project.getPhone()), "the list view must mask the phone number");
+        assertTrue(row.get("maskedPhone").toString().contains("•"), "unexpected masked phone shape: " + row.get("maskedPhone"));
+    }
+
+    @Test
     void projectEnquiryDetailShowsSubmittedFieldsAndNeverExposesIpHash() {
         ProjectEnquiry project = seedProjectEnquiry("Detail Test Person", "detail-test@example.com");
         LoggedInSession session = loginAsNewAdmin();
