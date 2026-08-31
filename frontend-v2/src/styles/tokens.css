@@ -1,0 +1,171 @@
+/*
+ * Design tokens — semantic, not page-specific. Components read these custom
+ * properties instead of hard-coded colors so a <Section tone="dark"> can remap
+ * the whole neutral palette locally (see [data-tone="dark"] below) without any
+ * page or component needing its own dark-mode branch.
+ *
+ * Accent shade refined in M1.1 (indigo/deep-blue family, shifted away from a
+ * brighter red-leaning violet to read as less "generic SaaS-template purple").
+ * Still a placeholder pending the dedicated visual-design milestone.
+ */
+
+:root {
+  /* Neutral foundation (light-first) */
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f6f6f8;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-text: #14151a;
+  --color-text-muted: #5b5d6b;
+  --color-border: rgba(20, 21, 26, 0.12);
+  --color-border-strong: rgba(20, 21, 26, 0.24);
+  /* Stronger than --color-border-strong specifically for interactive-component
+     boundaries (secondary button, later form inputs) — decorative dividers stay
+     subtle, but a control's own edge needs to clear non-text contrast on its own. */
+  --color-border-interactive: #7c7d8a;
+
+  /* Primary brand accent — M1.1 refined shade, see note above */
+  --color-accent: #2a359c;
+  --color-accent-hover: #232c82;
+  --color-accent-active: #1c2469;
+  --color-accent-contrast: #ffffff;
+  --color-accent-on-dark: #8d95f0;
+  --color-accent-on-dark-hover: #7c85e8;
+  --color-accent-on-dark-active: #6a74db;
+  --color-accent-text: var(--color-accent);
+
+  /* Solid-fill CTA tokens (used by Button's primary variant) — deliberately
+     separate from --color-accent so the dark-section remap below can swap to a
+     light chip + dark ink instead of a same-shade-on-near-black button that
+     would barely separate from the section background. */
+  --color-cta-bg: var(--color-accent);
+  --color-cta-bg-hover: var(--color-accent-hover);
+  --color-cta-bg-active: var(--color-accent-active);
+  --color-cta-fg: var(--color-accent-contrast);
+
+  /* M2: the one new token this milestone needed — a scrim behind the mobile-nav
+     drawer. Not tone-dependent (an overlay sits above whichever section is
+     underneath), so it lives outside the [data-tone="dark"] remap block. */
+  --color-overlay: rgba(13, 14, 19, 0.4);
+
+  --color-focus: #2563eb;
+
+  --color-success: #157a4b;
+  --color-success-bg: #e6f4ec;
+  --color-warning: #92620a;
+  --color-warning-bg: #fbf0dc;
+  --color-error: #b3261e;
+  --color-error-bg: #fbe9e8;
+
+  /* Dark-section palette — only applied inside [data-tone="dark"], never globally */
+  --color-dark-bg: #0d0e13;
+  --color-dark-bg-subtle: #1c1d26;
+  --color-dark-surface: #16171f;
+  --color-dark-surface-elevated: #1c1d26;
+  --color-dark-text: #f4f4f6;
+  --color-dark-text-muted: rgba(244, 244, 246, 0.7);
+  --color-dark-border: rgba(244, 244, 246, 0.14);
+  --color-dark-border-strong: rgba(244, 244, 246, 0.28);
+
+  /* Typography */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* M1.1: widened the Display→H1 step specifically (Display stays clearly
+     strongest) and eased the lower levels down slightly so each step reads as
+     a deliberate drop rather than a near-miss. */
+  --text-display: clamp(2.75rem, 2.1rem + 2.6vw, 4.5rem);
+  --text-h1: clamp(2rem, 1.7rem + 1.3vw, 3rem);
+  --text-h2: clamp(1.5rem, 1.3rem + 0.9vw, 2.125rem);
+  --text-h3: clamp(1.25rem, 1.15rem + 0.5vw, 1.625rem);
+  --text-h4: clamp(1rem, 0.97rem + 0.25vw, 1.25rem);
+  --text-body-lg: clamp(1.05rem, 1rem + 0.2vw, 1.1875rem);
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-eyebrow: 0.8125rem;
+  --text-label: 0.8125rem;
+  --text-code: 0.875rem;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing — 8px rhythm with smaller supporting steps */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-7: 3rem; /* 48px */
+  --space-8: 4rem; /* 64px */
+  --space-9: 6rem; /* 96px */
+  --space-10: 8rem; /* 128px */
+
+  /* Containers */
+  --container-content: 720px;
+  --container-wide: 1280px;
+  --container-gutter: 1.25rem;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --border-width: 1px;
+
+  /* Shadow — reserved for genuinely elevated elements, not decoration */
+  --shadow-sm: 0 1px 2px rgba(20, 21, 26, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 21, 26, 0.1);
+
+  /* Focus ring */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-focus);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 481px) {
+  :root {
+    --container-gutter: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  :root {
+    --container-gutter: 2rem;
+  }
+}
+
+/* Applied by <Section tone="dark">. Deliberate, contained — not a global dark mode. */
+[data-tone="dark"] {
+  --color-bg: var(--color-dark-bg);
+  --color-bg-subtle: var(--color-dark-bg-subtle);
+  --color-surface: var(--color-dark-surface);
+  --color-surface-elevated: var(--color-dark-surface-elevated);
+  --color-text: var(--color-dark-text);
+  --color-text-muted: var(--color-dark-text-muted);
+  --color-border: var(--color-dark-border);
+  --color-border-strong: var(--color-dark-border-strong);
+  --color-border-interactive: rgba(244, 244, 246, 0.55);
+  --color-accent-text: var(--color-accent-on-dark);
+
+  /* Primary button becomes a light chip + dark ink on dark sections instead of
+     a same-hue-on-near-black fill, which measured under ~2:1 against the dark
+     section background — not clearly "primary" against near-black. */
+  --color-cta-bg: var(--color-accent-on-dark);
+  --color-cta-bg-hover: var(--color-accent-on-dark-hover);
+  --color-cta-bg-active: var(--color-accent-on-dark-active);
+  --color-cta-fg: #14151a;
+}

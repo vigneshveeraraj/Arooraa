@@ -1,0 +1,55 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-7);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Two-class selector so this reliably outranks Card's own .card border rule
+   regardless of stylesheet concatenation order (same reasoning as the mobile
+   CTA override in SiteHeader.module.css). MESA's only visual emphasis. */
+.grid .featured {
+  border-color: var(--color-accent);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/*
+ * M3A.1: added letter-spacing for uppercase legibility at this small size
+ * (13px) — same reasoning base.css already applies to .text-eyebrow. Reuses
+ * the existing type scale; no new font size introduced.
+ */
+.positioning {
+  color: var(--color-accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.description {
+  color: var(--color-text-muted);
+  flex-grow: 1;
+}
+
+.exploreLink {
+  display: inline-flex;
+  align-items: center;
+  margin-top: auto;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}
+
+.exploreLink:hover {
+  text-decoration: underline;
+}

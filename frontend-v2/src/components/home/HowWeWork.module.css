@@ -1,0 +1,99 @@
+/*
+ * Mobile: a literal connected vertical timeline (dot + line) — the "vertical
+ * connected timeline" the brief explicitly prefers on small screens.
+ * ≥700px: switches to a 3x3 grid using the same top-border divider technique
+ * as ProblemsWeSolve/WhatWeBuild (M3B), which avoids forcing all nine stages
+ * into one cramped horizontal row while still reading as a connected path.
+ * No JS, no animation — order is conveyed by DOM/list order and the number
+ * labels regardless of whether the connecting line renders (§20).
+ */
+.timeline {
+  list-style: none;
+  margin: var(--space-7) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+.stage:last-child {
+  padding-bottom: 0;
+}
+
+.stageMarker {
+  position: relative;
+}
+
+.stageNumber {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+}
+
+.stage:not(:last-child) .stageMarker::after {
+  content: "";
+  position: absolute;
+  top: 40px;
+  bottom: calc(-1 * var(--space-6));
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--color-border-strong);
+}
+
+.stageContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+}
+
+.stageDescription {
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 700px) {
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: var(--space-6);
+    row-gap: var(--space-7);
+  }
+
+  .stage {
+    grid-template-columns: 1fr;
+    padding-bottom: 0;
+    padding-top: 0;
+    border-top: var(--border-width) solid var(--color-border-strong);
+  }
+
+  .stage:not(:last-child) .stageMarker::after {
+    display: none;
+  }
+
+  .stageNumber {
+    margin-top: -20px;
+  }
+
+  .stageContent {
+    padding-top: var(--space-4);
+  }
+}

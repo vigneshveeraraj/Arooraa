@@ -1,0 +1,153 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--color-bg);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.inner {
+  max-width: var(--container-wide);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+  padding-block: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  margin-right: auto;
+}
+
+.desktopNav {
+  display: none;
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navLink {
+  display: inline-block;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  padding-block: var(--space-2);
+  border-bottom: 2px solid transparent;
+  transition:
+    color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+
+.navLink:hover {
+  color: var(--color-text);
+}
+
+.navLinkActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.desktopCta {
+  display: none;
+}
+
+.compactCta {
+  display: inline-flex;
+}
+
+/*
+ * M2.1: the mobile CTA (Button variant="primary") inherited the same 48px
+ * min-height / 32px horizontal padding as every other primary button, which
+ * read as oversized next to the wordmark at mobile widths. Two classes on the
+ * same element (.actions .compactCta, specificity 0,2,0) reliably outrank
+ * Button's own .primary rule (0,1,0) regardless of stylesheet concatenation
+ * order — no !important needed. Color/weight/focus/hover are untouched.
+ */
+.actions .compactCta {
+  min-height: 44px;
+  padding-inline: var(--space-3);
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.menuButton:hover {
+  background: var(--color-bg-subtle);
+}
+
+.menuIcon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 20px;
+}
+
+.menuBar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--color-text);
+  border-radius: 1px;
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    opacity var(--duration-base) var(--ease-standard);
+}
+
+.menuBarTopOpen {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menuBarMiddleOpen {
+  opacity: 0;
+}
+
+.menuBarBottomOpen {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/*
+ * 1120px, not the usual 1025px "desktop" breakpoint: at 7 nav links + wordmark +
+ * CTA, the inline desktop nav needs roughly ~920px of content width, which only
+ * comfortably clears the container gutter (32px each side) starting around here.
+ * Below this, the mobile hamburger pattern continues through tablet widths
+ * rather than forcing a crowded inline nav (see Phase 0 §16 / M2 §16).
+ */
+@media (min-width: 1120px) {
+  .desktopNav {
+    display: block;
+  }
+
+  .desktopCta {
+    display: inline-flex;
+  }
+
+  .compactCta,
+  .menuButton {
+    display: none;
+  }
+}

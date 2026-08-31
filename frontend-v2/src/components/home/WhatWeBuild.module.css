@@ -1,0 +1,56 @@
+/*
+ * Homepage-polish: a subtle --color-bg-subtle surface shift (still the frozen
+ * light palette, no new tone) breaks up the otherwise all-light Hero→Featured
+ * Work run without adding a second dark section (polish brief §4).
+ */
+.whatWeBuild.whatWeBuild {
+  background: var(--color-bg-subtle);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: var(--space-7);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-8);
+  }
+}
+
+/*
+ * Polish: dropped the mono numeral used by WhatWeBuild/HowWeWork/
+ * EngineeringProof/WhyAroora — a plain statement + description row instead,
+ * so the numbered/divider pattern doesn't repeat at every section (polish
+ * brief §5). Same content/tokens, no taxonomy change.
+ */
+.item {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-block: var(--space-6);
+}
+
+.itemContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.description {
+  color: var(--color-text-muted);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-1);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}
+
+.link:hover {
+  text-decoration: underline;
+}

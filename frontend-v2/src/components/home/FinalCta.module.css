@@ -1,0 +1,22 @@
+/*
+ * Polish: tightened bottom seam into the footer — Final CTA keeps its own
+ * generous top spacing (still a "major" section), but its bottom compresses
+ * so Final CTA → Footer reads as one intentional ending (polish brief §9).
+ */
+.finalCta.finalCta {
+  padding-bottom: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .finalCta.finalCta {
+    padding-bottom: var(--space-5);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+}

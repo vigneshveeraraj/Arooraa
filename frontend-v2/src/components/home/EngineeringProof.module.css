@@ -1,0 +1,49 @@
+/*
+ * Polish: tightened bottom seam into Stories (a "major" section that keeps
+ * its own generous top spacing) — same asymmetric-override technique as
+ * Hero→Products and Problems→Services (polish brief §3).
+ */
+.engineering.engineering {
+  padding-bottom: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .engineering.engineering {
+    padding-bottom: var(--space-5);
+  }
+}
+
+.techLabel {
+  margin-top: var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: var(--space-6);
+  }
+}
+
+/* Polish: slightly tighter internal rhythm (space-5 → space-4) to reduce the
+   nine-block grid's footprint without dropping any group or label (§6). */
+.item {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-block: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

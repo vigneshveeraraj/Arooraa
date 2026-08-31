@@ -1,0 +1,47 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.orbit {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.link {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.node {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  fill: var(--color-text-muted);
+}
+
+.core {
+  fill: var(--color-accent);
+  animation: pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}

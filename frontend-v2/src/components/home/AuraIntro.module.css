@@ -1,0 +1,77 @@
+/*
+ * Polish: tightened bottom seam into Final CTA (a "major" section that keeps
+ * its own generous top spacing) — same asymmetric-override technique as
+ * Hero→Products and Problems→Services (polish brief §3).
+ */
+.aura.aura {
+  padding-bottom: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .aura.aura {
+    padding-bottom: var(--space-5);
+  }
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/*
+ * Two-class selector to reliably outrank Card's own .card border/background
+ * rule (same technique used since M2.1). A restrained accent-tinted surface —
+ * still the frozen --color-accent/--color-surface tokens, no new palette —
+ * gives Aura its own identity without a second full dark section (M3E §9).
+ */
+.auraPanel.auraPanel {
+  padding: var(--space-6);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 5%, var(--color-surface));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.auraName {
+  color: var(--color-accent-text);
+}
+
+.promptQuestion {
+  color: var(--color-text);
+}
+
+.promptList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ctaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.comingSoon {
+  color: var(--color-text-muted);
+}

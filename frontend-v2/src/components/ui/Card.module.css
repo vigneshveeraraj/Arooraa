@@ -1,0 +1,25 @@
+.card {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+
+.interactive {
+  /* Baseline affordance at rest, not only revealed on hover — keyboard/touch
+     users and anyone scanning the page get the "this is actionable" cue too. */
+  border-color: var(--color-border-strong);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.interactive:hover {
+  border-color: var(--color-border-interactive);
+  background: var(--color-bg-subtle);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}

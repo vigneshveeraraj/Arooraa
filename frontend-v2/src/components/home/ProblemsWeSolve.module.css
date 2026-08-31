@@ -1,0 +1,80 @@
+/*
+ * Bottom padding tightened the same way Hero's was in M3A.1 (scoped override,
+ * not a Section prop change) so this section flows into WhatWeBuild as one
+ * "question → answer" sequence instead of two isolated blocks. Top padding
+ * stays the Section default — only the Problems→Services seam is tightened.
+ */
+.problems.problems {
+  padding-bottom: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .problems.problems {
+    padding-bottom: var(--space-5);
+  }
+}
+
+.list {
+  list-style: none;
+  margin: var(--space-7) 0 0;
+  padding: 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.item {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-block: var(--space-6);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+@media (min-width: 700px) {
+  .item {
+    grid-template-columns: 96px 1fr;
+    gap: var(--space-6);
+    align-items: baseline;
+  }
+}
+
+.number {
+  font-family: var(--font-mono);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent-text);
+  opacity: 0.55;
+}
+
+.itemContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.problem {
+  color: var(--color-text);
+}
+
+.explanation {
+  color: var(--color-text-muted);
+}
+
+.services {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+}
+
+.serviceLink {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--space-1);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}
+
+.serviceLink:hover {
+  text-decoration: underline;
+}

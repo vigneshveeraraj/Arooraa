@@ -1,0 +1,26 @@
+.section {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.spacingDefault {
+  padding-block: var(--space-9);
+}
+
+.spacingCompact {
+  padding-block: var(--space-7);
+}
+
+.spacingNone {
+  padding-block: 0;
+}
+
+@media (max-width: 768px) {
+  .spacingDefault {
+    padding-block: var(--space-7);
+  }
+
+  .spacingCompact {
+    padding-block: var(--space-6);
+  }
+}

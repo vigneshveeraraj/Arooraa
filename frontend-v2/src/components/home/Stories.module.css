@@ -1,0 +1,75 @@
+.storiesLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  margin-top: var(--space-7);
+}
+
+@media (min-width: 1000px) {
+  .storiesLayout {
+    grid-template-columns: 1.3fr 1fr;
+    align-items: start;
+  }
+}
+
+.featuredStory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fragmentGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.storyEyebrow {
+  color: var(--color-accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.storyBody {
+  color: var(--color-text-muted);
+}
+
+.closingLine {
+  margin-top: var(--space-2);
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.storyFragment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+/*
+ * The future scenario is the only card/border element in this section — that
+ * visual distinctness (plus the "Vision" badge and explicit label text) is
+ * what marks it apart from the real product-origin stories above (M3D §10/§11).
+ */
+.futureCallout {
+  margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.futureLabel {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.futureScenario {
+  color: var(--color-text);
+}
+
+.futureClosing {
+  font-style: italic;
+  color: var(--color-text-muted);
+}

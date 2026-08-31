@@ -1,0 +1,85 @@
+.footer {
+  border-top: var(--border-width) solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+/*
+ * Polish: top padding reduced (bottom left generous — that's the page's true
+ * closing edge) so Final CTA → Footer reads as one intentional ending rather
+ * than two full-weight sections stacked back to back (polish brief §9).
+ */
+.top {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-7);
+}
+
+@media (min-width: 769px) {
+  .top {
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    gap: var(--space-6);
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-9);
+  }
+}
+
+.brandCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 360px;
+}
+
+.tagline {
+  color: var(--color-text-muted);
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.colTitle {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.linkList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.linkList a {
+  color: var(--color-text);
+}
+
+.linkList a:hover {
+  color: var(--color-accent-text);
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.inlineList {
+  display: flex;
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

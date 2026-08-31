@@ -1,0 +1,15 @@
+.wordmark {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.primary {
+  font-size: var(--text-h1);
+  letter-spacing: 0.03em;
+}
+
+.compact {
+  font-size: var(--text-h4);
+  letter-spacing: 0.04em;
+}

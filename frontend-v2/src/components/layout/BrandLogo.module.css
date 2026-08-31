@@ -1,0 +1,57 @@
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.symbol {
+  display: block;
+  width: auto;
+  flex: none;
+}
+
+.wordmark {
+  display: block;
+  width: auto;
+}
+
+/* Header: ~38px symbol height, within the brief's 36-44px target range. */
+.header .symbol {
+  height: 38px;
+}
+
+.header .wordmark {
+  height: 24px;
+}
+
+/* Footer: a "slightly larger" brand treatment than the header. */
+.footer .symbol {
+  height: 56px;
+}
+
+.footer .wordmark {
+  height: 35px;
+}
+
+.footer {
+  gap: var(--space-3);
+}
+
+/*
+ * At very narrow widths the header row also carries the compact "Start"
+ * button and the hamburger toggle — icon + wordmark together (~240px)
+ * would crowd or overflow alongside them. Below 480px (an existing
+ * container-gutter breakpoint), drop to the icon alone — the brief's own
+ * documented mobile fallback — rather than shrinking the wordmark down to
+ * an illegible size. The footer keeps both at every width; it never shares
+ * a row with other interactive controls.
+ */
+@media (max-width: 480px) {
+  .header .wordmark {
+    display: none;
+  }
+
+  .header .symbol {
+    height: 32px;
+  }
+}
