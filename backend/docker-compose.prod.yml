@@ -72,7 +72,25 @@ services:
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      # Recruitment (Milestone W3.3B) — résumés live on the named volume mounted below, not on
+      # the container's ephemeral filesystem, and never under anything Nginx serves statically.
+      AROORAA_RECRUITMENT_RESUME_STORAGE_DIR: /var/lib/arooraa/recruitment-resumes
+      AROORAA_RECRUITMENT_RESUME_MAX_SIZE_BYTES: ${AROORAA_RECRUITMENT_RESUME_MAX_SIZE_BYTES:-5242880}
+      AROORAA_RECRUITMENT_RATE_LIMIT_MAX_REQUESTS: ${AROORAA_RECRUITMENT_RATE_LIMIT_MAX_REQUESTS:-5}
+      AROORAA_RECRUITMENT_RATE_LIMIT_WINDOW_MINUTES: ${AROORAA_RECRUITMENT_RATE_LIMIT_WINDOW_MINUTES:-10}
+      AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_MAX_REQUESTS: ${AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_MAX_REQUESTS:-5}
+      AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_WINDOW_MINUTES: ${AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_WINDOW_MINUTES:-10}
+      AROORAA_RECRUITMENT_NOTIFICATIONS_ENABLED: ${AROORAA_RECRUITMENT_NOTIFICATIONS_ENABLED:-false}
+      AROORAA_RECRUITMENT_MAIL_FROM: ${AROORAA_RECRUITMENT_MAIL_FROM:-}
+      AROORAA_RECRUITMENT_ALERT_TO: ${AROORAA_RECRUITMENT_ALERT_TO:-}
+      AROORAA_RECRUITMENT_NOTIFICATIONS_CADENCE_SECONDS: ${AROORAA_RECRUITMENT_NOTIFICATIONS_CADENCE_SECONDS:-10}
+      AROORAA_RECRUITMENT_NOTIFICATIONS_BATCH_SIZE: ${AROORAA_RECRUITMENT_NOTIFICATIONS_BATCH_SIZE:-20}
       SERVER_PORT: 8090
+    volumes:
+      # Durable, private résumé storage — back this up like the database (see
+      # docs/recruitment-resume-storage.md); losing it loses every stored résumé. Not the
+      # container's writable layer, and never bind-mounted under a path Nginx serves.
+      - arooraa_recruitment_resumes:/var/lib/arooraa/recruitment-resumes
     ports:
       # Localhost-only — Nginx reverse-proxies to this; never exposed publicly.
       - "127.0.0.1:8090:8090"
@@ -95,3 +113,5 @@ networks:
 volumes:
   arooraa_leads_pgdata:
     name: arooraa_leads_pgdata
+  arooraa_recruitment_resumes:
+    name: arooraa_recruitment_resumes

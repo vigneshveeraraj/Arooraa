@@ -13,6 +13,12 @@ server:
         http-only: true
         secure: ${AROORAA_ADMIN_COOKIE_SECURE:false}
         same-site: lax
+    multipart:
+      # A hard backstop above the real business limit (arooraa.recruitment.resume.max-size-bytes,
+      # 5MB by default) — requests over THIS get Spring's own generic rejection; requests between
+      # the two get ResumeValidator's friendlier field-safe error instead (W3.3B §7).
+      max-file-size: 8MB
+      max-request-size: 10MB
 
 spring:
   application:
@@ -52,6 +58,33 @@ arooraa:
     worker:
       cadence-seconds: ${AROORAA_LEAD_NOTIFICATIONS_CADENCE_SECONDS:10}
       batch-size: ${AROORAA_LEAD_NOTIFICATIONS_BATCH_SIZE:20}
+  # Recruitment (Milestone W3.3B) — Careers applications + talent-community subscriptions.
+  # Independent rate limiting/config from every other public endpoint (project enquiries, demo
+  # requests): applying to a role must never count against, or be limited by, that traffic.
+  recruitment:
+    resume:
+      # Outside the web root and never served by Nginx — see FilesystemResumeStorage and
+      # docs/recruitment-resume-storage.md. Default is a relative local-dev path; production
+      # MUST set AROORAA_RECRUITMENT_RESUME_STORAGE_DIR explicitly (see docker-compose.prod.yml).
+      storage-dir: ${AROORAA_RECRUITMENT_RESUME_STORAGE_DIR:./data/recruitment-resumes}
+      max-size-bytes: ${AROORAA_RECRUITMENT_RESUME_MAX_SIZE_BYTES:5242880}
+    rate-limit:
+      max-requests: ${AROORAA_RECRUITMENT_RATE_LIMIT_MAX_REQUESTS:5}
+      window-minutes: ${AROORAA_RECRUITMENT_RATE_LIMIT_WINDOW_MINUTES:10}
+    talent-community:
+      rate-limit:
+        max-requests: ${AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_MAX_REQUESTS:5}
+        window-minutes: ${AROORAA_RECRUITMENT_TALENT_RATE_LIMIT_WINDOW_MINUTES:10}
+  # Independent enable flag from lead-notifications (W3.3B §14) — recruitment email can be
+  # turned on/off without affecting sales lead email. Shares the same underlying SMTP
+  # (spring.mail.*) transport when both are enabled — see RecruitmentNotificationMailConfig.
+  recruitment-notifications:
+    enabled: ${AROORAA_RECRUITMENT_NOTIFICATIONS_ENABLED:false}
+    mail-from: ${AROORAA_RECRUITMENT_MAIL_FROM:}
+    recruitment-alert-to: ${AROORAA_RECRUITMENT_ALERT_TO:}
+    worker:
+      cadence-seconds: ${AROORAA_RECRUITMENT_NOTIFICATIONS_CADENCE_SECONDS:10}
+      batch-size: ${AROORAA_RECRUITMENT_NOTIFICATIONS_BATCH_SIZE:20}
   admin:
     bootstrap-email: ${AROORAA_ADMIN_BOOTSTRAP_EMAIL:}
     bootstrap-password: ${AROORAA_ADMIN_BOOTSTRAP_PASSWORD:}

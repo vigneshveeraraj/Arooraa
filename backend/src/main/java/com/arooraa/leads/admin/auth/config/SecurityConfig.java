@@ -37,6 +37,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/demo-requests/**",
             "/api/v1/project-enquiries/**",
+            "/api/v1/careers/**",
             "/actuator/health",
     };
 
@@ -72,6 +73,7 @@ public class SecurityConfig {
         configuration.setAllowCredentials(false);
         source.registerCorsConfiguration("/api/v1/project-enquiries/**", configuration);
         source.registerCorsConfiguration("/api/v1/demo-requests/**", configuration);
+        source.registerCorsConfiguration("/api/v1/careers/**", configuration);
         return source;
     }
 
