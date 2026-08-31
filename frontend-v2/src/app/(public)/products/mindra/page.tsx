@@ -8,12 +8,14 @@ import { MindraSharedSpacesPreview } from "@/components/products/mindra/MindraSh
 import { MindraDayStory } from "@/components/products/mindra/MindraDayStory";
 import { MindraPrivacyPreview } from "@/components/products/mindra/MindraPrivacyPreview";
 import { MINDRA_PRODUCT_PAGE } from "@/lib/content/products";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Mindra — Personal & Family Second Brain | AROORAA",
   description:
     "Mindra is a private digital second brain that helps individuals and families capture what matters, remember what needs attention and coordinate everyday life in one calm, structured place.",
-};
+  path: "/products/mindra",
+});
 
 export default function MindraProductPage() {
   return (

@@ -4,12 +4,14 @@ import { ProductAssemblyVisual } from "@/components/services/product-engineering
 import { ProductCollaborationVisual } from "@/components/services/product-engineering/ProductCollaborationVisual";
 import { ProductTeamAssemblyVisual } from "@/components/services/product-engineering/ProductTeamAssemblyVisual";
 import { PRODUCT_ENGINEERING_SERVICE_PAGE } from "@/lib/content/service-pages";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Product Engineering Services | AROORAA",
   description:
     "AROORAA designs and engineers web, mobile and platform products — architecture, backend and frontend engineering, mobile, security, quality and cloud foundations — from product direction through production-ready software.",
-};
+  path: "/services/product-engineering",
+});
 
 export default function ProductEngineeringServicePage() {
   return (

@@ -37,12 +37,14 @@ import {
   SMART_MIRROR_STORY_HERO,
   SMART_MIRROR_STORY_RELATED_LINKS,
 } from "@/lib/content/work-detail/smart-mirror";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Smart Mirror Product Story | AROORAA",
   description:
     "How AROORAA explored ambient computing through Smart Mirror — a physical product concept and Raspberry Pi 5 prototype foundation exploring edge computing, connected-home experience and physical product engineering. Concept and prototype direction, not a commercially available product.",
-};
+  path: "/our-work/smart-mirror",
+});
 
 export default function SmartMirrorEngineeringStoryPage() {
   return (

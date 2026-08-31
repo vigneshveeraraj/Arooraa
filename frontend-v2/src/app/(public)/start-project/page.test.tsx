@@ -67,9 +67,10 @@ describe("Start Project page", () => {
     expect(document.body.textContent ?? "").not.toMatch(/ARP-\d+/);
   });
 
-  it("uses restrained SEO metadata and keeps the lead form out of the search index", () => {
+  it("uses restrained SEO metadata and is indexable as a legitimate commercial landing page (W4.1 Phase 16)", () => {
     expect(metadata.title).toBe("Start a Project | AROORAA");
-    expect(metadata.robots).toEqual({ index: false, follow: true });
+    expect(metadata.robots).toBeUndefined();
+    expect(metadata.alternates?.canonical).toBe("/start-project");
     expect(String(metadata.description)).not.toMatch(/\$\d|₹\d/);
   });
 });

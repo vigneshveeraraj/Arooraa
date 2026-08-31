@@ -9,12 +9,14 @@ import { SmartMirrorPersonalFamilyVisual } from "@/components/products/smart-mir
 import { SmartMirrorPrivacyVisual } from "@/components/products/smart-mirror/SmartMirrorPrivacyVisual";
 import { SmartMirrorEngineeringVisual } from "@/components/products/smart-mirror/SmartMirrorEngineeringVisual";
 import { SMART_MIRROR_PRODUCT_PAGE } from "@/lib/content/products";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Smart Mirror — Ambient AI for Everyday Life | AROORAA",
   description:
     "Smart Mirror is AROORAA's upcoming ambient-AI smart mirror concept — personal intelligence, family coordination and connected-home information built into an everyday object. Coming Soon.",
-};
+  path: "/products/smart-mirror",
+});
 
 export default function SmartMirrorProductPage() {
   return (

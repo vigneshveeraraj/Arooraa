@@ -37,12 +37,14 @@ import {
   SMART_HOME_STORY_HERO,
   SMART_HOME_STORY_RELATED_LINKS,
 } from "@/lib/content/work-detail/smart-home";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Arooraa Smart Home Product Story | AROORAA",
   description:
     "How AROORAA is exploring a local-first smart home — energy visibility, manual-control coexistence, retrofit-friendly modernization and safety-led automation. A Raspberry Pi 5 prototype direction, not a commercially available product.",
-};
+  path: "/our-work/smart-home",
+});
 
 export default function SmartHomeEngineeringStoryPage() {
   return (

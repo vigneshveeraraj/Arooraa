@@ -10,12 +10,14 @@ import { SmartHomeSafetyVisual } from "@/components/products/smart-home/SmartHom
 import { SmartHomeEngineeringVisual } from "@/components/products/smart-home/SmartHomeEngineeringVisual";
 import { SmartHomeJourneyVisual } from "@/components/products/smart-home/SmartHomeJourneyVisual";
 import { SMART_HOME_PRODUCT_PAGE } from "@/lib/content/products";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Arooraa Smart Home — Local-First Smart Home Prototype | AROORAA",
   description:
     "Arooraa Smart Home is a local-first, retrofit-friendly smart home prototype exploring home energy monitoring, water protection and dependable automation that keeps manual control intact. Prototype in development.",
-};
+  path: "/products/smart-home-eb",
+});
 
 export default function SmartHomeProductPage() {
   return (

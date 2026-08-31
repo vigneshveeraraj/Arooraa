@@ -1,0 +1,36 @@
+.main {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  padding: var(--space-9) 0;
+}
+
+.content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-h1);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.body {
+  font-size: var(--text-body-lg);
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

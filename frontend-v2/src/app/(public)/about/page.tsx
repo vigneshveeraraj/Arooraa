@@ -13,12 +13,14 @@ import { BuildingHonestlySection } from "@/components/about/BuildingHonestlySect
 import { FounderLedSection } from "@/components/about/FounderLedSection";
 import { FutureDirectionSection } from "@/components/about/FutureDirectionSection";
 import { AboutClosingStory } from "@/components/about/AboutClosingStory";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About AROORAA — Product Engineering & Innovation | AROORAA",
   description:
     "Why AROORAA exists — a product-engineering company turning repeated real-world friction, and the gap between customer and provider experience, into thoughtfully engineered digital products. Founder-led and product-led, building MESA, Mindra, Smart Mirror and Arooraa Smart Home.",
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

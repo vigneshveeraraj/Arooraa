@@ -30,12 +30,14 @@ import {
   MINDRA_STORY_HERO,
   MINDRA_STORY_RELATED_LINKS,
 } from "@/lib/content/work-detail/mindra";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Mindra Product Story | AROORAA",
   description:
     "Explore how AROORAA shaped Mindra, a personal and family second brain for capturing, organizing and remembering everyday life, personal work and shared family coordination across mobile and web.",
-};
+  path: "/our-work/mindra",
+});
 
 export default function MindraEngineeringStoryPage() {
   return (

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { organizationJsonLd } from "@/lib/seo/structured-data";
+import { rootMetadata } from "./root-metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,10 +16,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "AROORAA",
-  description: "AROORAA — greenfield frontend foundation (M1 design system).",
-};
+export const metadata: Metadata = rootMetadata;
 
 export default function RootLayout({
   children,
@@ -26,7 +25,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Static, build-time-only JSON-LD (no user input reaches this string). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

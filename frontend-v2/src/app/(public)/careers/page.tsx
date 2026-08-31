@@ -13,12 +13,14 @@ import { EarlyCareersSection } from "@/components/careers/EarlyCareersSection";
 import { TalentCommunitySection } from "@/components/careers/TalentCommunitySection";
 import { TrustNoticesSection } from "@/components/careers/TrustNoticesSection";
 import { CareersFaqSection } from "@/components/careers/CareersFaqSection";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Careers at AROORAA | Product Engineering & Innovation",
   description:
     "Build what should exist next. Explore career paths in AI engineering, Java and React engineering, product design, sales and marketing at AROORAA — a product-engineering company in Chennai, India.",
-};
+  path: "/careers",
+});
 
 export default function CareersPage() {
   return (

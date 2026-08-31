@@ -22,12 +22,14 @@ import {
   SMART_HOME_WORK_STORY,
   SMART_MIRROR_WORK_STORY,
 } from "@/lib/content/our-work";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Our Work — Product Engineering Portfolio | AROORAA",
   description:
     "AROORAA's own product engineering work — MESA, Mindra, Smart Mirror and Arooraa Smart Home — restaurant technology, personal productivity technology, ambient computing and smart-home products, each explained through the problem, product thinking and engineering behind it.",
-};
+  path: "/our-work",
+});
 
 export default function OurWorkPage() {
   return (

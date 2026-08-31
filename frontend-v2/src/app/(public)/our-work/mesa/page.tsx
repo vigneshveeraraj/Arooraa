@@ -39,12 +39,14 @@ import {
   MESA_STORY_HERO,
   MESA_STORY_RELATED_LINKS,
 } from "@/lib/content/work-detail/mesa";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "MESA Engineering Story | AROORAA",
   description:
     "Explore how AROORAA shaped and engineered MESA, its connected restaurant technology ecosystem, from restaurant workflows and product decisions to production engineering.",
-};
+  path: "/our-work/mesa",
+});
 
 export default function MesaEngineeringStoryPage() {
   return (

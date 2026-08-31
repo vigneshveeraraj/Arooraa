@@ -7,12 +7,14 @@ import { CrossCuttingCapabilities } from "@/components/services/CrossCuttingCapa
 import { ServicesEngineeringProof } from "@/components/services/ServicesEngineeringProof";
 import { EngagementModels } from "@/components/services/EngagementModels";
 import { ServicesFinalCta } from "@/components/services/ServicesFinalCta";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Services — Product Engineering Services | AROORAA",
   description:
     "AROORAA helps businesses discover, design, engineer, modernize and operate digital products — product strategy, product engineering, AI and automation, application modernization, cloud and platform engineering, and continuous engineering.",
-};
+  path: "/services",
+});
 
 export default function ServicesPage() {
   return (

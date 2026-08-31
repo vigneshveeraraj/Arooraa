@@ -5,17 +5,14 @@ import { LatestInsightsSection } from "@/components/insights/LatestInsightsSecti
 import { InsightsExplorer } from "@/components/insights/InsightsExplorer";
 import { InsightClosingCta } from "@/components/insights/InsightClosingCta";
 import { INSIGHTS_CLOSING_CTA } from "@/lib/content/insights";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Insights | AROORAA",
   description:
     "Ideas, engineering, and the problems worth solving. Notes from AROORAA on product engineering, AI, connected products, restaurant technology, smart-home thinking and founder observations.",
-  openGraph: {
-    title: "AROORAA Insights",
-    description: "Ideas, engineering, and the problems worth solving.",
-    type: "website",
-  },
-};
+  path: "/insights",
+});
 
 export default function InsightsPage() {
   return (

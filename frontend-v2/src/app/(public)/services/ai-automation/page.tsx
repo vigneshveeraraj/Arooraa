@@ -7,12 +7,14 @@ import { AiSystemVisual } from "@/components/services/ai-automation/AiSystemVisu
 import { AiApproachSequenceVisual } from "@/components/services/ai-automation/AiApproachSequenceVisual";
 import { AiInnovationVisual } from "@/components/services/ai-automation/AiInnovationVisual";
 import { AI_AUTOMATION_SERVICE_PAGE } from "@/lib/content/service-pages";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "AI, Data & Automation Services | AROORAA",
   description:
     "AROORAA helps businesses identify where AI, data and automation create practical value, then designs and engineers the systems needed to make that intelligence useful and reliable.",
-};
+  path: "/services/ai-automation",
+});
 
 export default function AiAutomationServicePage() {
   return (

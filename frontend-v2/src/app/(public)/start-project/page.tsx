@@ -6,16 +6,17 @@ import { WhatHappensNext } from "@/components/start-project/WhatHappensNext";
 import { StartWithSection } from "@/components/start-project/StartWithSection";
 import { StartProjectForm } from "@/components/start-project/StartProjectForm";
 import { OwnProductProofSection } from "@/components/start-project/OwnProductProofSection";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+// W4.1 Phase 16: indexable — this is a legitimate public commercial landing
+// page, not a session-specific or post-submission state (the one after
+// actually submitting the form is never a distinct crawlable route).
+export const metadata: Metadata = pageMetadata({
   title: "Start a Project | AROORAA",
   description:
     "Tell AROORAA what should work better — a new product or MVP, an existing product to improve, an AI/data or automation opportunity, application modernization, cloud/platform engineering, or a connected product. No complete specification required.",
-  // A lead-capture form isn't useful search-engine content on its own; kept
-  // followable so link equity still flows to it, just not indexed as a
-  // landing page (matches the equivalent page's established convention).
-  robots: { index: false, follow: true },
-};
+  path: "/start-project",
+});
 
 export default function StartProjectPage() {
   return (

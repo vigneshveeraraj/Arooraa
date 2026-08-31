@@ -7,12 +7,14 @@ import { MesaCapabilityMap } from "@/components/products/mesa/MesaCapabilityMap"
 import { MesaJourneyStrip } from "@/components/products/mesa/MesaJourneyStrip";
 import { MesaMaturityProgression } from "@/components/products/mesa/MesaMaturityProgression";
 import { MESA_PRODUCT_PAGE } from "@/lib/content/products";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "MESA — Connected Restaurant Technology | AROORAA",
   description:
     "MESA is AROORAA's flagship connected restaurant technology platform — bringing guest experience and restaurant operations together in one system.",
-};
+  path: "/products/mesa",
+});
 
 export default function MesaProductPage() {
   return (
