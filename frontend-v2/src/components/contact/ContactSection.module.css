@@ -1,0 +1,33 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+}
+
+.form {
+  order: 1;
+}
+
+.info {
+  order: 2;
+}
+
+/* Desktop: editorial content on the left, form on the right — DOM stays form-first
+   (mobile-first tab order, fast to reach), only the visual position swaps. */
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: var(--space-10);
+    align-items: start;
+  }
+
+  .form {
+    order: 2;
+  }
+
+  .info {
+    order: 1;
+    position: sticky;
+    top: var(--space-8);
+  }
+}

@@ -85,6 +85,21 @@ arooraa:
     worker:
       cadence-seconds: ${AROORAA_RECRUITMENT_NOTIFICATIONS_CADENCE_SECONDS:10}
       batch-size: ${AROORAA_RECRUITMENT_NOTIFICATIONS_BATCH_SIZE:20}
+  # Contact (Milestone W3.4) — general "contact AROORAA about something else" channel.
+  # Independent rate limiting from every other public endpoint.
+  contact:
+    rate-limit:
+      max-requests: ${AROORAA_CONTACT_RATE_LIMIT_MAX_REQUESTS:5}
+      window-minutes: ${AROORAA_CONTACT_RATE_LIMIT_WINDOW_MINUTES:10}
+  # Independent enable flag from lead/recruitment notifications — Contact email can go live
+  # without affecting either. Shares the same underlying SMTP (spring.mail.*) transport.
+  contact-notifications:
+    enabled: ${AROORAA_CONTACT_NOTIFICATIONS_ENABLED:false}
+    mail-from: ${AROORAA_CONTACT_MAIL_FROM:}
+    contact-alert-to: ${AROORAA_CONTACT_ALERT_TO:}
+    worker:
+      cadence-seconds: ${AROORAA_CONTACT_NOTIFICATIONS_CADENCE_SECONDS:10}
+      batch-size: ${AROORAA_CONTACT_NOTIFICATIONS_BATCH_SIZE:20}
   admin:
     bootstrap-email: ${AROORAA_ADMIN_BOOTSTRAP_EMAIL:}
     bootstrap-password: ${AROORAA_ADMIN_BOOTSTRAP_PASSWORD:}

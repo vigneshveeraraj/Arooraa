@@ -38,6 +38,7 @@ public class SecurityConfig {
             "/api/v1/demo-requests/**",
             "/api/v1/project-enquiries/**",
             "/api/v1/careers/**",
+            "/api/v1/contact/**",
             "/actuator/health",
     };
 
@@ -74,6 +75,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/v1/project-enquiries/**", configuration);
         source.registerCorsConfiguration("/api/v1/demo-requests/**", configuration);
         source.registerCorsConfiguration("/api/v1/careers/**", configuration);
+        source.registerCorsConfiguration("/api/v1/contact/**", configuration);
         return source;
     }
 

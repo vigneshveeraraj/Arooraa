@@ -4,6 +4,7 @@ import com.arooraa.leads.careers.exception.InvalidResumeException;
 import com.arooraa.leads.careers.exception.RecruitmentIdempotencyConflictException;
 import com.arooraa.leads.careers.exception.RecruitmentValidationException;
 import com.arooraa.leads.careers.exception.UnknownOrClosedJobException;
+import com.arooraa.leads.contact.exception.ContactIdempotencyConflictException;
 import com.arooraa.leads.exception.RateLimitExceededException;
 import com.arooraa.leads.project.exception.IdempotencyConflictException;
 import com.arooraa.leads.web.dto.ErrorResponse;
@@ -71,6 +72,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RecruitmentIdempotencyConflictException.class)
     public ResponseEntity<ErrorResponse> handleRecruitmentIdempotencyConflict(RecruitmentIdempotencyConflictException ex) {
         log.warn("job-application rejected reason=IDEMPOTENCY_CONFLICT");
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("IDEMPOTENCY_CONFLICT", ex.getMessage(), Map.of()));
+    }
+
+    @ExceptionHandler(ContactIdempotencyConflictException.class)
+    public ResponseEntity<ErrorResponse> handleContactIdempotencyConflict(ContactIdempotencyConflictException ex) {
+        log.warn("contact-message rejected reason=IDEMPOTENCY_CONFLICT");
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("IDEMPOTENCY_CONFLICT", ex.getMessage(), Map.of()));
     }
