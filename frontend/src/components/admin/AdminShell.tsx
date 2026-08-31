@@ -28,6 +28,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Link href="/admin/leads" className={styles.navLink}>
               Leads
             </Link>
+            <Link href="/admin/project-enquiries" className={styles.navLink}>
+              Project Enquiries
+            </Link>
           </nav>
           <div className={styles.userArea}>
             {admin && <span className={styles.userName}>{admin.displayName}</span>}

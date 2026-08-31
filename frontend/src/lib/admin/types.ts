@@ -21,6 +21,10 @@ export interface AdminLeadSummary {
   assignedTo: string | null;
   estimatedValue: number | null;
   estimatedValueCurrency: string | null;
+  /** W3.2D — project-enquiry-only list fields, null for MESA_DEMO rows. */
+  maskedPhone: string | null;
+  direction: string | null;
+  preferredContactMethod: string | null;
 }
 
 export interface PagedResponse<T> {
