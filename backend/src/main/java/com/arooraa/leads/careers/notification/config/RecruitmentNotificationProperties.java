@@ -16,6 +16,7 @@ import java.util.List;
 public record RecruitmentNotificationProperties(
         boolean enabled,
         String mailFrom,
+        String mailFromDisplayName,
         List<String> recruitmentAlertTo,
         Worker worker
 ) {

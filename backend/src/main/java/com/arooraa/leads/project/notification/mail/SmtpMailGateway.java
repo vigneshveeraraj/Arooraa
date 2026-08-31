@@ -8,6 +8,8 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
+import java.io.UnsupportedEncodingException;
+
 /**
  * The only class in this codebase that talks to {@link JavaMailSender}/SMTP directly — every
  * caller goes through {@link MailGateway} instead (W3.2C §4). Classifies Spring's mail exception
@@ -32,7 +34,14 @@ public class SmtpMailGateway implements MailGateway {
             // alternative part, not just an HTML body (W3.2C §40).
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(message.to().toArray(new String[0]));
-            helper.setFrom(message.from());
+            // setFrom(from, personal) builds a real RFC 2047-encoded InternetAddress (personal
+            // name safely encoded if non-ASCII) using the UTF-8 encoding configured above —
+            // this is what makes an inbox show "AROORAA" instead of the bare mailbox address.
+            if (message.fromDisplayName() != null && !message.fromDisplayName().isBlank()) {
+                helper.setFrom(message.from(), message.fromDisplayName());
+            } else {
+                helper.setFrom(message.from());
+            }
             if (message.replyTo() != null && !message.replyTo().isBlank()) {
                 helper.setReplyTo(message.replyTo());
             }
@@ -42,7 +51,7 @@ public class SmtpMailGateway implements MailGateway {
             javaMailSender.send(mimeMessage);
         } catch (MailAuthenticationException e) {
             throw new PermanentMailDeliveryException("SMTP_AUTH_FAILED", "Mail authentication failed.", e);
-        } catch (MailParseException e) {
+        } catch (MailParseException | UnsupportedEncodingException e) {
             throw new PermanentMailDeliveryException("SMTP_INVALID_ADDRESS", "Malformed sender/recipient address.", e);
         } catch (MailSendException | jakarta.mail.MessagingException e) {
             throw new RetryableMailDeliveryException("SMTP_SEND_FAILED", "Mail send failed.", e);

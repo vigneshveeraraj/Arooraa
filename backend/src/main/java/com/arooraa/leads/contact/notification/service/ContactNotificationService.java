@@ -56,7 +56,7 @@ public class ContactNotificationService {
         CustomerAcknowledgementView view = new CustomerAcknowledgementView(
                 message.getContactReference(), message.getName(), EnumHumanizer.humanize(message.getReason()));
         return new MailMessage(
-                List.of(message.getEmail()), properties.mailFrom(), null,
+                List.of(message.getEmail()), properties.mailFrom(), properties.mailFromDisplayName(), null,
                 CustomerAcknowledgementTemplate.subject(view),
                 CustomerAcknowledgementTemplate.renderHtml(view),
                 CustomerAcknowledgementTemplate.renderText(view));
@@ -71,7 +71,7 @@ public class ContactNotificationService {
                 message.getName(), message.getEmail(), message.getPhone(), message.getCompany(),
                 truncate(message.getMessage()));
         return new MailMessage(
-                properties.contactAlertTo(), properties.mailFrom(), null,
+                properties.contactAlertTo(), properties.mailFrom(), properties.mailFromDisplayName(), null,
                 InternalContactAlertTemplate.subject(view),
                 InternalContactAlertTemplate.renderHtml(view),
                 InternalContactAlertTemplate.renderText(view));

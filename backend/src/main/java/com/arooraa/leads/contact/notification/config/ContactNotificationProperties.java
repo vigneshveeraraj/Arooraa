@@ -13,6 +13,7 @@ import java.util.List;
 public record ContactNotificationProperties(
         boolean enabled,
         String mailFrom,
+        String mailFromDisplayName,
         List<String> contactAlertTo,
         Worker worker
 ) {

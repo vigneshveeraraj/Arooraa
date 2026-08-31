@@ -65,6 +65,7 @@ public class LeadNotificationService {
         return new MailMessage(
                 List.of(enquiry.getBusinessEmail()),
                 properties.mailFrom(),
+                properties.mailFromDisplayName(),
                 properties.mailReplyTo(),
                 CustomerAcknowledgementTemplate.subject(view),
                 CustomerAcknowledgementTemplate.renderHtml(view),
@@ -76,6 +77,7 @@ public class LeadNotificationService {
         return new MailMessage(
                 properties.salesNotificationTo(),
                 properties.mailFrom(),
+                properties.mailFromDisplayName(),
                 null,
                 InternalSalesAlertTemplate.subject(view),
                 InternalSalesAlertTemplate.renderHtml(view),

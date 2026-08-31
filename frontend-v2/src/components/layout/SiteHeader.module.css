@@ -62,11 +62,21 @@
   gap: var(--space-3);
 }
 
-.desktopCta {
+/*
+ * W4.7: both of these must outrank Button's own base `.button { display:
+ * inline-flex }` rule (Button.module.css), which ties them at specificity
+ * 0,1,0. Next's per-route CSS chunking does not guarantee SiteHeader's
+ * stylesheet loads after Button's — on several routes it loads first, so the
+ * tie went to Button and neither `display: none` ever applied, leaving both
+ * CTAs visible at every breakpoint. `.actions` scoping (0,2,0) reliably wins
+ * regardless of chunk/load order — the same fix already proven below for
+ * compactCta's sizing rule.
+ */
+.actions .desktopCta {
   display: none;
 }
 
-.compactCta {
+.actions .compactCta {
   display: inline-flex;
 }
 
@@ -142,12 +152,12 @@
     display: block;
   }
 
-  .desktopCta {
+  .actions .desktopCta {
     display: inline-flex;
   }
 
-  .compactCta,
-  .menuButton {
+  .actions .compactCta,
+  .actions .menuButton {
     display: none;
   }
 }

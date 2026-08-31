@@ -62,6 +62,7 @@ public class JobApplicationNotificationService {
         return new MailMessage(
                 List.of(application.getEmail()),
                 properties.mailFrom(),
+                properties.mailFromDisplayName(),
                 null,
                 CandidateAcknowledgementTemplate.subject(view),
                 CandidateAcknowledgementTemplate.renderHtml(view),
@@ -85,6 +86,7 @@ public class JobApplicationNotificationService {
         return new MailMessage(
                 properties.recruitmentAlertTo(),
                 properties.mailFrom(),
+                properties.mailFromDisplayName(),
                 null,
                 InternalRecruitmentAlertTemplate.subject(view),
                 InternalRecruitmentAlertTemplate.renderHtml(view),

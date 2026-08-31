@@ -83,7 +83,7 @@ class NotificationOutboxProcessorTest {
         ProjectEnquiry enquiry = sampleEnquiry();
         when(outboxRepository.claimNext(any())).thenReturn(Optional.of(outbox));
         when(projectEnquiryRepository.findById(outbox.getProjectEnquiryId())).thenReturn(Optional.of(enquiry));
-        MailMessage message = new MailMessage(List.of("arun@example.com"), "no-reply@arooraa.com", null, "s", "h", "t");
+        MailMessage message = new MailMessage(List.of("arun@example.com"), "no-reply@arooraa.com", "AROORAA", null, "s", "h", "t");
         when(leadNotificationService.buildMessage(outbox, enquiry)).thenReturn(message);
 
         assertTrue(processor.claimAndProcessOne());
@@ -102,7 +102,7 @@ class NotificationOutboxProcessorTest {
         when(outboxRepository.claimNext(any())).thenReturn(Optional.of(outbox));
         when(projectEnquiryRepository.findById(outbox.getProjectEnquiryId())).thenReturn(Optional.of(enquiry));
         when(leadNotificationService.buildMessage(outbox, enquiry))
-                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", null, "s", "h", "t"));
+                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", "AROORAA", null, "s", "h", "t"));
         doThrow(new RetryableMailDeliveryException("SMTP_TIMEOUT", "timed out", null)).when(mailGateway).send(any());
 
         Instant before = Instant.now();
@@ -130,7 +130,7 @@ class NotificationOutboxProcessorTest {
         when(outboxRepository.claimNext(any())).thenReturn(Optional.of(outbox));
         when(projectEnquiryRepository.findById(outbox.getProjectEnquiryId())).thenReturn(Optional.of(enquiry));
         when(leadNotificationService.buildMessage(outbox, enquiry))
-                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", null, "s", "h", "t"));
+                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", "AROORAA", null, "s", "h", "t"));
         doThrow(new RetryableMailDeliveryException("SMTP_TIMEOUT", "timed out", null)).when(mailGateway).send(any());
 
         processor.claimAndProcessOne();
@@ -146,7 +146,7 @@ class NotificationOutboxProcessorTest {
         when(outboxRepository.claimNext(any())).thenReturn(Optional.of(outbox));
         when(projectEnquiryRepository.findById(outbox.getProjectEnquiryId())).thenReturn(Optional.of(enquiry));
         when(leadNotificationService.buildMessage(outbox, enquiry))
-                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", null, "s", "h", "t"));
+                .thenReturn(new MailMessage(List.of("a@example.com"), "f@arooraa.com", "AROORAA", null, "s", "h", "t"));
         doThrow(new PermanentMailDeliveryException("SMTP_INVALID_ADDRESS", "bad address", null))
                 .when(mailGateway).send(any());
 

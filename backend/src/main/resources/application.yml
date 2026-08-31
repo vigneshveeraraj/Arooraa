@@ -53,6 +53,7 @@ arooraa:
   lead-notifications:
     enabled: ${AROORAA_LEAD_NOTIFICATIONS_ENABLED:false}
     mail-from: ${AROORAA_MAIL_FROM:}
+    mail-from-display-name: ${AROORAA_MAIL_FROM_DISPLAY_NAME:AROORAA}
     mail-reply-to: ${AROORAA_MAIL_REPLY_TO:}
     sales-notification-to: ${AROORAA_SALES_NOTIFICATION_TO:}
     worker:
@@ -81,6 +82,7 @@ arooraa:
   recruitment-notifications:
     enabled: ${AROORAA_RECRUITMENT_NOTIFICATIONS_ENABLED:false}
     mail-from: ${AROORAA_RECRUITMENT_MAIL_FROM:}
+    mail-from-display-name: ${AROORAA_RECRUITMENT_MAIL_FROM_DISPLAY_NAME:AROORAA Careers}
     recruitment-alert-to: ${AROORAA_RECRUITMENT_ALERT_TO:}
     worker:
       cadence-seconds: ${AROORAA_RECRUITMENT_NOTIFICATIONS_CADENCE_SECONDS:10}
@@ -96,6 +98,7 @@ arooraa:
   contact-notifications:
     enabled: ${AROORAA_CONTACT_NOTIFICATIONS_ENABLED:false}
     mail-from: ${AROORAA_CONTACT_MAIL_FROM:}
+    mail-from-display-name: ${AROORAA_CONTACT_MAIL_FROM_DISPLAY_NAME:AROORAA}
     contact-alert-to: ${AROORAA_CONTACT_ALERT_TO:}
     worker:
       cadence-seconds: ${AROORAA_CONTACT_NOTIFICATIONS_CADENCE_SECONDS:10}

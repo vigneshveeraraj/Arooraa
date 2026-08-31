@@ -18,6 +18,7 @@ import java.util.List;
 public record LeadNotificationProperties(
         boolean enabled,
         String mailFrom,
+        String mailFromDisplayName,
         String mailReplyTo,
         List<String> salesNotificationTo,
         Worker worker
