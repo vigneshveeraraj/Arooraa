@@ -72,6 +72,10 @@ services:
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      # Implicit TLS (e.g. Hostinger SMTP on port 465) needs this on and STARTTLS off above —
+      # without it JavaMail negotiates plaintext-then-STARTTLS on a port that expects TLS from
+      # the first byte, and the handshake fails.
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:-false}
       # Recruitment (Milestone W3.3B) — résumés live on the named volume mounted below, not on
       # the container's ephemeral filesystem, and never under anything Nginx serves statically.
       AROORAA_RECRUITMENT_RESUME_STORAGE_DIR: /var/lib/arooraa/recruitment-resumes
