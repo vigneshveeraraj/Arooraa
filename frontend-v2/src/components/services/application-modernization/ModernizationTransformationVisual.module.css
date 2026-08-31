@@ -1,0 +1,60 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+.tangle {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.beforeBlock {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.afterBlock {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.spine {
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+
+.preserved {
+  fill: var(--color-accent);
+  fill-opacity: 0.12;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.continuity {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.55;
+}
+
+.arrowLine {
+  stroke: var(--color-border-strong);
+  stroke-width: 2;
+}
+
+.arrowHead {
+  fill: var(--color-border-strong);
+}
+
+.carried {
+  fill: var(--color-accent);
+  fill-opacity: 0.18;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}

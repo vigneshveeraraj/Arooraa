@@ -1,0 +1,139 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1025px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-subtle);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.panel:hover,
+.panel:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.imageFrame {
+  position: relative;
+  width: 100%;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.metricMask {
+  position: absolute;
+  left: 10%;
+  top: 40%;
+  width: 45%;
+  height: 48%;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.role {
+  margin: 0;
+  padding: 0 var(--space-4);
+}
+
+.quote {
+  margin: 0;
+  padding: 0 var(--space-4);
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.caption {
+  margin-top: var(--space-4);
+  text-align: center;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.journeyCue {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0 var(--space-4) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.cueStep {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.cueArrow {
+  color: var(--color-border-strong);
+  margin-right: var(--space-1);
+}
+
+.cueIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-accent);
+}
+
+.statusChip {
+  margin: var(--space-2) var(--space-4) var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border-strong);
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.statusIcon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+
+  .panel:hover,
+  .panel:focus-within {
+    transform: none;
+  }
+}

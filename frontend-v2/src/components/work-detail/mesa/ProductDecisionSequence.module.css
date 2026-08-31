@@ -1,0 +1,75 @@
+.sequence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-5);
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  width: 180px;
+}
+
+.icon {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.table {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-accent);
+}
+
+.dot {
+  fill: var(--color-border-strong);
+}
+
+.arrow {
+  align-self: center;
+  margin-top: 24px;
+  color: var(--color-border-strong);
+  font-size: var(--text-h3);
+}
+
+@media (max-width: 768px) {
+  .arrow {
+    display: none;
+  }
+}
+
+.number {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-eyebrow);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.title {
+  margin: 0;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.guestControlIcons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  color: var(--color-accent);
+}
+
+.guestControlIcons svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}

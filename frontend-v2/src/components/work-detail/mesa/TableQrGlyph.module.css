@@ -1,0 +1,45 @@
+.glyph {
+  display: block;
+  width: 3.5rem;
+  height: auto;
+}
+
+.sm {
+  width: 2.25rem;
+}
+
+.baseLine {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.standBase {
+  fill: var(--color-border-strong);
+  opacity: 0.5;
+}
+
+.card {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.qrBg {
+  fill: var(--color-bg-subtle);
+}
+
+.finder {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 2;
+}
+
+.finderHole {
+  fill: var(--color-text);
+}
+
+.cell {
+  fill: var(--color-text);
+  opacity: 0.85;
+}

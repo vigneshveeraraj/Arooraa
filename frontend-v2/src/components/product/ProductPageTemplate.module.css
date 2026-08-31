@@ -1,0 +1,190 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+@media (min-width: 1025px) {
+  .heroGrid {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}
+
+.heroCtaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.heroVisual {
+  width: 100%;
+}
+
+/*
+ * Shared two-column story-row system (P2.3) — the single source of truth
+ * for column ratio, gap and vertical alignment for every section that can
+ * carry a companion visual (TextBlock, ListBlock, FeatureBlock all build
+ * this same class list via storyRowClass). Only applies once a visual is
+ * actually supplied (.hasVisual); a section with no visual renders its
+ * content as plain stacked flow. Centered by default (align-items: center)
+ * since story rows generally read best with both sides sharing a visual
+ * midpoint; content-driven height throughout — no fixed row min-height.
+ */
+.storyRow.hasVisual {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .storyRow.hasVisual {
+    gap: var(--space-6);
+  }
+}
+
+@media (min-width: 1025px) {
+  .storyRow.hasVisual {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+
+  /*
+   * P2.2: alternating zigzag rhythm. Swaps the column ratio and moves the
+   * visual before the text via `order` — desktop only, so mobile/tablet
+   * (outside this media query) always keep text-then-visual document order.
+   */
+  .storyRow.hasVisual.reverseVisual {
+    grid-template-columns: 0.85fr 1.15fr;
+  }
+
+  .storyRow.hasVisual.reverseVisual .sectionVisual {
+    order: -1;
+  }
+}
+
+.sectionVisual {
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1025px) {
+  .sectionVisual {
+    max-width: none;
+  }
+}
+
+/*
+ * P4.2: opt-in "stacked" row (see `stackedVisualSections` on
+ * ProductPageTemplate) — the visual renders full-width below the heading
+ * instead of beside it in the two-column story row, for a visual that needs
+ * to read as a flagship moment rather than a companion illustration
+ * squeezed into a ~0.85fr grid column. Plain flex column at every
+ * breakpoint — no grid, no absolute positioning, no negative margins —
+ * so it carries no horizontal-overflow risk of its own.
+ */
+.stackedBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.stackedVisual {
+  width: 100%;
+}
+
+/*
+ * P3.1: a visual-less TextBlock ("editorial") — widens the reading column
+ * from SectionHeading's default 640px to the design system's existing
+ * --container-content token (720px) and centers the whole block within the
+ * wide container, so it reads as a deliberate pause rather than a narrow
+ * paragraph stranded on the left of a lot of empty space. Desktop-only —
+ * mobile/tablet already read fine as plain stacked flow.
+ */
+@media (min-width: 1025px) {
+  .editorial {
+    max-width: var(--container-content);
+    margin-inline: auto;
+  }
+
+  .editorialHeading.editorialHeading {
+    max-width: none;
+  }
+}
+
+/* The heading + its badges/feature-grid, kept as one column so a companion
+   visual centers against the whole content block, not just the row below
+   the heading (ListBlock/FeatureBlock only — TextBlock's SectionHeading
+   already carries its own body copy as a single unit). */
+.storyContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/*
+ * P3.1: a very light, restrained surface panel — same "subtle background
+ * shift" technique used elsewhere in the design system, not a new color.
+ * Existing semantic token only (--color-bg-subtle); no card border/shadow,
+ * so it reads as a soft surface change, not a card wall.
+ */
+.storyContentSubtle {
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .storyContentSubtle {
+    padding: var(--space-5);
+  }
+}
+
+/* Capped to the same reading width as SectionHeading (640px) so a
+   full-width, visual-less list section (Engineering) reads as one
+   deliberate column rather than badges sprawling under a narrow heading. */
+.itemRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  max-width: 640px;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 700px) {
+  .featureGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.featureItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.featureDescription {
+  color: var(--color-text-muted);
+}
+
+.ctaActions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+}

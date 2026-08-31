@@ -1,0 +1,87 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 640px) {
+  .wrapper {
+    flex-direction: row;
+    height: 460px;
+  }
+}
+
+.strip {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-9) var(--space-4);
+  min-height: 220px;
+}
+
+.stripIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.stripLabel {
+  margin: 0;
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+}
+
+.stripCue {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  opacity: 0.75;
+}
+
+.home {
+  background: linear-gradient(160deg, #f3ece2, #e7dbc9);
+  color: #2b2417;
+}
+
+.fitness {
+  background: linear-gradient(160deg, #232c31, #10161a);
+  color: #f4f4f6;
+}
+
+.salon {
+  background: linear-gradient(160deg, #3a2a1c, #23160b);
+  color: #f4ece1;
+}
+
+.hospitality {
+  background: linear-gradient(160deg, #2a1b12, #140b06);
+  color: #f0e4d3;
+}
+
+.mirrorSilhouette {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .mirrorSilhouette {
+    display: block;
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 44%;
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    pointer-events: none;
+    z-index: 1;
+  }
+}

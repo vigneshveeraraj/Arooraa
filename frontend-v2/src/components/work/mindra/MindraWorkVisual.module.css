@@ -1,0 +1,26 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.innerRing,
+.outerRing {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.innerDot {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.outerDot {
+  fill: var(--color-accent);
+  opacity: 0.6;
+}

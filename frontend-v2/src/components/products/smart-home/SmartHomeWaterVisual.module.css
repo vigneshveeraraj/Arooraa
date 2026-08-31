@@ -1,0 +1,70 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.tank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tankLabel {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.level {
+  width: 44px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.levelFill {
+  width: 100%;
+  background: var(--color-focus);
+}
+
+.motorColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding-bottom: var(--space-6);
+}
+
+.motor {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.arrow {
+  color: var(--color-text-muted);
+}
+
+.note {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}

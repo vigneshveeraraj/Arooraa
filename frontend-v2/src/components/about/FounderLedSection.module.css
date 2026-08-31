@@ -1,0 +1,47 @@
+.layout {
+  margin: var(--space-6) 0 var(--space-7);
+}
+
+.copy {
+  max-width: 68ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.recurring {
+  margin-top: var(--space-2);
+}
+
+.questions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-style: italic;
+}
+
+.contextIntro {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+}
+
+.context {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.context li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}

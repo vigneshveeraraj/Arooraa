@@ -1,0 +1,101 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.stageRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.connector {
+  width: 2px;
+  height: var(--space-7);
+  background: var(--color-border-strong);
+  opacity: 0.6;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-9);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.stage:last-of-type {
+  border-color: var(--color-accent);
+}
+
+.stageIcon {
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--color-accent);
+}
+
+.stageName {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.branchConnector {
+  width: 1px;
+  height: var(--space-6);
+  background: var(--color-border);
+  opacity: 0.5;
+  border-left: var(--border-width) dashed var(--color-border);
+}
+
+.cloudStage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  border: var(--border-width) dashed var(--color-border);
+  opacity: 0.7;
+}
+
+.cloudIcon {
+  display: flex;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--color-text-muted);
+}
+
+.cloudName {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.cloudNote {
+  max-width: 560px;
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 480px) {
+  .stage {
+    padding: var(--space-5) var(--space-6);
+  }
+}

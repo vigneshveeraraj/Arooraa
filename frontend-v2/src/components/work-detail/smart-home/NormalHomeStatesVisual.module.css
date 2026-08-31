@@ -1,0 +1,148 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.states {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  max-width: 820px;
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .states {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  border: 2px solid var(--color-border);
+}
+
+.houseIcon {
+  display: flex;
+  width: 4rem;
+  height: 4rem;
+  color: var(--color-text-muted);
+}
+
+.normal .houseIcon {
+  color: var(--color-text);
+}
+
+.assist {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+}
+
+.assist .houseIcon {
+  color: var(--color-accent);
+}
+
+.assistBadge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--color-success);
+}
+
+.offline {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+
+.offline .houseIcon {
+  color: var(--color-text);
+}
+
+.offlineBadge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cloudIcon {
+  position: relative;
+  display: flex;
+  width: 1.4rem;
+  height: 1.4rem;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.cloudSlash {
+  position: absolute;
+  top: calc(var(--space-3) + 0.2rem);
+  right: calc(var(--space-3) + 0.9rem);
+  width: 1.9rem;
+  height: 2px;
+  background: var(--color-text-muted);
+  opacity: 0.6;
+  transform: rotate(-40deg);
+}
+
+.localTag {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font-size: 0.6rem;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stateName {
+  margin: 0;
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.stateDescription {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.keyLine {
+  margin: 0;
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border);
+  text-align: center;
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+@media (max-width: 640px) {
+  .keyLine {
+    font-size: var(--text-h4);
+  }
+}

@@ -1,0 +1,29 @@
+.roles {
+  margin: var(--space-5) 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.roles li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid #0f8f9e;
+  color: #0f8f9e;
+  font-size: var(--text-label);
+}
+
+.timeLine {
+  margin: 0 0 var(--space-6);
+}
+
+.limits {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+}

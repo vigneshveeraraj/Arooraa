@@ -1,0 +1,46 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 320px;
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 65% 70% at 50% 45%, rgba(141, 149, 240, 0.18), transparent 72%);
+}
+
+.mirror {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border-strong);
+  background: linear-gradient(155deg, rgba(244, 244, 246, 0.08), rgba(244, 244, 246, 0.02));
+  overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+.sheen {
+  position: absolute;
+  top: -20%;
+  left: -40%;
+  width: 45%;
+  height: 160%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: rotate(18deg);
+}
+
+@media (max-width: 1024px) {
+  .wrapper {
+    min-height: 260px;
+  }
+
+  .mirror {
+    max-width: 260px;
+  }
+}

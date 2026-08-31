@@ -1,0 +1,44 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.branch {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.55;
+}
+
+.deadEnd {
+  fill: var(--color-border-strong);
+  opacity: 0.45;
+}
+
+.chosen {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+}
+
+.origin {
+  fill: var(--color-text);
+  opacity: 0.85;
+}
+
+.pole {
+  stroke: var(--color-border-strong);
+  stroke-width: 2;
+}
+
+.pennant {
+  fill: var(--color-accent);
+}
+
+.base {
+  fill: var(--color-accent);
+}

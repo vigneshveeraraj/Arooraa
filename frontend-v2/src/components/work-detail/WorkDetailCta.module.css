@@ -1,0 +1,18 @@
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.relatedLinks {
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

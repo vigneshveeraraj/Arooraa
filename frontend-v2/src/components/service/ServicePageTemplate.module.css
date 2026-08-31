@@ -1,0 +1,323 @@
+/*
+ * S2.1 — desktop width fix. Root cause of the narrow "article column" feel:
+ * every section used Container width="content" (720px), which capped the
+ * whole section — grids included — not just the prose. SectionHeading
+ * already self-caps its own title+description at 640px regardless of its
+ * container, so the fix is to widen the outer container and let that
+ * existing self-cap keep headings/paragraphs readable, while a new
+ * .serviceContainer wrapper (1080px) gives section layout — grids, panels,
+ * split rows — real room to use. Generic: every ServicePageTemplate section
+ * gets this, not just Product Discovery; CTA is deliberately left alone
+ * (brief explicitly said no layout overhaul there).
+ */
+.serviceContainer {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+/*
+ * S4 — optional two-column hero (text | visual), used only when a page
+ * supplies sectionVisuals.hero. Stacked on mobile/tablet so the visual never
+ * competes with the headline for width; side-by-side only at desktop.
+ */
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  align-items: center;
+}
+
+@media (min-width: 1025px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+
+.heroVisualSlot {
+  width: 100%;
+}
+
+/*
+ * S8.2 — opt-in "balanced" hero variant: a true 50/50 split instead of
+ * .heroGrid's 1.1fr/0.9fr text-led ratio, for the one page whose hero visual
+ * needs to read as a substantial flagship moment. Same mobile stacking as
+ * .heroGrid. Only used where a page passes heroLayout="balanced".
+ */
+.heroGridBalanced {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  align-items: center;
+}
+
+@media (min-width: 1025px) {
+  .heroGridBalanced {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.heroHeadline {
+  max-width: 760px;
+}
+
+.heroSupporting {
+  max-width: 680px;
+}
+
+.heroCtaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/*
+ * S7 — "featured" TextBlock layout: an asymmetrical text/visual split for
+ * one flagship mid-page section, instead of the default stacked
+ * heading-then-visual. The visual gets deliberately more width than the
+ * text column. Stacked on mobile/tablet (visual below text), matching
+ * every other section visual's mobile behavior.
+ */
+.featuredSplit {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-7);
+  align-items: center;
+}
+
+@media (min-width: 1025px) {
+  .featuredSplit {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+}
+
+.featuredVisual {
+  width: 100%;
+}
+
+/* A restrained companion diagram below a section's content — full width,
+   plain flow, no side-by-side row system (editorial, not lifestyle-visual-
+   led). Renders only when a page supplies one. */
+.sectionVisual {
+  width: 100%;
+  margin-top: var(--space-6);
+}
+
+.plainList {
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2) var(--space-8);
+}
+
+@media (min-width: 1025px) {
+  .plainList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.plainListItem {
+  padding-left: var(--space-4);
+  position: relative;
+  font-size: var(--text-body);
+  color: var(--color-text);
+}
+
+.plainListItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.subtlePanel {
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .subtlePanel {
+    padding: var(--space-5);
+  }
+}
+
+/*
+ * "split" ListBlock layout (S2.1) — heading beside its list instead of
+ * above it, for a section whose list reads more like a second column of
+ * content than a wrapped item grid (e.g. Discovery Sprint's activities).
+ * Generic and opt-in; the default "stacked" layout (heading above list) is
+ * unchanged for every other ListBlock.
+ */
+.splitRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (min-width: 1025px) {
+  .splitRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.splitList {
+  margin-top: 0;
+}
+
+.capabilityGrid {
+  margin-top: var(--space-5);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5) var(--space-7);
+}
+
+@media (min-width: 560px) {
+  .capabilityGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Opt-in wider variant (S2.1) — four columns at desktop for a short proof
+   row (name + one line), e.g. related-work's product proof. Declared after
+   the two-column rule above so it wins at ≥1025px via source order. */
+@media (min-width: 1025px) {
+  .capabilityGridWide {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.capabilityItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.capabilityDescription {
+  color: var(--color-text-muted);
+}
+
+/* S4 — a single restrained line under a list/capability grid (credibility
+   statement or scope disclaimer). Muted, slightly smaller, no bullet. */
+.listNote {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/*
+ * S4 — ComparisonBlock's two labeled columns (e.g. Machine / Human). Deliberately
+ * its own list styling (not .plainList/.capabilityGrid) since each side is a
+ * single-column list inside a half-width panel, not a wrapped item grid.
+ */
+.comparisonGrid {
+  margin-top: var(--space-5);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 1025px) {
+  .comparisonGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.comparisonSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+}
+
+.comparisonLabel {
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.comparisonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.comparisonListItem {
+  padding-left: var(--space-4);
+  position: relative;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.comparisonListItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.faqList {
+  margin: var(--space-5) 0 0;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.faqItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.faqItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.faqQuestion {
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.faqAnswer {
+  margin: 0;
+  font-size: var(--text-body);
+  color: var(--color-text-muted);
+}
+
+.ctaActions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+}

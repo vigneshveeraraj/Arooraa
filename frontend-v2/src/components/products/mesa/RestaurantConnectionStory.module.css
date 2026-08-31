@@ -1,0 +1,145 @@
+.story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.groupLabel {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.arrow {
+  color: var(--color-text-muted);
+  font-size: var(--text-h3);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cardLabel {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+/* "Before" — scattered, slightly rotated, dashed cards: no connecting lines. */
+.scatter {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 340px;
+}
+
+/*
+ * P2.3: match the "after" row's column count once there's room, so the
+ * before/after groups sit at similar heights and the whole composition
+ * stays compact enough to center against a typical paragraph — a tall,
+ * two-row "before" group next to a one-row "after" group was pushing the
+ * visual's center well below the paired heading/paragraph.
+ */
+@media (min-width: 560px) {
+  .scatter {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 480px;
+  }
+}
+
+.scatterCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.tiltLeft {
+  transform: rotate(-2deg);
+}
+
+.tiltRight {
+  transform: rotate(2deg);
+}
+
+/* "With MESA" — the same four areas, tidied into one connected line. */
+.connected {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.thread {
+  display: none;
+}
+
+.connectedRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  width: 100%;
+}
+
+@media (min-width: 560px) {
+  .connectedRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .thread {
+    display: block;
+    position: absolute;
+    top: 32px;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+    fill: none;
+    opacity: 0.6;
+  }
+}
+
+.connectedCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.mesaMark {
+  color: var(--color-accent-text);
+  text-align: center;
+}

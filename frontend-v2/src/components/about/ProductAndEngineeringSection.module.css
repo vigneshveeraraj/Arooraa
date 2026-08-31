@@ -1,0 +1,13 @@
+.body {
+  margin-top: var(--space-5);
+  max-width: 60ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.principle {
+  margin-top: var(--space-7);
+  text-align: center;
+}

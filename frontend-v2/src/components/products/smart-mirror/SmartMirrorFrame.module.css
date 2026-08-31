@@ -1,0 +1,55 @@
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-3);
+  overflow: hidden;
+}
+
+.ambient {
+  position: absolute;
+  inset: -24px;
+  background: radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 68%);
+  filter: blur(28px);
+  z-index: 0;
+}
+
+.frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--color-text) 0%, color-mix(in srgb, var(--color-text) 82%, var(--color-accent)) 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.sceneLarge .frame {
+  max-width: 520px;
+}
+
+.glass {
+  position: relative;
+  border-radius: calc(var(--radius-lg) - 6px);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--color-accent) 10%, var(--color-surface)) 0%, color-mix(in srgb, var(--color-accent) 3%, var(--color-bg-subtle)) 100%);
+  padding: var(--space-4);
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--color-surface) 35%, transparent) 0%, transparent 60%);
+  pointer-events: none;
+}

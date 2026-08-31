@@ -1,0 +1,99 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+.bgTable {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+  opacity: 0.4;
+}
+
+.bgTableLeg {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  opacity: 0.4;
+}
+
+.tableShadow {
+  fill: var(--color-text);
+  opacity: 0.06;
+}
+
+.table {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.tableLeg {
+  stroke: var(--color-border-strong);
+  stroke-width: 3;
+}
+
+.menuCard {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.plate {
+  fill: var(--color-accent);
+  opacity: 0.45;
+}
+
+.tray {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.motionTick {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  opacity: 0.45;
+}
+
+.kitchenPass {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.orderDot {
+  fill: var(--color-accent);
+  opacity: 0.6;
+}
+
+.readyPlate {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.counter {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.screen {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.receipt {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.receiptLine {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}

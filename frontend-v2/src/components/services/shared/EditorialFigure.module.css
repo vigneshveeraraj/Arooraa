@@ -1,0 +1,5 @@
+.figure path,
+.figure circle {
+  fill: var(--color-text);
+  opacity: 0.82;
+}

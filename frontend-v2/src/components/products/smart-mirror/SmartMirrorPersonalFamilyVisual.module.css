@@ -1,0 +1,39 @@
+.spaces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 340px;
+  margin-inline: auto;
+}
+
+.panel {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.familyPanel {
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+  border-color: var(--color-accent);
+}
+
+.panelLabel {
+  color: var(--color-accent-text);
+}
+
+.panelBody {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.bridge {
+  align-self: center;
+  width: 2px;
+  height: var(--space-4);
+  background: var(--color-border-strong);
+}

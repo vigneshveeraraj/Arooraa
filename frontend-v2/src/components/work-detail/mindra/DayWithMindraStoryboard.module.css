@@ -1,0 +1,105 @@
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.cue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) 0;
+}
+
+.cueIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.accentIndigo {
+  background: rgba(42, 53, 156, 0.08);
+}
+
+.accentIndigo .cueIcon {
+  color: var(--color-accent);
+}
+
+.accentLavender {
+  background: rgba(107, 92, 165, 0.1);
+}
+
+.accentLavender .cueIcon {
+  color: #6b5ca5;
+}
+
+.accentGreen {
+  background: var(--color-success-bg);
+}
+
+.accentGreen .cueIcon {
+  color: var(--color-success);
+}
+
+.accentAmber {
+  background: var(--color-warning-bg);
+}
+
+.accentAmber .cueIcon {
+  color: var(--color-warning);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.time {
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}

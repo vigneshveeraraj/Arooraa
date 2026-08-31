@@ -1,0 +1,49 @@
+.list {
+  list-style: none;
+  margin: var(--space-7) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.number {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  padding-top: 0.2em;
+  flex-shrink: 0;
+}
+
+.itemContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.problem {
+  color: var(--color-text);
+}
+
+.services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.serviceLink {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-accent-text);
+  text-decoration: none;
+}
+
+.serviceLink:hover {
+  text-decoration: underline;
+}

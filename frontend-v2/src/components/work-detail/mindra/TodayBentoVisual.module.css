@@ -1,0 +1,73 @@
+.bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .bento {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .bento {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
+  }
+
+  .featured {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.featured {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+.tileIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-accent);
+}
+
+.featured .tileIcon {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.6rem;
+}
+
+.tileLabel {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.featured .tileLabel {
+  font-size: var(--text-h3);
+}
+
+.tileDescription {
+  margin: 0;
+  color: var(--color-text-muted);
+}

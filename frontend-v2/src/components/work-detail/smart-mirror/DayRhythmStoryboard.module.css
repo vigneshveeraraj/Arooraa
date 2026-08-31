@@ -1,0 +1,139 @@
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mirror {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.sheen {
+  position: absolute;
+  top: -30%;
+  left: -20%;
+  width: 55%;
+  height: 180%;
+  transform: rotate(18deg);
+}
+
+.timeIcon {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.cue {
+  position: absolute;
+  right: 10%;
+  width: 30%;
+  height: 9%;
+  border-radius: var(--radius-full);
+}
+
+.morning {
+  background: linear-gradient(155deg, #fbf7f0, #f0e9dc);
+  border: 2px solid var(--color-border-strong);
+}
+
+.morning .sheen {
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+}
+
+.morning .timeIcon {
+  color: #b8860b;
+}
+
+.morning .cue {
+  background: rgba(20, 21, 26, 0.08);
+  border: 1px solid rgba(20, 21, 26, 0.14);
+}
+
+.leaving {
+  background: linear-gradient(155deg, var(--color-bg-subtle), var(--color-surface));
+  border: 2px solid var(--color-border-strong);
+}
+
+.leaving .sheen {
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+}
+
+.leaving .timeIcon {
+  color: var(--color-accent);
+}
+
+.leaving .cue {
+  background: rgba(20, 21, 26, 0.08);
+  border: 1px solid rgba(20, 21, 26, 0.14);
+}
+
+.evening {
+  background: linear-gradient(155deg, #3a2f26, #1f1912);
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.evening .sheen {
+  background: linear-gradient(120deg, transparent, rgba(255, 220, 170, 0.22), transparent);
+}
+
+.evening .timeIcon {
+  color: #e8c07d;
+}
+
+.evening .cue {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.quiet {
+  background: linear-gradient(155deg, #16171f, #0d0e13);
+  border: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+.quiet .sheen {
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.quiet .timeIcon {
+  color: rgba(244, 244, 246, 0.55);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.description {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,78 @@
+.panel {
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface));
+}
+
+.progression {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stage {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
+}
+
+.stage:last-child {
+  padding-bottom: 0;
+}
+
+.dotWrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: var(--space-1);
+}
+
+.dot {
+  display: block;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+/* A small growing-dot cue across the three stages — restrained, not a chart. */
+.dotStage1 {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+}
+
+.dotStage2 {
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+}
+
+.dotStage3 {
+  width: 18px;
+  height: 18px;
+}
+
+.line {
+  position: absolute;
+  top: 18px;
+  left: 8px;
+  width: 2px;
+  height: calc(var(--space-6) + 16px);
+  background: var(--color-border-strong);
+}
+
+.stageContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.stageLabel {
+  color: var(--color-text);
+}
+
+.stageDetail {
+  color: var(--color-text-muted);
+}

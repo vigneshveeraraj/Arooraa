@@ -1,0 +1,53 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.task .dot {
+  background: var(--color-accent);
+}
+
+.grocery .dot {
+  background: var(--color-success);
+}
+
+.meal .dot {
+  background: var(--color-warning);
+}
+
+.note .dot {
+  background: color-mix(in srgb, var(--color-accent) 55%, var(--color-bg-subtle));
+}
+
+.family .dot {
+  background: var(--color-error);
+}
+
+.label {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  flex: 1;
+}
+
+.tag {
+  flex-shrink: 0;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}

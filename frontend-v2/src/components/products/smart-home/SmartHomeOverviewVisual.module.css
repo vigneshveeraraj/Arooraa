@@ -1,0 +1,77 @@
+.figure {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.caption {
+  text-align: center;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.storyWrap {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.storyLabel {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.floorGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.floorLabel {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}
+
+.cardRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.card {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.roomName {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.roomStatus {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.roomDetail {
+  color: var(--color-text-muted);
+}

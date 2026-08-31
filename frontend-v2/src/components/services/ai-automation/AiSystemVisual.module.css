@@ -1,0 +1,46 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.signal {
+  fill: var(--color-border-strong);
+}
+
+.filter {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.arrow {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.arrowhead {
+  fill: var(--color-border-strong);
+}
+
+.output {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.actionMark {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.controlRing {
+  fill: var(--color-surface);
+  stroke: var(--color-text);
+  stroke-width: 2;
+}

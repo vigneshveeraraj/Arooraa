@@ -1,0 +1,65 @@
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin-inline: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: space-between;
+  justify-content: space-between;
+  padding: var(--space-3);
+  pointer-events: none;
+}
+
+.chip {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.chip[data-tilt="left"] {
+  transform: rotate(-4deg);
+}
+
+.chip[data-tilt="right"] {
+  transform: rotate(4deg);
+}
+
+.chip:nth-child(1) {
+  margin-top: var(--space-2);
+}
+
+.chip:nth-child(3) {
+  align-self: center;
+}
+
+.chip:nth-child(5) {
+  align-self: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+/* P3.2: the phone frame/screen chrome itself now comes from the shared
+   MindraPhoneMockup component (its own default 240px max-width is used
+   as-is here — deliberately not overridden, since a same-specificity width
+   rule from a second CSS Modules file would depend on unpredictable
+   cross-file cascade order). This class only adds position: relative so
+   the phone stays correctly stacked within the scattered chips scene. */
+.heroPhone {
+  position: relative;
+}

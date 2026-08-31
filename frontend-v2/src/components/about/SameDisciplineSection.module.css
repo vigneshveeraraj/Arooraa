@@ -1,0 +1,33 @@
+.disciplineIntro {
+  margin-top: var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.rail {
+  margin: var(--space-4) 0 var(--space-7);
+  padding-left: var(--space-6);
+  border-left: 2px dashed var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rail li {
+  position: relative;
+  padding-left: var(--space-2);
+}
+
+.rail li::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--space-6) - 4px);
+  top: 0.5em;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.timeBack {
+  max-width: 60ch;
+}

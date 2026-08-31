@@ -1,0 +1,46 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.label {
+  color: var(--color-accent-text);
+}
+
+.proposition {
+  color: var(--color-text-muted);
+  max-width: 46ch;
+}
+
+.quoteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  max-width: 46ch;
+}
+
+.quoteSpark {
+  flex: none;
+  margin-top: 0.35em;
+}
+
+.quote {
+  font-style: italic;
+  text-align: left;
+}
+
+@media (max-width: 480px) {
+  .quoteRow {
+    text-align: center;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .quote {
+    text-align: center;
+  }
+}

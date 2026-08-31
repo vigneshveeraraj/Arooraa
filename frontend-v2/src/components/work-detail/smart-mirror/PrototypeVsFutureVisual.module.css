@@ -1,0 +1,165 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.desktopLayout {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.mobileLayout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .desktopLayout {
+    display: flex;
+  }
+
+  .mobileLayout {
+    display: none;
+  }
+}
+
+.canvas {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  aspect-ratio: 700 / 460;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.connector {
+  stroke: var(--color-border);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 5;
+  opacity: 0.55;
+}
+
+.core {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: clamp(150px, 30vw, 230px);
+  padding: clamp(var(--space-3), 2vw, var(--space-5)) clamp(var(--space-3), 2vw, var(--space-4));
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  z-index: 1;
+}
+
+.coreLabel {
+  margin: 0;
+  font-size: clamp(0.6rem, 1.4vw + 0.3rem, var(--text-label));
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.coreItems {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: clamp(0.6rem, 1.3vw + 0.3rem, var(--text-body-sm));
+  color: var(--color-text);
+}
+
+.futureChip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: clamp(76px, 17vw, 128px);
+  padding: clamp(2px, 0.6vw, 5px) clamp(4px, 1vw, 9px);
+  border-radius: var(--radius-md);
+  border: var(--border-width) dashed var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: clamp(0.55rem, 1.2vw + 0.25rem, 0.72rem);
+  line-height: 1.25;
+  text-align: center;
+}
+
+.futureLabel {
+  margin: 0;
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.mobileCore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.mobileCore .coreLabel {
+  font-size: var(--text-label);
+}
+
+.mobileCore .coreItems {
+  font-size: var(--text-body-sm);
+  gap: var(--space-1);
+}
+
+.mobileConnector {
+  width: 2px;
+  height: var(--space-6);
+  background: var(--color-border-strong);
+  opacity: 0.5;
+}
+
+.mobileFutureList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 480px;
+}
+
+.mobileFutureItem {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: var(--border-width) dashed var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+  text-align: center;
+}

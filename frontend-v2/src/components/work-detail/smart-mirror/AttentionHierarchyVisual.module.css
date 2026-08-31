@@ -1,0 +1,100 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 780px;
+  aspect-ratio: 640 / 360;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.connector {
+  stroke: var(--color-border);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 5;
+  opacity: 0.5;
+}
+
+.tier {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+  border-radius: var(--radius-lg);
+}
+
+.now {
+  width: clamp(140px, 26vw, 230px);
+  padding: var(--space-5) var(--space-5);
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-md);
+  z-index: 3;
+}
+
+.now .tierName {
+  font-size: clamp(1.1rem, 2vw + 0.6rem, var(--text-h2));
+  color: var(--color-accent);
+}
+
+.now .tierDescription {
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+}
+
+.soon {
+  width: clamp(110px, 20vw, 180px);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border-strong);
+  z-index: 2;
+}
+
+.soon .tierName {
+  font-size: var(--text-body);
+  color: var(--color-text);
+}
+
+.soon .tierDescription {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.available {
+  width: clamp(88px, 15vw, 140px);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--color-border);
+  opacity: 0.62;
+  z-index: 1;
+}
+
+.available .tierName {
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.available .tierDescription {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.tierName {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+}
+
+.tierDescription {
+  margin: 0;
+}

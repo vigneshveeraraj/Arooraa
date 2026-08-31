@@ -1,0 +1,65 @@
+.chart {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: var(--space-2) 0;
+}
+
+.laneLabel {
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 900 / 300;
+}
+
+.syncLine {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+  opacity: 0.4;
+}
+
+.laneLine {
+  stroke: var(--color-border-strong);
+  stroke-width: 2;
+}
+
+.marker {
+  fill: var(--color-accent);
+}
+
+.branch {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+}
+
+.branchMarker {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+@media (max-width: 640px) {
+  .chart {
+    grid-template-columns: 80px 1fr;
+    gap: var(--space-2);
+  }
+
+  .laneLabel {
+    font-size: var(--text-body-sm);
+  }
+}

@@ -1,0 +1,100 @@
+.grid {
+  margin: var(--space-7) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.iconChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.iconChip svg {
+  width: 22px;
+  height: 22px;
+}
+
+.title {
+  margin: 0;
+}
+
+.body {
+  color: var(--color-text-muted);
+}
+
+.accentIndigo .iconChip {
+  background: rgba(42, 53, 156, 0.1);
+  color: var(--color-accent);
+}
+.accentIndigo {
+  border-top: 3px solid var(--color-accent);
+}
+
+.accentElectric .iconChip {
+  background: rgba(47, 111, 237, 0.1);
+  color: #2f6fed;
+}
+.accentElectric {
+  border-top: 3px solid #2f6fed;
+}
+
+.accentCyan .iconChip {
+  background: rgba(15, 143, 158, 0.1);
+  color: #0f8f9e;
+}
+.accentCyan {
+  border-top: 3px solid #0f8f9e;
+}
+
+.accentAmber .iconChip {
+  background: rgba(184, 121, 10, 0.1);
+  color: #b8790a;
+}
+.accentAmber {
+  border-top: 3px solid #b8790a;
+}
+
+.accentGreen .iconChip {
+  background: rgba(47, 143, 91, 0.1);
+  color: #2f8f5b;
+}
+.accentGreen {
+  border-top: 3px solid #2f8f5b;
+}
+
+.accentLavender .iconChip {
+  background: rgba(124, 92, 191, 0.1);
+  color: #7c5cbf;
+}
+.accentLavender {
+  border-top: 3px solid #7c5cbf;
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

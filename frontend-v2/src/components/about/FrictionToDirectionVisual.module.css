@@ -1,0 +1,103 @@
+.wrap {
+  width: 100%;
+}
+
+.scene {
+  width: 100%;
+  aspect-ratio: 640 / 360;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.zoneFriction {
+  fill: var(--color-bg-subtle);
+}
+
+.zoneDirection {
+  fill: var(--color-accent);
+  opacity: 0.05;
+}
+
+.loop {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+  opacity: 0.5;
+}
+
+.duplicate {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.55;
+}
+
+.brokenConnector {
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}
+
+.converge {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.75;
+  opacity: 0.4;
+}
+
+.spark {
+  fill: #b8790a;
+  filter: drop-shadow(0 0 8px rgba(184, 121, 10, 0.4));
+}
+
+.resolveLine {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.customerView {
+  fill: rgba(42, 53, 156, 0.08);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.providerView {
+  fill: rgba(47, 111, 237, 0.08);
+  stroke: #2f6fed;
+  stroke-width: 2;
+}
+
+.connectorLine {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.connectorNode {
+  fill: var(--color-accent);
+}
+
+.captions {
+  display: grid;
+  grid-template-columns: 212fr 180fr 248fr;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  text-align: center;
+}
+
+.caption {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 640px) {
+  .captions {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}

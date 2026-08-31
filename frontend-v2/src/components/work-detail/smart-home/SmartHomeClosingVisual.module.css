@@ -1,0 +1,50 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 320px;
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 65% 70% at 50% 45%, rgba(141, 149, 240, 0.18), transparent 72%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border-strong);
+  background: linear-gradient(155deg, rgba(244, 244, 246, 0.08), rgba(244, 244, 246, 0.02));
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+.houseIcon {
+  display: flex;
+  width: 5rem;
+  height: 5rem;
+  color: var(--color-accent-text);
+}
+
+@media (max-width: 1024px) {
+  .wrapper {
+    min-height: 260px;
+  }
+
+  .card {
+    max-width: 210px;
+  }
+
+  .houseIcon {
+    width: 4rem;
+    height: 4rem;
+  }
+}

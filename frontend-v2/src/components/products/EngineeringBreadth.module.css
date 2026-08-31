@@ -1,0 +1,35 @@
+/*
+ * Restrained --color-bg-subtle surface shift (same technique as the
+ * homepage polish milestone's What We Build for Clients) — a beat between
+ * the product entries and the closing CTA, not a full dark section, so it
+ * doesn't compete with the CTA as "the ending" of this page.
+ */
+.engineeringBreadth.engineeringBreadth {
+  background: var(--color-bg-subtle);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-7);
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.product {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

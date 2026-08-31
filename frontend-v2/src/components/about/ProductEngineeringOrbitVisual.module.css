@@ -1,0 +1,54 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 640 / 420;
+  margin-top: var(--space-6);
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.link {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+.centerGlow {
+  fill: var(--color-accent);
+  opacity: 0.1;
+}
+
+.centerNode {
+  fill: var(--color-accent);
+}
+
+.center {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  color: var(--color-cta-fg, #fff);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.concern {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .concern {
+    font-size: 0.6rem;
+    padding: 2px var(--space-1);
+  }
+}

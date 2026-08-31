@@ -1,0 +1,28 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 320px;
+  margin-inline: auto;
+}
+
+.thinkingCircle {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.link {
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+
+.node {
+  fill: var(--color-text-muted);
+}
+
+.engineeringSquare {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}

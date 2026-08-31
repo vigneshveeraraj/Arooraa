@@ -1,0 +1,148 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  aspect-ratio: 560 / 460;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.deviceCue {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.tagItem {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(var(--rotation));
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+
+.tagRow {
+  border-radius: var(--radius-md);
+}
+
+.tagStack {
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-1);
+}
+
+.tagPill {
+  border-radius: var(--radius-full);
+}
+
+.tagPillDot {
+  border-radius: var(--radius-full);
+}
+
+.tagIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.tagLabel {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+}
+
+.badgeItem {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(var(--rotation));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badgeCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 50%;
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+  color: var(--color-accent);
+}
+
+.badgeCircle svg {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.badgeLabel {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .tagItem {
+    padding: var(--space-1) var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .tagStack {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .tagIcon {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .tagLabel {
+    font-size: 0.7rem;
+  }
+
+  .badgeCircle {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .badgeCircle svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .badgeLabel {
+    font-size: 0.7rem;
+  }
+}

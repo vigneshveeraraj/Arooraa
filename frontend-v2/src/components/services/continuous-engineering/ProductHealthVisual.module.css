@@ -1,0 +1,36 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.step {
+  fill: var(--color-accent);
+}
+
+.trend {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+}
+
+.marker {
+  fill: var(--color-surface);
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+}
+
+.continuation {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+.openEnd {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+}

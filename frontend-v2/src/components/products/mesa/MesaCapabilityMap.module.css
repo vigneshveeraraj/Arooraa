@@ -1,0 +1,124 @@
+.map {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.linkLayer {
+  display: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.core {
+  order: -1;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  border-color: var(--color-accent);
+}
+
+.coreLabel {
+  color: var(--color-accent-text);
+  letter-spacing: 0.04em;
+}
+
+.nodeIcon {
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent-text);
+  flex-shrink: 0;
+}
+
+.nodeLabel {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+/*
+ * Desktop: a genuine map — a wide surface with the five capability cards
+ * arranged around a central MESA card, connected by thin decorative lines.
+ * Below this breakpoint the cards stay in the simple stacked list above so
+ * a narrow screen never has to deal with absolute-positioned overlap.
+ */
+@media (min-width: 1025px) {
+  .map {
+    max-width: 600px;
+    aspect-ratio: 1 / 0.95;
+    display: block;
+  }
+
+  .linkLayer {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    stroke: var(--color-border-strong);
+    stroke-width: 0.6;
+  }
+
+  /*
+   * P2.3: sized up slightly (168px -> 178px cards, 108px -> 118px core) —
+   * the column this map sits in has room the P2.2 version wasn't using, and
+   * this is the page's one flagship visual.
+   */
+  .card {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 178px;
+  }
+
+  .core {
+    top: 50%;
+    left: 50%;
+    width: 118px;
+    height: 118px;
+    border-radius: var(--radius-full);
+    justify-content: center;
+  }
+
+  .node {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-1);
+  }
+
+  .nodeTop {
+    top: 12%;
+    left: 50%;
+  }
+
+  .nodeUpperRight {
+    top: 38%;
+    left: 86%;
+  }
+
+  .nodeLowerRight {
+    top: 81%;
+    left: 72%;
+  }
+
+  .nodeLowerLeft {
+    top: 81%;
+    left: 28%;
+  }
+
+  .nodeUpperLeft {
+    top: 38%;
+    left: 14%;
+  }
+}

@@ -1,0 +1,52 @@
+.panel {
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface));
+}
+
+.eyebrow {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+/*
+ * P2.3: three columns / two rows at every width from 481px up, including
+ * desktop — a 2-column/3-row layout ran noticeably taller than its paired
+ * text column and read as a tall, detached block rather than one
+ * restrained panel sitting level with the copy beside it.
+ */
+@media (min-width: 481px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-accent-text);
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}

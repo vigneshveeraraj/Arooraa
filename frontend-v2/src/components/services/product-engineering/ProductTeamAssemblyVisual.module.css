@@ -1,0 +1,58 @@
+.panel {
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--color-bg-subtle), var(--color-surface));
+  border: var(--border-width) solid var(--color-border);
+  padding: var(--space-6);
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(circle at 30% 78%, rgba(42, 53, 156, 0.1), transparent 55%);
+  pointer-events: none;
+}
+
+.svg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.product {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.surfaceAccent {
+  fill: var(--color-accent);
+  opacity: 0.5;
+}
+
+.chipDocked {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.chipArriving {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.chipEcho {
+  fill: var(--color-border-strong);
+  opacity: 0.2;
+}
+
+@media (max-width: 640px) {
+  .chipEcho {
+    display: none;
+  }
+}

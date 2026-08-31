@@ -1,0 +1,103 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 640 / 360;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, #fbfaf7 0%, #f2f2fb 100%);
+  overflow: hidden;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pathDashed {
+  stroke: var(--color-text-muted);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+  opacity: 0.45;
+}
+
+.pathSolid {
+  stroke-width: 2.25;
+  opacity: 0.85;
+}
+
+.origin {
+  fill: var(--color-bg);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.originSpark {
+  fill: var(--color-accent);
+}
+
+.domain {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  white-space: nowrap;
+}
+
+.domainIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.domainLabel {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.electric {
+  color: #2f6fed;
+}
+.electric.domain {
+  border-color: #2f6fed;
+}
+
+.lavender {
+  color: #7c5cbf;
+}
+.lavender.domain {
+  border-color: #7c5cbf;
+}
+
+.cyan {
+  color: #0f8f9e;
+}
+.cyan.domain {
+  border-color: #0f8f9e;
+}
+
+.green {
+  color: #2f8f5b;
+}
+.green.domain {
+  border-color: #2f8f5b;
+}
+
+@media (max-width: 640px) {
+  .domain {
+    padding: 2px var(--space-2);
+  }
+
+  .domainLabel {
+    font-size: 0.62rem;
+  }
+
+  .domainIcon svg {
+    width: 14px;
+    height: 14px;
+  }
+}

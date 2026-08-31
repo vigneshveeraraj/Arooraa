@@ -1,0 +1,61 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 640 / 380;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  overflow: hidden;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.thread {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 5;
+  opacity: 0.5;
+}
+
+.glow {
+  fill: var(--color-accent);
+  opacity: 0.08;
+}
+
+.product {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.note {
+  position: absolute;
+  max-width: 190px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-body-sm);
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.sparkWrap {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 640px) {
+  .note {
+    max-width: 140px;
+    font-size: 0.72rem;
+    padding: var(--space-1) var(--space-2);
+  }
+}

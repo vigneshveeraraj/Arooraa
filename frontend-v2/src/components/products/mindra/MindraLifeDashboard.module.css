@@ -1,0 +1,75 @@
+.dashboard {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboardLabel {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent-text);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.cardTitle {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.cardRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/*
+ * Desktop: a genuine bento grid — Today's Plan and Family Tasks share the
+ * top row, Groceries/Meal Plan/My Space share a compact row beneath. A
+ * six-column base grid with span classes handles both row shapes from one
+ * grid container rather than nesting two separate grids.
+ */
+@media (min-width: 1025px) {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-3);
+  }
+
+  .cardToday,
+  .cardFamily {
+    grid-column: span 3;
+  }
+
+  .cardCompact {
+    grid-column: span 2;
+  }
+}
+
+/* Restrained hover lift — pointer devices only, and only when the visitor
+   hasn't asked for reduced motion. The dashboard is decorative (aria-hidden
+   throughout), so this is a purely cosmetic touch, not an interaction cue. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card:hover {
+    transform: translateY(-2px);
+  }
+}

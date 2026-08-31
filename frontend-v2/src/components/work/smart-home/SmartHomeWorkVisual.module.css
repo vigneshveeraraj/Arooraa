@@ -1,0 +1,76 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* W1.1 — a modest, local presence bump (520px → 580px); no geometry or
+     story-structure change, just more room for the existing scene to render
+     at a slightly larger size within its column. */
+  max-width: 580px;
+  margin-inline: auto;
+}
+
+.roof,
+.houseBody {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.roomDivider {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.link {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  opacity: 0.5;
+}
+
+.lightRing {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.lightCore,
+.energyDot {
+  fill: var(--color-accent);
+  opacity: 0.6;
+}
+
+.switchPlate {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.switchToggle {
+  fill: var(--color-text);
+  opacity: 0.6;
+}
+
+.energyNode {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.waterTank {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.waterLevel {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.controller {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}

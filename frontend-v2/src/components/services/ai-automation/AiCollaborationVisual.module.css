@@ -1,0 +1,27 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 320px;
+  margin-inline: auto;
+}
+
+.square {
+  fill: var(--color-bg-subtle);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.link {
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+
+.trail {
+  fill: var(--color-accent);
+  opacity: 0.35;
+}
+
+.handoff {
+  fill: var(--color-accent);
+}

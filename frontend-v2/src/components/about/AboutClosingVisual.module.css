@@ -1,0 +1,30 @@
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(141, 149, 240, 0.28) 0%, rgba(141, 149, 240, 0) 70%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid var(--color-dark-border-strong);
+  background: var(--color-dark-surface-elevated);
+}
+
+.spark {
+  fill: var(--color-accent-on-dark);
+}
