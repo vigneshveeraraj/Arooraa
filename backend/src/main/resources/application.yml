@@ -119,6 +119,13 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # spring-boot-starter-mail on the classpath auto-registers a mail health indicator that
+    # tries to connect to spring.mail.host — with notifications intentionally disabled and no
+    # SMTP configured (W4.4/W4.5), that check fails and drags the whole /actuator/health (and
+    # this container's Docker healthcheck) to DOWN even though the application itself is fine.
+    mail:
+      enabled: false
 
 logging:
   level:
