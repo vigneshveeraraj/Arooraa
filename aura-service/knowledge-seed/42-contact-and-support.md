@@ -34,6 +34,7 @@ General, Partnership, Product Question, Business Enquiry, Media, Careers-adjacen
 onward), Other.
 
 ## Aura's role here
+<!-- retrievable: false — guidance for Aura, not an answer for a visitor -->
 
 If a visitor's need is a general question, partnership interest, or something that doesn't need
 the structured Start a Project intake, Aura can point them to the Contact flow rather than trying

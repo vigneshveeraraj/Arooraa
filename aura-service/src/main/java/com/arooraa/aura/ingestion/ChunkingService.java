@@ -1,6 +1,7 @@
 package com.arooraa.aura.ingestion;
 
 import com.arooraa.aura.ingestion.config.ChunkingProperties;
+import com.arooraa.aura.knowledge.domain.SectionEligibility;
 import com.arooraa.aura.support.Sha256;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,13 @@ import java.util.regex.Pattern;
  *
  * <p>Deterministic: identical input always produces identical output (same text, offsets and
  * checksums), which is what makes idempotent re-ingestion possible.
+ *
+ * <p>Two things never become chunks (A3.3). A section that {@link SectionEligibility} judges to be
+ * operating guidance rather than knowledge is skipped whole — a PUBLIC document is not public all
+ * the way down, and "What Aura must not disclose about MESA" is an instruction, not an answer.
+ * And editorial review comments are stripped from paragraph text, so a note written for the owner
+ * is never embedded, retrieved or quoted at a visitor. Both are exclusions at source: what is not
+ * chunked cannot be retrieved, cannot reach a prompt and cannot be cited.
  */
 @Component
 public class ChunkingService {
@@ -38,6 +46,9 @@ public class ChunkingService {
     public List<PreparedChunk> chunk(String rawContent) {
         List<PreparedChunk> chunks = new ArrayList<>();
         for (Section section : splitIntoSections(rawContent)) {
+            if (!SectionEligibility.isRetrievable(section.heading(), section.body())) {
+                continue;
+            }
             chunks.addAll(chunkSection(section));
         }
         return chunks;
@@ -121,7 +132,13 @@ public class ChunkingService {
             }
             int localStart = body.indexOf(trimmed, cursor);
             cursor = localStart + trimmed.length();
-            paragraphs.add(new Paragraph(trimmed, bodyOffset + localStart, bodyOffset + cursor));
+            // Offsets stay anchored to the original text — they say where this came from — while
+            // the text carries no editorial comment. A paragraph that was only a comment is gone.
+            String cleaned = SectionEligibility.stripEditorialMarkup(trimmed).trim();
+            if (cleaned.isEmpty()) {
+                continue;
+            }
+            paragraphs.add(new Paragraph(cleaned, bodyOffset + localStart, bodyOffset + cursor));
         }
         return paragraphs;
     }

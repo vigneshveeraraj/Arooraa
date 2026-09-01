@@ -4,6 +4,7 @@ import com.arooraa.aura.config.AuraSafetyProperties;
 import com.arooraa.aura.knowledge.domain.AuraChunk;
 import com.arooraa.aura.knowledge.domain.AuraDocument;
 import com.arooraa.aura.knowledge.domain.AuraDocumentVersion;
+import com.arooraa.aura.knowledge.domain.SectionEligibility;
 import com.arooraa.aura.knowledge.repository.AuraChunkRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentVersionRepository;
@@ -196,11 +197,27 @@ public class HybridRetrievalService {
         return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
+    /**
+     * The second line on section eligibility (A3.3). Ineligible sections are excluded at chunking
+     * time, so in a freshly ingested corpus this never fires — but a database indexed before that
+     * rule existed still holds those chunks, and they stop being usable here rather than after a
+     * re-ingestion. Dropping the evidence removes it from the prompt as well as the citations,
+     * which is the point: hiding a source while still answering from it would be worse than
+     * showing it.
+     */
     private java.util.Optional<Evidence> loadEvidence(UUID chunkId, Integer vectorRank, Double vectorSimilarity,
                                                         Integer lexicalRank, Double lexicalScore, int combinedRank,
                                                         double combinedScore, double normalizedScore) {
-        return chunkRepository.findById(chunkId).flatMap(chunk ->
-                versionRepository.findById(chunk.getDocumentVersionId()).flatMap(version ->
+        return chunkRepository.findById(chunkId)
+                .filter(chunk -> {
+                    boolean control = SectionEligibility.isAssistantControlHeading(chunk.getSectionHeading());
+                    if (control) {
+                        log.info("Excluded an assistant-guidance section from evidence — it predates "
+                                + "section eligibility and should be re-ingested.");
+                    }
+                    return !control;
+                })
+                .flatMap(chunk -> versionRepository.findById(chunk.getDocumentVersionId()).flatMap(version ->
                         documentRepository.findById(version.getDocumentId()).map(document ->
                                 toEvidence(document, version, chunk, vectorRank, vectorSimilarity, lexicalRank,
                                         lexicalScore, combinedRank, combinedScore, normalizedScore))));
@@ -213,7 +230,9 @@ public class HybridRetrievalService {
                 document.getId(), document.getSlug(), document.getTitle(),
                 version.getId(), version.getVersionNumber(), document.getKnowledgeSpace(),
                 chunk.getId(), chunk.getChunkIndex(), chunk.getSectionHeading(),
-                version.getSourceUrl(), chunk.getContent(),
+                // Same reason as the chunker: an editorial note to the owner is not content, and a
+                // chunk indexed before that rule should not carry one into a prompt.
+                version.getSourceUrl(), SectionEligibility.stripEditorialMarkup(chunk.getContent()).strip(),
                 vectorRank, vectorSimilarity, lexicalRank, lexicalScore,
                 combinedRank, combinedScore, normalizedScore);
     }

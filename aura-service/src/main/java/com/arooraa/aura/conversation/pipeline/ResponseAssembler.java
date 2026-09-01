@@ -73,11 +73,30 @@ public class ResponseAssembler {
                 continue;
             }
             byDocument.putIfAbsent(item.documentSlug(),
-                    new SourceReference(item.documentTitle(), item.sectionHeading(), item.sourceUrl()));
+                    new SourceReference(item.documentTitle(), item.sectionHeading(),
+                            publicUrlOrNothing(item.sourceUrl())));
         }
         List<SourceReference> sources = new ArrayList<>(byDocument.values());
         return sources.size() > properties.maxSources()
                 ? List.copyOf(sources.subList(0, properties.maxSources()))
                 : List.copyOf(sources);
+    }
+
+    /**
+     * A citation's link, or nothing.
+     *
+     * <p>A version's {@code source} field records where a document's facts came from, and in the
+     * seed that is usually a path inside our own repository —
+     * {@code frontend-v2/src/lib/content/products.ts}. That is provenance for an editor, not a link
+     * for a visitor, and it was being handed out as a citation URL. Only something a visitor could
+     * actually open survives; everything else becomes a citation with a title and no link, which is
+     * still a useful reference.
+     */
+    private String publicUrlOrNothing(String sourceUrl) {
+        if (sourceUrl == null) {
+            return null;
+        }
+        String trimmed = sourceUrl.trim();
+        return trimmed.startsWith("https://") || trimmed.startsWith("http://") ? trimmed : null;
     }
 }

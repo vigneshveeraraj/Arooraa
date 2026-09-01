@@ -52,6 +52,7 @@ complete. Resilient, connectivity-aware operation and carefully governed integra
 of MESA's long-term direction, not current capabilities.
 
 ## What Aura must not disclose about MESA
+<!-- retrievable: false — guidance for Aura, not an answer for a visitor -->
 
 Internal implementation detail is out of scope for any answer — database technology, service
 architecture, event/API design, internal AI/assistant components, tenant data model internals,

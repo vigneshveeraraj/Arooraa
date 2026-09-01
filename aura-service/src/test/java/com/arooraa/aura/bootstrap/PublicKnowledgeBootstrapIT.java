@@ -1,19 +1,24 @@
 package com.arooraa.aura.bootstrap;
 
+import com.arooraa.aura.knowledge.domain.AuraChunk;
 import com.arooraa.aura.knowledge.domain.AuraDocument;
 import com.arooraa.aura.knowledge.domain.AuraDocumentVersion;
 import com.arooraa.aura.knowledge.domain.DocumentStatus;
 import com.arooraa.aura.knowledge.domain.KnowledgeSpaces;
+import com.arooraa.aura.knowledge.domain.SectionEligibility;
 import com.arooraa.aura.knowledge.domain.Visibility;
+import com.arooraa.aura.knowledge.repository.AuraChunkRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentVersionRepository;
 import com.arooraa.aura.provider.EmbeddingProvider;
 import com.arooraa.aura.provider.stub.StubEmbeddingProvider;
+import com.arooraa.aura.retrieval.Evidence;
 import com.arooraa.aura.retrieval.HybridRetrievalService;
 import com.arooraa.aura.retrieval.RetrievalRequest;
 import com.arooraa.aura.retrieval.RetrievalResult;
 import com.arooraa.aura.retrieval.context.AssistantProfile;
 import com.arooraa.aura.retrieval.context.Channel;
+import com.arooraa.aura.retrieval.search.LexicalSearchRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,6 +32,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +83,10 @@ class PublicKnowledgeBootstrapIT {
     private AuraDocumentVersionRepository versionRepository;
     @Autowired
     private HybridRetrievalService retrievalService;
+    @Autowired
+    private AuraChunkRepository chunkRepository;
+    @Autowired
+    private LexicalSearchRepository lexicalSearchRepository;
 
     @Test
     void startupLoadedTheApprovedPublicCorpus() {
@@ -155,6 +165,69 @@ class PublicKnowledgeBootstrapIT {
         assertFalse(result.evidence().isEmpty(), "bootstrapped knowledge should be retrievable");
         assertTrue(result.evidence().stream().anyMatch(e -> e.documentSlug().equals("10-mesa")),
                 "expected 10-mesa among the evidence");
+    }
+
+    @Test
+    void noSectionOfTheRealCorpusIsAssistantGuidance() {
+        // A3.3 finding 2, swept over every chunk the real 20-document corpus produced. Five public
+        // documents carry a section written at Aura rather than at a reader; none of them may
+        // survive chunking, and no chunk may carry an editorial note either.
+        List<AuraChunk> chunks = chunkRepository.findAll();
+
+        assertFalse(chunks.isEmpty(), "the corpus should have produced chunks");
+        for (AuraChunk chunk : chunks) {
+            assertFalse(SectionEligibility.isAssistantControlHeading(chunk.getSectionHeading()),
+                    "a guidance section became a chunk: " + chunk.getSectionHeading());
+            assertFalse(chunk.getContent().contains("NEEDS_OWNER_APPROVAL"),
+                    "editorial review metadata was indexed: " + chunk.getSectionHeading());
+            assertFalse(chunk.getContent().contains("91-aura-confidentiality-and-safety"),
+                    "an internal policy filename was indexed: " + chunk.getSectionHeading());
+        }
+    }
+
+    @Test
+    void theMesaGuidanceSectionIsNeitherEvidenceNorACitation() {
+        for (String question : List.of("What about MESA", "What is MESA?",
+                "What must Aura not disclose about MESA?")) {
+            RetrievalResult result = retrievalService.retrieve(new RetrievalRequest(
+                    question, AssistantProfile.AROORAA_WEBSITE, Channel.PUBLIC_WEB));
+
+            for (Evidence evidence : result.evidence()) {
+                assertFalse(SectionEligibility.isAssistantControlHeading(evidence.sectionHeading()),
+                        "returned a guidance section for \"" + question + "\": " + evidence.sectionHeading());
+                assertFalse(evidence.text().contains("Internal implementation detail is out of scope"),
+                        "returned guidance body text for: " + question);
+            }
+        }
+    }
+
+    @Test
+    void aChunkIndexedBeforeSectionEligibilityIsStillKeptOutOfEvidence() {
+        // The owner's local database was built before this rule existed and still holds the MESA
+        // guidance chunk. Excluding it at chunking time does nothing for a row already written, so
+        // the same predicate runs on the retrieval path — this is that second line, on a chunk
+        // inserted the way the old chunker would have written it.
+        AuraDocument mesa = documentRepository.findBySlug("10-mesa").orElseThrow();
+        AuraDocumentVersion version = versionRepository.findByDocumentIdOrderByVersionNumberDesc(mesa.getId())
+                .get(0);
+        AuraChunk legacy = chunkRepository.save(new AuraChunk(version.getId(), 900,
+                "What Aura must not disclose about MESA\n\nZOMBIECHUNKMARKER: internal implementation "
+                        + "detail is out of scope for any answer — database technology, service architecture.",
+                40, "What Aura must not disclose about MESA", null, null));
+        try {
+            assertFalse(lexicalSearchRepository.search("ZOMBIECHUNKMARKER",
+                            Set.of(KnowledgeSpaces.AROORAA_PUBLIC), 10).isEmpty(),
+                    "the test is only meaningful if search can actually reach the chunk");
+
+            RetrievalResult result = retrievalService.retrieve(new RetrievalRequest(
+                    "ZOMBIECHUNKMARKER database technology", AssistantProfile.AROORAA_WEBSITE,
+                    Channel.PUBLIC_WEB));
+
+            assertTrue(result.evidence().stream().noneMatch(e -> e.text().contains("ZOMBIECHUNKMARKER")),
+                    "a pre-existing guidance chunk must not become evidence");
+        } finally {
+            chunkRepository.delete(legacy);
+        }
     }
 
     @Test

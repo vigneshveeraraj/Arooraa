@@ -42,6 +42,77 @@ class ChunkingServiceTest {
     }
 
     @Test
+    void theRealMesaGuidanceSectionNeverBecomesAChunk() {
+        // Verbatim from knowledge-seed/10-mesa.md, which is a PUBLIC document with one section
+        // that is guidance for Aura rather than an answer for a visitor. That section produced the
+        // citation "What Aura must not disclose about MESA" in the first real owner conversation.
+        String mesa = """
+                # MESA
+
+                MESA is AROORAA's flagship product — a connected restaurant technology ecosystem.
+
+                ## What MESA does today
+
+                Digital Dining, Kitchen Coordination, Staff Operations, Billing & Commerce.
+
+                ## What Aura must not disclose about MESA
+                <!-- retrievable: false — guidance for Aura, not an answer for a visitor -->
+
+                Internal implementation detail is out of scope for any answer — database
+                technology, service architecture, event/API design. See
+                `91-aura-confidentiality-and-safety.md` for the correct boundary response.
+                """;
+
+        List<PreparedChunk> chunks = chunkingService.chunk(mesa);
+
+        assertFalse(chunks.isEmpty(), "the rest of the document is still chunked normally");
+        for (PreparedChunk chunk : chunks) {
+            assertFalse("What Aura must not disclose about MESA".equals(chunk.sectionHeading()),
+                    "a guidance section must not become a citable chunk");
+            assertFalse(chunk.text().contains("Internal implementation detail is out of scope"),
+                    "and its body must not become evidence either");
+            assertFalse(chunk.text().contains("91-aura-confidentiality-and-safety"),
+                    "which is also how an internal policy filename was reaching public evidence");
+        }
+        assertTrue(chunks.stream().anyMatch(chunk -> chunk.text().contains("Digital Dining")),
+                "the visitor-facing sections are untouched");
+    }
+
+    @Test
+    void aSectionIsExcludedByItsHeadingEvenWhenNobodyAddedTheMarker() {
+        List<PreparedChunk> chunks = chunkingService.chunk("""
+                ## What we do
+
+                Real public content.
+
+                ## Aura's role in this flow
+
+                Aura only ever hands off an explicitly visitor-approved summary.
+                """);
+
+        assertEquals(1, chunks.size());
+        assertEquals("What we do", chunks.get(0).sectionHeading());
+    }
+
+    @Test
+    void editorialReviewCommentsAreStrippedFromChunkText() {
+        // A note written for the owner is review metadata, not something to embed and quote back.
+        List<PreparedChunk> chunks = chunkingService.chunk("""
+                ## Building honestly
+
+                Credibility should come from the work itself.
+
+                <!-- NEEDS_OWNER_APPROVAL: exact founding year, headcount, or office location are
+                not stated in current public content and must not be invented if a visitor asks. -->
+                """);
+
+        assertEquals(1, chunks.size());
+        assertTrue(chunks.get(0).text().contains("Credibility should come from the work itself."));
+        assertFalse(chunks.get(0).text().contains("NEEDS_OWNER_APPROVAL"));
+        assertFalse(chunks.get(0).text().contains("headcount"));
+    }
+
+    @Test
     void chunkingIsDeterministic() {
         String content = "# Title\n\nFirst paragraph.\n\n## Section\n\nSecond paragraph with more detail.";
 

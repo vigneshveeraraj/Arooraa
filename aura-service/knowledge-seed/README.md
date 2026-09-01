@@ -37,6 +37,28 @@ That separation is enforced twice over: policy documents are `visibility: INTERN
 a knowledge space the public website profile isn't authorized for, so mislabelling either one alone
 still leaves them unretrievable.
 
+## Section eligibility — a PUBLIC document is not public all the way down
+
+Some public documents carry a section written *at Aura* rather than at a reader — "What Aura must
+not disclose about MESA", "Aura's role in this flow". That is operating guidance, not knowledge,
+and it must never become answer evidence or a visitor-facing citation. Mark such a section with a
+marker on the line directly under its heading:
+
+```markdown
+## What Aura must not disclose about MESA
+<!-- retrievable: false — guidance for Aura, not an answer for a visitor -->
+```
+
+`ChunkingService` then skips the section entirely, so it produces no chunk: nothing to retrieve,
+nothing to put in a prompt, nothing to cite. As a backstop, a heading that plainly instructs the
+assistant ("Aura must…", "…must not disclose") is treated the same way even without the marker —
+but the marker is the mechanism, because a heading can be reworded and a marker cannot be
+accidentally reworded away. See `SectionEligibility`.
+
+Editorial `<!-- ... -->` comments — including `<!-- NEEDS_OWNER_APPROVAL: ... -->` — are stripped
+from chunk text for the same reason: a note to the owner is review metadata, not something a
+visitor should ever be shown.
+
 ## Fingerprinting — what counts as a content change
 
 An import creates a new version when the *retrieval-relevant* fingerprint changes: title, domain,

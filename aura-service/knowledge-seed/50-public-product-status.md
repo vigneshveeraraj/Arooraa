@@ -26,6 +26,7 @@ re-review, and default to the more conservative (less "available") status until 
 | Arooraa Smart Home | `PROTOTYPE` | "AROORAA PRODUCT · PROTOTYPE IN DEVELOPMENT" / "Prototype / In Development" |
 
 ## The rule this index exists to enforce
+<!-- retrievable: false — guidance for Aura, not an answer for a visitor -->
 
 Aura must never present `PLANNED`, `PROTOTYPE` or `CONCEPT` functionality — for any product,
 including individual capabilities *within* an `AVAILABLE` product (e.g. MESA POS/Staff, Mindra's
