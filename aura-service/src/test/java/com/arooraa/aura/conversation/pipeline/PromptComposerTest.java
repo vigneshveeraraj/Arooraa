@@ -163,8 +163,33 @@ class PromptComposerTest {
 
         assertFalse(prompt.systemText().contains("Approved material"));
         assertFalse(prompt.systemText().contains("you do not have approved information"));
-        assertTrue(prompt.systemText().contains("They are saying hello"));
+        assertTrue(prompt.systemText().contains("This is small talk"));
         assertTrue(prompt.systemText().contains("nothing to claim"));
+    }
+
+    @Test
+    void aJokeIsAllowedOnceAndNotAsARoutine() {
+        // Controlled light humour is part of the personality; being an entertainment bot is not.
+        ComposedPrompt prompt = compose(ConversationMode.SOCIAL, NO_CLAIMS, List.of(),
+                ConversationContext.empty(), null, "tell me a joke");
+
+        assertTrue(prompt.systemText().contains("If they ask for a joke, tell them one"));
+        assertTrue(prompt.systemText().contains("One is the right number"),
+                "the limit has to travel with the permission");
+    }
+
+    @Test
+    void aFirstQuestionIsToldToAnswerShortRatherThanExhaustively() {
+        ComposedPrompt prompt = compose(ConversationMode.GROUNDED_QA, GROUNDED,
+                List.of(evidence("10-mesa", "MESA", "Overview", "MESA connects ordering and kitchen operations.")),
+                ConversationContext.empty(), null, "What is MESA?");
+
+        assertTrue(prompt.systemText().contains("Short by default"));
+        assertTrue(prompt.systemText().contains("one or two short paragraphs is the whole"));
+        assertTrue(prompt.systemText().contains("to be accurate, not to be"),
+                "the evidence being long is not a reason for the answer to be");
+        assertTrue(prompt.systemText().contains("feel free to ask"),
+                "and the stock closing line is named as something to avoid");
     }
 
     @Test

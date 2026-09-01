@@ -219,6 +219,61 @@ caught, and one question about encoding that needed measuring rather than guessi
   in business logic. `RealProviderConversationIT` therefore writes its transcript to
   `target/aura-real-provider-transcript.md` in UTF-8 — read that file, not the terminal.
 
+## What A3.3 fixed (the first real owner conversation)
+
+Four things the owner hit while actually talking to Aura. None of them changed what Aura is; all
+four were places where a turn was routed or sourced wrongly.
+
+- **Small talk is a mode, not a consulting question.** "Tell me the joke" came back
+  `GENERAL_CONSULTING`. The joke was fine — controlled light humour is part of the personality —
+  but the routing was not. `SOCIAL` now covers four closed families: greetings, light humour
+  (asking for or reacting to a joke), thanks/goodbyes, and one-word reactions. Still narrow by
+  construction: every token must be a social word or social padding, so "tell me a joke" is small
+  talk and "tell me a joke about the election" is a request to write something and stays out of it.
+- **Retrieval for project discovery is now a per-turn decision.** "எனக்கு ஒரு software product
+  idea இருக்கு." retrieved and came back `WEAK_EVIDENCE` with sources — the same nearest-vector
+  noise a greeting produced, because a discovery opener contains no question. `RetrievalPlanner`
+  reads `ScopeDecision.mentionsOrganisationSubject()` instead of turning the mode off wholesale:
+  "I have an app idea" looks nothing up, "I have a product idea — what services can AROORAA
+  provide?" is still discovery and is still grounded. The classifier had to change with it, so
+  that a first-person project statement outranks the organisation rule while a capability question
+  sharing the same verb ("Can AROORAA modernize an existing application?") does not.
+- **Section eligibility: a PUBLIC document is not public all the way down.** "What about MESA"
+  returned a citation reading *"What Aura must not disclose about MESA"*. That section is real and
+  it is in a PUBLIC document — it is guidance for Aura, and its body also names an internal policy
+  file. Five public seed documents carry sections like it. `SectionEligibility` now decides, and
+  the decision happens at chunking time so an ineligible section produces **no chunk at all** —
+  nothing to retrieve, nothing to put in a prompt, nothing to cite. Hiding it at the API layer
+  would have left the model still reading confidentiality instructions as facts about MESA.
+  Authors mark a section with `<!-- retrievable: false -->` under its heading; a heading that
+  plainly instructs the assistant is caught even unmarked, as a backstop. The same predicate runs
+  on the retrieval path, so a chunk indexed before this rule — everything already in the owner's
+  local database — stops being usable immediately rather than after a re-ingestion. Editorial
+  `<!-- NEEDS_OWNER_APPROVAL: ... -->` notes are stripped from chunk text for the same reason.
+  `AURA_POLICY` exclusion is untouched and still enforced twice over.
+- **A citation's link is a link, or nothing.** Found while reading the citation path for the
+  above: a version's `source` frontmatter records where its facts came from, and in the seed that
+  is usually a path inside our own repository (`frontend-v2/src/lib/content/products.ts`). It was
+  being handed to visitors as the citation URL. `ResponseAssembler` now emits a URL only when it is
+  one a visitor could open; otherwise the citation keeps its title and carries no link. Editorial
+  cross-references between seed files (`` (`91-aura-confidentiality-and-safety.md`) ``) are
+  stripped from chunk text for the same reason — they name internal documents.
+- **A test was being propped up by the defect.** `AuraChatApiIT` asserted that a MESA question
+  produces sources, and it passed — because the top-ranked chunk for "What is MESA?" was the
+  section headed *"What Aura must not disclose about MESA"*, which shares almost every word with
+  the question. Removing the section made the assertion fail and exposed the real problem
+  underneath: `StubEmbeddingProvider`'s similarity scale (0.21–0.26 for a genuine MESA answer) is
+  nothing like the real provider's (0.58–0.74), so the shipped thresholds classify everything in
+  that suite as NO_EVIDENCE. The suite now sets stub-scale thresholds explicitly, with the measured
+  numbers written down; the shipped values are unchanged and still asserted against real
+  measurements in `EvidenceBandsIT` and `EmbeddingCalibrationIT`.
+- **Concise by default.** The real MESA answer was accurate and brochure-shaped. This is prompt
+  policy, not a guardrail: `AuraPolicy` now asks for the direct answer first, one or two short
+  paragraphs for an opening "what is X?", says explicitly that long approved material is a reason
+  to be accurate rather than exhaustive, and asks for varied endings instead of closing every
+  message with "feel free to ask". Deliberately *not* enforced by the output guardrail — deleting
+  a natural closing sentence would damage more answers than it saved.
+
 ### Running the real-provider gates
 
 `failsafe:integration-test` records results to disk and returns successfully by design; only
@@ -268,6 +323,12 @@ Then open `http://localhost:8091/aura-test`.
 If emoji or Tamil appear as `?` in the console, that is the terminal, not Aura — the stored and
 returned text is correct (proved by `UnicodeRoundTripIT`). `chcp 65001` before running makes the
 console draw them, and the browser at `/aura-test` shows them correctly either way.
+
+A3.3 edited four seed documents to mark their assistant-guidance sections, so step 3 re-versions
+`10-mesa`, `41-project-engagement`, `42-contact-and-support` and `50-public-product-status` on the
+next run and re-embeds them — that is the normal content-change path, and it is what removes the
+old guidance chunks from the active corpus. Documents whose bodies did not change keep the chunks
+they already have; retrieval excludes any guidance section in them regardless.
 
 Step 3 runs the ordinary import → approve → chunk → embed → activate pipeline over
 `knowledge-seed/`, indexing only documents that are `visibility: PUBLIC`, in the `AROORAA_PUBLIC`

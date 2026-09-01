@@ -53,12 +53,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Many assertions here are about the <em>request</em> the model received rather than its reply.
  * That is deliberate: what Aura may say is decided before generation, so "a boundary turn's prompt
  * contained no corpus text" is a far stronger guarantee than "the reply happened to look fine".
+ *
+ * <h2>EVIDENCE THRESHOLDS</h2>
+ * The class-level properties rescale A2.2's evidence gate, and the reason is worth stating plainly.
+ * {@code StubEmbeddingProvider} is a bag-of-words hashing embedder; its cosine similarities are
+ * deterministic but their absolute scale is nothing like a real model's. Measured against this
+ * corpus it puts genuine MESA answers at 0.21–0.26 where the real provider puts them at 0.58–0.74,
+ * so the shipped thresholds (0.58/0.30) classify every answer here as NO_EVIDENCE.
+ *
+ * <p>Before A3.3 these tests passed anyway — because the highest-scoring chunk for a MESA question
+ * was the section titled "What Aura must not disclose about MESA", whose heading shares almost
+ * every word with the question. The citation defect was propping up the test that should have
+ * caught it. Setting the thresholds explicitly makes the dependency visible instead of accidental.
+ *
+ * <p>This is a wiring test, not a calibration test: that a grounded turn produces sources and an
+ * unanswerable one does not. The shipped numbers are asserted against real measurements in
+ * {@code EvidenceBandsIT} (fixed vectors) and {@code EmbeddingCalibrationIT} (real provider), and
+ * nothing here changes them.
  */
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "aura.chat.enabled=true",
         "aura.chat.diagnostics-enabled=true",
-        "aura.chat.max-history-messages=6"
+        "aura.chat.max-history-messages=6",
+        // The evidence gate, rescaled for the fake embedder — see EVIDENCE THRESHOLDS below.
+        "aura.retrieval.evidence.strong-vector-similarity=0.25",
+        "aura.retrieval.evidence.weak-vector-similarity=0.18"
 })
 class AuraChatApiIT {
 
@@ -259,6 +279,73 @@ class AuraChatApiIT {
         assertTrue(sourceCount(response) > 0, "a question with a hello on the front is still a question");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"tell me a joke", "tell me the joke", "another joke", "make me laugh",
+            "haha", "that's funny", "nice 😄", "thanks Aura"})
+    void askingForOrReactingToAJokeIsSmallTalkAndLooksNothingUp(String message) {
+        // A3.3 finding 1: "tell me the joke" came back GENERAL_CONSULTING. The joke itself was
+        // fine; the routing was not.
+        HttpTestClient.Response response = say(openConversation(), message);
+
+        assertEquals("SOCIAL", diagnostic(response, "mode"), message);
+        assertEquals("NO_EVIDENCE", diagnostic(response, "evidenceLevel"), message);
+        assertEquals(0, sourceCount(response), message);
+        assertFalse(CHAT.lastSystemPrompt().contains("Approved material"), message);
+    }
+
+    @Test
+    void aShortHarmlessJokeSurvivesTheGuardrail() {
+        // Controlled light humour is part of the personality, so an actual joke has to reach the
+        // visitor intact — the guardrail must not treat playfulness as a defect.
+        UUID conversation = openConversation();
+        CHAT.reply("Why did the developer go broke? Too many cache misses 🙂");
+
+        HttpTestClient.Response response = say(conversation, "tell me a joke");
+
+        assertEquals("Why did the developer go broke? Too many cache misses 🙂", response.string("answer"));
+        assertNull(diagnostic(response, "guardrail"));
+        assertTrue(CHAT.lastSystemPrompt().contains("If they ask for a joke, tell them one"));
+    }
+
+    @Test
+    void aRequestToWriteSomethingAboutASubjectIsNotSmallTalk() {
+        HttpTestClient.Response response = say(openConversation(), "tell me a joke about the election");
+
+        assertEquals("OUT_OF_SCOPE", diagnostic(response, "mode"));
+        assertEquals(0, sourceCount(response));
+    }
+
+    // --- project discovery -----------------------------------------------------------------------
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "I have a product idea",
+            "I want to build an app",
+            "Enaku software idea iruku",
+            "எனக்கு ஒரு software product idea இருக்கு."})
+    void aDiscoveryOpenerDoesNotSearchTheKnowledgeBase(String message) {
+        // A3.3 finding 3: these came back WEAK_EVIDENCE with sources. There is no question in
+        // "I have an idea" — retrieval was ranking noise, exactly as it did for a greeting.
+        HttpTestClient.Response response = say(openConversation(), message);
+
+        assertEquals("PROJECT_DISCOVERY", diagnostic(response, "mode"), message);
+        assertEquals("NO_EVIDENCE", diagnostic(response, "evidenceLevel"), message);
+        assertEquals(0, sourceCount(response), message);
+        assertFalse(CHAT.lastSystemPrompt().contains("Approved material"), message);
+        assertTrue(CHAT.lastSystemPrompt().contains("ONE useful question"),
+                "and the turn is still handled as discovery: " + message);
+    }
+
+    @Test
+    void aDiscoveryTurnThatAlsoAsksAboutUsMayStillBeGrounded() {
+        HttpTestClient.Response response = say(openConversation(),
+                "I have a product idea. What services can AROORAA provide to build it?");
+
+        assertEquals("PROJECT_DISCOVERY", diagnostic(response, "mode"));
+        assertTrue(sourceCount(response) > 0, "a real question about us deserves a grounded answer");
+        assertTrue(CHAT.lastSystemPrompt().contains("Approved material"));
+    }
+
     // --- grounding ----------------------------------------------------------------------------
 
     @Test
@@ -366,8 +453,11 @@ class AuraChatApiIT {
                 "MESA_INTERNAL_DATABASE_FAKE_123")) {
             HttpTestClient.Response response = say(conversation, "Tell me about " + token);
 
-            assertFalse(CHAT.lastSystemPrompt().contains(token + " is"), token);
-            assertEquals(0, sourceCount(response), token);
+            // The invariant is that the fixture's own content never crosses either boundary — into
+            // the prompt, or into anything the visitor is shown. Asserted on the whole system
+            // instruction and the whole response body rather than on one phrase.
+            assertFalse(CHAT.lastSystemPrompt().contains(token), token);
+            assertFalse(response.rawBody().contains(token), token);
         }
     }
 
@@ -382,6 +472,72 @@ class AuraChatApiIT {
         assertFalse(prompt.contains("Never ingested into Aura's knowledge base"));
         for (Map<String, Object> source : response.list("sources")) {
             assertFalse(String.valueOf(source.get("title")).contains("Confidentiality"), source.toString());
+        }
+    }
+
+    @Test
+    void mesaGuidanceIsNeitherEvidenceNorACitation() {
+        // A3.3 finding 2, on the real 10-mesa.md. "What about MESA" came back citing a section
+        // called "What Aura must not disclose about MESA" — a PUBLIC document, but that section is
+        // an instruction to Aura, not an answer. It is excluded at chunking time, so there is
+        // nothing to retrieve and nothing to cite.
+        for (String question : List.of("What about MESA", "What is MESA?",
+                "What can you tell me about MESA's capabilities?")) {
+            HttpTestClient.Response response = say(openConversation(), question);
+
+            String prompt = CHAT.lastSystemPrompt();
+            assertFalse(prompt.contains("What Aura must not disclose"),
+                    "guidance must not reach the model as evidence: " + question);
+            assertFalse(prompt.contains("Internal implementation detail is out of scope"), question);
+            assertFalse(prompt.contains("91-aura-confidentiality-and-safety"),
+                    "and an internal policy filename must not travel with it: " + question);
+
+            for (Map<String, Object> source : response.list("sources")) {
+                assertSafeSourceLabel(String.valueOf(source.get("title")), question);
+                assertSafeSourceLabel(String.valueOf(source.get("section")), question);
+            }
+        }
+    }
+
+    @Test
+    void aGroundedMesaAnswerStillCitesRealPublicSections() {
+        // The exclusion must remove the guidance section and nothing else — a MESA answer with no
+        // sources left would be a worse outcome than the defect.
+        HttpTestClient.Response response = say(openConversation(), "What is MESA?");
+
+        assertEquals("GROUNDED_QA", diagnostic(response, "mode"));
+        assertTrue(sourceCount(response) > 0, "MESA is still answerable from approved public material");
+        assertTrue(response.list("sources").stream()
+                        .anyMatch(source -> String.valueOf(source.get("title")).contains("MESA")),
+                "and the citation still names the document a visitor would recognise");
+    }
+
+    @Test
+    void noSourceAnywhereInTheCorpusExposesAssistantControlWording() {
+        // Swept across the whole seeded corpus rather than one document, because the same pattern
+        // exists in 41-project-engagement and 42-contact-and-support.
+        for (String question : List.of("What is AROORAA?", "How do I start a project?",
+                "How do I contact you?", "What products do you have?", "Tell me about Mindra",
+                "What is the status of your products?")) {
+            HttpTestClient.Response response = say(openConversation(), question);
+
+            for (Map<String, Object> source : response.list("sources")) {
+                assertSafeSourceLabel(String.valueOf(source.get("title")), question);
+                assertSafeSourceLabel(String.valueOf(source.get("section")), question);
+            }
+            assertFalse(CHAT.lastSystemPrompt().contains("NEEDS_OWNER_APPROVAL"),
+                    "editorial review metadata must not reach the model: " + question);
+        }
+    }
+
+    /** No visitor-facing label may read like an instruction to the assistant. */
+    private void assertSafeSourceLabel(String label, String context) {
+        String lower = label.toLowerCase(java.util.Locale.ROOT);
+        for (String forbidden : List.of("must not disclose", "must never disclose", "aura must",
+                "aura's role", "auras role", "confidentiality instruction", "internal guidance",
+                "prompt policy", "assistant instruction", "guardrail")) {
+            assertFalse(lower.contains(forbidden),
+                    "a visitor-facing source read \"" + label + "\" for: " + context);
         }
     }
 
