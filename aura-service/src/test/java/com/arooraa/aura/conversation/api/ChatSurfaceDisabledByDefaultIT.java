@@ -1,5 +1,6 @@
 package com.arooraa.aura.conversation.api;
 
+import com.arooraa.aura.bootstrap.PublicKnowledgeBootstrap;
 import com.arooraa.aura.provider.ChatGenerationProvider;
 import com.arooraa.aura.provider.disabled.DisabledChatGenerationProvider;
 import com.arooraa.aura.support.HttpTestClient;
@@ -55,6 +56,9 @@ class ChatSurfaceDisabledByDefaultIT {
     @Autowired
     private ChatGenerationProvider chatGenerationProvider;
 
+    @Autowired
+    private org.springframework.context.ApplicationContext context;
+
     @BeforeEach
     void setUp() {
         http = new HttpTestClient(port);
@@ -84,5 +88,13 @@ class ChatSurfaceDisabledByDefaultIT {
     @Test
     void nothingElseIsReachableEither() {
         assertEquals(403, http.get("/actuator/env").status());
+    }
+
+    @Test
+    void theKnowledgeBootstrapIsNotActiveEither() {
+        // Loading knowledge is an operator action, so the runner that does it does not exist unless
+        // asked for — and there is no HTTP route that could trigger one.
+        assertTrue(context.getBeanNamesForType(PublicKnowledgeBootstrap.class).length == 0,
+                "the bootstrap runner must not be registered without aura.bootstrap.public-knowledge=true");
     }
 }
