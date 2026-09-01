@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Aura — local manual test</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --ink: #16181d;
+    --muted: #6b7280;
+    --line: #e4e4e7;
+    --accent: #1f6feb;
+    --aura: #f1f3f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#131417; --panel:#1c1e23; --ink:#e9eaee; --muted:#9aa0ac; --line:#2c2f36; --aura:#23262d; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 32px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  select, button, textarea {
+    font: inherit; color: inherit; border: 1px solid var(--line);
+    background: var(--panel); border-radius: 8px; padding: 8px 10px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .55; cursor: default; }
+  #log {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; min-height: 320px; max-height: 58vh; overflow-y: auto;
+  }
+  .turn { margin-bottom: 14px; }
+  .turn:last-child { margin-bottom: 0; }
+  .who { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 3px; }
+  .bubble { white-space: pre-wrap; padding: 9px 12px; border-radius: 10px; background: var(--aura); }
+  .you .bubble { background: transparent; border: 1px solid var(--line); }
+  .sources { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .sources a { color: inherit; }
+  details.diag { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  details.diag td { padding: 1px 10px 1px 0; }
+  .composer { display: flex; gap: 8px; margin-top: 12px; align-items: flex-end; }
+  textarea { flex: 1; resize: vertical; min-height: 52px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  .err { color: #b42318; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Aura</h1>
+    <span class="sub" id="convId">no conversation yet</span>
+  </header>
+  <p class="sub">Local manual test page. Not the arooraa.com interface.</p>
+
+  <div class="controls">
+    <button id="newConv">New conversation</button>
+    <label class="sub" for="path">Page context</label>
+    <select id="path">
+      <option value="">(none)</option>
+      <option value="/">/</option>
+      <option value="/products/mesa">/products/mesa</option>
+      <option value="/products/mindra">/products/mindra</option>
+      <option value="/services/ai-data-automation">/services/ai-data-automation</option>
+      <option value="/services/application-modernization">/services/application-modernization</option>
+      <option value="/careers">/careers</option>
+      <option value="/contact">/contact</option>
+    </select>
+  </div>
+
+  <div id="log"></div>
+
+  <div class="composer">
+    <textarea id="input" placeholder="Say something to Aura…  (Enter to send, Shift+Enter for a new line)"></textarea>
+    <button class="primary" id="send">Send</button>
+  </div>
+  <p class="note" id="note">Diagnostics appear here only when <code>aura.chat.diagnostics-enabled=true</code>.</p>
+</div>
+
+<script>
+  const api = '/api/v1/aura/conversations';
+  const log = document.getElementById('log');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const newBtn = document.getElementById('newConv');
+  const pathSel = document.getElementById('path');
+  const convLabel = document.getElementById('convId');
+  const note = document.getElementById('note');
+  let conversationId = null;
+
+  function bubble(who, text, cls) {
+    const turn = document.createElement('div');
+    turn.className = 'turn ' + (cls || '');
+    const label = document.createElement('div');
+    label.className = 'who';
+    label.textContent = who;
+    const body = document.createElement('div');
+    body.className = 'bubble';
+    body.textContent = text;
+    turn.appendChild(label);
+    turn.appendChild(body);
+    log.appendChild(turn);
+    log.scrollTop = log.scrollHeight;
+    return turn;
+  }
+
+  function renderSources(turn, sources) {
+    if (!sources || !sources.length) return;
+    const el = document.createElement('div');
+    el.className = 'sources';
+    el.textContent = 'Sources: ' + sources.map(s => s.section ? `${s.title} — ${s.section}` : s.title).join(' · ');
+    turn.appendChild(el);
+  }
+
+  function renderDiagnostics(turn, d) {
+    if (!d) return;
+    const details = document.createElement('details');
+    details.className = 'diag';
+    const summary = document.createElement('summary');
+    summary.textContent = `${d.mode} · ${d.evidenceLevel} · ${d.latencyMs} ms`;
+    details.appendChild(summary);
+    const table = document.createElement('table');
+    for (const [k, v] of Object.entries(d)) {
+      if (v === null || v === undefined) continue;
+      const row = table.insertRow();
+      row.insertCell().textContent = k;
+      row.insertCell().textContent = v;
+    }
+    details.appendChild(table);
+    turn.appendChild(details);
+  }
+
+  async function newConversation() {
+    log.innerHTML = '';
+    convLabel.textContent = 'starting…';
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    if (!res.ok) {
+      convLabel.textContent = 'failed to start';
+      bubble('error', `Could not start a conversation (HTTP ${res.status}).`, 'err');
+      return;
+    }
+    const body = await res.json();
+    conversationId = body.conversationId;
+    convLabel.textContent = `${body.assistantProfile} · ${conversationId.slice(0, 8)}`;
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    if (!conversationId) await newConversation();
+    if (!conversationId) return;
+
+    bubble('you', text, 'you');
+    input.value = '';
+    sendBtn.disabled = true;
+    const pending = bubble('aura', '…');
+
+    try {
+      const res = await fetch(`${api}/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, currentPath: pathSel.value || null })
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        pending.querySelector('.bubble').textContent = body.message || `HTTP ${res.status}`;
+        pending.classList.add('err');
+        return;
+      }
+      pending.querySelector('.bubble').textContent = body.answer;
+      renderSources(pending, body.sources);
+      renderDiagnostics(pending, body.diagnostics);
+      if (body.diagnostics) note.style.display = 'none';
+    } catch (e) {
+      pending.querySelector('.bubble').textContent = 'Request failed — is the service still running?';
+      pending.classList.add('err');
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+      log.scrollTop = log.scrollHeight;
+    }
+  }
+
+  sendBtn.addEventListener('click', send);
+  newBtn.addEventListener('click', newConversation);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  newConversation().then(() => input.focus());
+</script>
+</body>
+</html>

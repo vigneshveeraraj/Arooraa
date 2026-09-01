@@ -16,10 +16,31 @@ spring:
     enabled: true
 
 aura:
+  chat:
+    # The local chat API (/api/v1/aura/**) and manual test page (/aura-test) only exist when this
+    # is true — the controllers are conditional, so with it off the routes 404 rather than being
+    # merely unadvertised. A3 is a local manual-acceptance milestone: public exposure is a separate,
+    # later decision.
+    enabled: ${AURA_CHAT_ENABLED:false}
+    # Developer diagnostics (mode, evidence level, language, tone, latency) on each response.
+    # Separate switch from `enabled` so a shared local run can expose chat without internals.
+    diagnostics-enabled: ${AURA_CHAT_DIAGNOSTICS_ENABLED:false}
+    # Bounded session memory: the last N turns, also capped by total characters so a few very long
+    # turns can't grow the prompt the way many short ones can't.
+    max-history-messages: ${AURA_CHAT_MAX_HISTORY_MESSAGES:12}
+    max-history-chars: ${AURA_CHAT_MAX_HISTORY_CHARS:6000}
+    # Hard ceiling on an answer, enforced after generation by the output guardrail.
+    max-response-chars: ${AURA_CHAT_MAX_RESPONSE_CHARS:2000}
+    max-sources: ${AURA_CHAT_MAX_SOURCES:3}
+    # Warm enough to sound human, low enough to stay on the evidence.
+    temperature: ${AURA_CHAT_TEMPERATURE:0.6}
+    max-output-tokens: ${AURA_CHAT_MAX_OUTPUT_TOKENS:600}
   provider:
     chat:
       enabled: ${AURA_CHAT_PROVIDER_ENABLED:false}
-      model: ${AURA_CHAT_MODEL:}
+      # Same config-driven adapter selection as embeddings — never a code branch.
+      provider: ${AURA_CHAT_PROVIDER:openai}
+      model: ${AURA_CHAT_MODEL:gpt-4o-mini}
       timeout-seconds: ${AURA_CHAT_PROVIDER_TIMEOUT_SECONDS:30}
     embedding:
       enabled: ${AURA_EMBEDDING_PROVIDER_ENABLED:false}
