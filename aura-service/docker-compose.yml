@@ -1,0 +1,45 @@
+# Local development only — mirrors backend/docker-compose.yml's shape. A production compose
+# file is intentionally not part of this milestone (A0/A1 does not deploy).
+name: arooraa-aura
+
+services:
+  aura-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: aura-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arooraa_aura
+      POSTGRES_USER: arooraa_aura_app
+      POSTGRES_PASSWORD: ${AURA_DB_PASSWORD:-changeme}
+    ports:
+      - "${AURA_DB_LOCAL_PORT:-5434}:5432"
+    volumes:
+      - arooraa_aura_pgdata:/var/lib/postgresql/data
+    networks:
+      - arooraa-aura-net
+
+  aura-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aura-service
+    restart: unless-stopped
+    depends_on:
+      - aura-postgres
+    environment:
+      AURA_DB_URL: jdbc:postgresql://aura-postgres:5432/arooraa_aura
+      AURA_DB_USERNAME: arooraa_aura_app
+      AURA_DB_PASSWORD: ${AURA_DB_PASSWORD:-changeme}
+      SERVER_PORT: 8091
+    ports:
+      - "${AURA_APP_LOCAL_PORT:-8091}:8091"
+    networks:
+      - arooraa-aura-net
+
+networks:
+  arooraa-aura-net:
+    name: arooraa-aura-net
+
+volumes:
+  arooraa_aura_pgdata:
+    name: arooraa_aura_pgdata

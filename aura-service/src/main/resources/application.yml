@@ -1,0 +1,51 @@
+server:
+  port: ${SERVER_PORT:8091}
+
+spring:
+  application:
+    name: arooraa-aura-service
+  datasource:
+    url: ${AURA_DB_URL}
+    username: ${AURA_DB_USERNAME}
+    password: ${AURA_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+aura:
+  provider:
+    chat:
+      enabled: ${AURA_CHAT_PROVIDER_ENABLED:false}
+      model: ${AURA_CHAT_MODEL:}
+      timeout-seconds: ${AURA_CHAT_PROVIDER_TIMEOUT_SECONDS:30}
+    embedding:
+      enabled: ${AURA_EMBEDDING_PROVIDER_ENABLED:false}
+      model: ${AURA_EMBEDDING_MODEL:}
+      dimensions: ${AURA_EMBEDDING_DIMENSIONS:1536}
+      timeout-seconds: ${AURA_EMBEDDING_PROVIDER_TIMEOUT_SECONDS:30}
+    reranking:
+      enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
+      model: ${AURA_RERANKING_MODEL:}
+      timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
+  safety:
+    # No chat endpoint exists yet (A0/A1) — this is a represented, not-yet-consumed config
+    # surface so the next milestone doesn't invent its own ad hoc limit.
+    max-input-chars: ${AURA_MAX_INPUT_CHARS:4000}
+    # Never log full prompts/responses in production; off by default even in local dev.
+    raw-prompt-logging-enabled: ${AURA_RAW_PROMPT_LOGGING_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.arooraa.aura: INFO
