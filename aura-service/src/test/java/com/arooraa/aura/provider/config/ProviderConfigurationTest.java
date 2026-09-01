@@ -6,6 +6,7 @@ import com.arooraa.aura.provider.RerankingProvider;
 import com.arooraa.aura.provider.disabled.DisabledChatGenerationProvider;
 import com.arooraa.aura.provider.disabled.DisabledEmbeddingProvider;
 import com.arooraa.aura.provider.disabled.DisabledRerankingProvider;
+import com.arooraa.aura.provider.openai.OpenAiChatGenerationProvider;
 import com.arooraa.aura.provider.openai.OpenAiEmbeddingProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -55,14 +56,38 @@ class ProviderConfigurationTest {
     }
 
     @Test
-    void settingEnabledTrueWithNoRealAdapterLeavesNoBeanRatherThanFailingStartup() {
-        // No real provider @Configuration exists yet in this milestone (by design — see
-        // ProviderConfiguration's Javadoc). Flipping the flag alone must not crash context
-        // loading; it just means nothing currently @Autowires this interface would be
-        // satisfiable, which is fine because nothing does yet.
+    void chatEnabledWithNoOpenAiKeyFallsBackToTheDisabledProviderInsteadOfFailingStartup() {
         contextRunner
-                .withPropertyValues("aura.provider.chat.enabled=true")
-                .run(context -> assertThat(context).doesNotHaveBean(ChatGenerationProvider.class));
+                .withPropertyValues("aura.provider.chat.enabled=true", "aura.provider.chat.provider=openai")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ChatGenerationProvider.class);
+                    assertThat(context.getBean(ChatGenerationProvider.class)).isInstanceOf(DisabledChatGenerationProvider.class);
+                    assertThat(context.getBean(ChatGenerationProvider.class).isEnabled()).isFalse();
+                });
+    }
+
+    @Test
+    void chatEnabledWithAnUnrecognizedProviderNameFallsBackToTheDisabledProvider() {
+        contextRunner
+                .withSystemProperties("OPENAI_API_KEY=sk-test-key")
+                .withPropertyValues("aura.provider.chat.enabled=true", "aura.provider.chat.provider=unknown-vendor")
+                .run(context -> assertThat(context.getBean(ChatGenerationProvider.class)).isInstanceOf(DisabledChatGenerationProvider.class));
+    }
+
+    @Test
+    void chatEnabledWithOpenAiProviderAndApiKeyWiresTheRealAdapter() {
+        contextRunner
+                .withConfiguration(AutoConfigurations.of(RestClientAutoConfiguration.class))
+                .withSystemProperties("OPENAI_API_KEY=sk-test-key")
+                .withPropertyValues(
+                        "aura.provider.chat.enabled=true",
+                        "aura.provider.chat.provider=openai",
+                        "aura.provider.chat.model=gpt-4o-mini")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(ChatGenerationProvider.class);
+                    assertThat(context.getBean(ChatGenerationProvider.class)).isInstanceOf(OpenAiChatGenerationProvider.class);
+                    assertThat(context.getBean(ChatGenerationProvider.class).isEnabled()).isTrue();
+                });
     }
 
     @Test

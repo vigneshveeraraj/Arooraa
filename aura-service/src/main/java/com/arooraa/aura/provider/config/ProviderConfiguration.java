@@ -6,6 +6,7 @@ import com.arooraa.aura.provider.RerankingProvider;
 import com.arooraa.aura.provider.disabled.DisabledChatGenerationProvider;
 import com.arooraa.aura.provider.disabled.DisabledEmbeddingProvider;
 import com.arooraa.aura.provider.disabled.DisabledRerankingProvider;
+import com.arooraa.aura.provider.openai.OpenAiChatGenerationProvider;
 import com.arooraa.aura.provider.openai.OpenAiEmbeddingProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +25,11 @@ import java.time.Duration;
 /**
  * Wires the provider-neutral interfaces to their real-or-disabled implementation purely from
  * {@code aura.provider.*} config — no {@code if (provider == "openai")} branching anywhere in
- * application code (frozen architecture requirement). Only the disabled/production-safe defaults
- * ship in this milestone; a real provider adapter is a later, separate {@code @Configuration}
- * conditioned on {@code havingValue = "true"} for the matching property, added without touching
- * this class or any consumer of these interfaces.
+ * application code (frozen architecture requirement). Two real adapters exist so far (embeddings
+ * from A2, chat from A3), each behind its own condition; a second vendor is another conditional
+ * {@code @Bean} here and nothing else. Every path degrades to the disabled provider rather than
+ * failing startup: an application with no AI credentials configured must still run and stay
+ * healthy.
  */
 @Configuration
 @EnableConfigurationProperties(ProviderProperties.class)
@@ -35,9 +37,37 @@ public class ProviderConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderConfiguration.class);
 
+    /**
+     * The real chat adapter (A3). Declared before the disabled/fallback beans below, because
+     * bean-method order decides {@code @ConditionalOnMissingBean} evaluation inside one
+     * {@code @Configuration} class.
+     */
+    @Bean
+    @Conditional(OpenAiChatProviderCondition.class)
+    public ChatGenerationProvider openAiChatGenerationProvider(RestClient.Builder builder,
+                                                                 ProviderProperties properties,
+                                                                 @Value("${OPENAI_API_KEY:}") String apiKey) {
+        ProviderProperties.Chat chat = properties.chat();
+        return new OpenAiChatGenerationProvider(withTimeout(builder, chat.timeoutSeconds()), apiKey, chat.model());
+    }
+
     @Bean
     @ConditionalOnProperty(prefix = "aura.provider.chat", name = "enabled", havingValue = "false", matchIfMissing = true)
     public ChatGenerationProvider disabledChatGenerationProvider() {
+        return new DisabledChatGenerationProvider();
+    }
+
+    /**
+     * Same safety valve as the embedding fallback below: {@code enabled=true} with no usable
+     * adapter (unknown provider name, or no key) must still start, and must still be healthy.
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "aura.provider.chat", name = "enabled", havingValue = "true")
+    @ConditionalOnMissingBean(ChatGenerationProvider.class)
+    public ChatGenerationProvider chatProviderMisconfiguredFallback() {
+        log.warn("aura.provider.chat.enabled=true but no real adapter could be wired "
+                + "(unrecognized aura.provider.chat.provider, or OPENAI_API_KEY missing) — "
+                + "falling back to the disabled provider so the application still starts.");
         return new DisabledChatGenerationProvider();
     }
 
@@ -61,14 +91,20 @@ public class ProviderConfiguration {
     public EmbeddingProvider openAiEmbeddingProvider(RestClient.Builder builder, ProviderProperties properties,
                                                        @Value("${OPENAI_API_KEY:}") String apiKey) {
         ProviderProperties.Embedding embedding = properties.embedding();
+        return new OpenAiEmbeddingProvider(withTimeout(builder, embedding.timeoutSeconds()), apiKey,
+                embedding.model(), embedding.dimensions());
+    }
 
-        Duration timeout = Duration.ofSeconds(embedding.timeoutSeconds());
+    /**
+     * Transport configuration lives here rather than in the adapters, so a test can bind a mock
+     * server to a builder and be certain no adapter constructor overwrites its request factory.
+     */
+    private RestClient.Builder withTimeout(RestClient.Builder builder, int timeoutSeconds) {
+        Duration timeout = Duration.ofSeconds(timeoutSeconds);
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(timeout);
         requestFactory.setReadTimeout(timeout);
-        builder.requestFactory(requestFactory);
-
-        return new OpenAiEmbeddingProvider(builder, apiKey, embedding.model(), embedding.dimensions());
+        return builder.requestFactory(requestFactory);
     }
 
     /**

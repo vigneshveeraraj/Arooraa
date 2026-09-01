@@ -39,7 +39,7 @@ class IngestionServiceTest {
 
     private static ProviderProperties providerProperties(int generation) {
         return new ProviderProperties(
-                new ProviderProperties.Chat(false, null, 30),
+                new ProviderProperties.Chat(false, "openai", null, 30),
                 new ProviderProperties.Embedding(false, "openai", "test-model", 1536, 30, generation),
                 new ProviderProperties.Reranking(false, null, 30));
     }

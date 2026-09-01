@@ -10,7 +10,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "aura.provider")
 public record ProviderProperties(Chat chat, Embedding embedding, Reranking reranking) {
 
-    public record Chat(boolean enabled, String model, int timeoutSeconds) {
+    /** {@code provider} selects the real adapter to wire when enabled, exactly as for embeddings. */
+    public record Chat(boolean enabled, String provider, String model, int timeoutSeconds) {
     }
 
     /**
