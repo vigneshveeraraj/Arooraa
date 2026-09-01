@@ -19,10 +19,10 @@ import java.util.List;
  * exactly the same corpus. Every step re-reads the version's real current status first, so running
  * it repeatedly is a genuine no-op rather than a re-throw.
  */
-final class KnowledgeCorpusFixture {
+public final class KnowledgeCorpusFixture {
 
     /** Deliberately NOT the full 27-document seed — only what the owner reviewed and approved (frozen A2/A2.1 requirement). */
-    static final List<String> PUBLIC_SLUGS = List.of(
+    public static final List<String> PUBLIC_SLUGS = List.of(
             "01-company-overview", "02-company-philosophy", "03-how-arooraa-works",
             "10-mesa", "11-mindra", "21-product-engineering", "22-ai-data-automation",
             "23-application-modernization");
@@ -32,9 +32,9 @@ final class KnowledgeCorpusFixture {
      * INTERNAL and lives in the AURA_POLICY knowledge space, so it proves both controls on real
      * content rather than only on synthetic fixtures.
      */
-    static final String POLICY_SLUG = "91-aura-confidentiality-and-safety";
+    public static final String POLICY_SLUG = "91-aura-confidentiality-and-safety";
 
-    static final List<String> FIXTURE_SLUGS = List.of(
+    public static final List<String> FIXTURE_SLUGS = List.of(
             "99-internal-test-fixture",       // INTERNAL, authorized space
             "98-internal-provider-fixture",   // INTERNAL, authorized space
             "97-unauthorized-space-fixture"); // PUBLIC, unauthorized space
@@ -45,7 +45,7 @@ final class KnowledgeCorpusFixture {
     private final KnowledgeActivationService activationService;
     private final AuraDocumentVersionRepository versionRepository;
 
-    KnowledgeCorpusFixture(KnowledgeImportService importService,
+    public KnowledgeCorpusFixture(KnowledgeImportService importService,
                             KnowledgeApprovalService approvalService,
                             IngestionService ingestionService,
                             KnowledgeActivationService activationService,
@@ -58,7 +58,7 @@ final class KnowledgeCorpusFixture {
     }
 
     /** Imports, approves, ingests and activates the whole evaluation corpus. Returns the activated version ids. */
-    List<AuraDocumentVersion> seedAll() {
+    public List<AuraDocumentVersion> seedAll() {
         return java.util.stream.Stream.of(
                         PUBLIC_SLUGS.stream().map(KnowledgeCorpusFixture::seedPath),
                         java.util.stream.Stream.of(seedPath(POLICY_SLUG)),
@@ -68,15 +68,15 @@ final class KnowledgeCorpusFixture {
                 .toList();
     }
 
-    static Path seedPath(String slug) {
+    public static Path seedPath(String slug) {
         return Path.of("knowledge-seed", slug + ".md");
     }
 
-    static Path fixturePath(String slug) {
+    public static Path fixturePath(String slug) {
         return Path.of("src", "test", "resources", "fixtures", slug + ".md");
     }
 
-    AuraDocumentVersion indexAndActivate(Path file) {
+    public AuraDocumentVersion indexAndActivate(Path file) {
         AuraDocumentVersion version = importService.importFromFile(file);
 
         version = reload(version);
@@ -97,7 +97,7 @@ final class KnowledgeCorpusFixture {
     }
 
     /** Re-embeds the whole corpus at the currently configured embedding generation (used by the real-provider run). */
-    void reembedAll(List<AuraDocumentVersion> versions) {
+    public void reembedAll(List<AuraDocumentVersion> versions) {
         for (AuraDocumentVersion version : versions) {
             ingestionService.reembed(version.getId());
         }

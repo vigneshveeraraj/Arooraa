@@ -75,7 +75,7 @@ class AuraServiceApplicationIT {
                 "select count(*) from flyway_schema_history where success = false", Integer.class);
         assertEquals(0, failedCount);
 
-        for (String version : new String[]{"1", "2", "3"}) {
+        for (String version : new String[]{"1", "2", "3", "4"}) {
             Integer applied = jdbcTemplate.queryForObject(
                     "select count(*) from flyway_schema_history where success = true and version = ?",
                     Integer.class, version);
