@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation + A2 retrieval + A2.1 calibration)
+# Aura service architecture (A0/A1 foundation + A2 retrieval + A2.1/A2.2 calibration)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -105,6 +105,30 @@ service. Aura is deliberately a fully independent Spring Boot application (own `
   the real-provider calibration run measure identically; `AdversarialRetrievalIT` proves the three
   synthetic tokens are excluded at the lexical and vector layers independently, not only through
   fusion.
+
+## What A2.2 fixed (evidence gate calibrated on real measurements)
+
+- **The A2.1 defect**: the gate treated semantic similarity and lexical coverage as two independent
+  "any signal" votes, so coincidental word overlap could carry a semantically irrelevant result to
+  WEAK_EVIDENCE. Measured with the real provider: "What is today's weather?" scored similarity
+  0.275 against a passage containing "today" (coverage 0.5) and read as WEAK. Frozen rule going
+  forward, on top of A2.1's: **semantic similarity is the primary relevance signal; lexical
+  coverage corroborates a result similarity already supports, and can never rescue one below the
+  semantic floor.**
+- **Calibrated thresholds**: measured over the approved corpus with `text-embedding-3-small`
+  (generation 2) — answerable questions score 0.583–0.740, unrelated questions 0.042–0.275, an
+  empty gap between. `strong-vector-similarity` = 0.58 and `weak-vector-similarity` = 0.30 sit at
+  the edges of that gap rather than its middle, because the errors are asymmetric: a false STRONG
+  invents an AROORAA fact, a false NO_EVIDENCE only declines to answer.
+- **A confident semantic match stands alone**: crossing `strong-vector-similarity` is now
+  sufficient for STRONG without lexical corroboration. This is what lets Tamil/Tanglish queries be
+  answered confidently — they retrieve the right document (e.g. "AROORAA enna company?" →
+  `01-company-overview`, 0.703) while scoring near-zero on `QueryTermCoverage`, which compares
+  English tokens. Below that, only a near-exact lexical match (`>= strong-query-term-coverage`) can
+  still promote a mid-similarity result.
+- **Rank agreement left the decision**: `RelevanceSignals.signalsAgree` is still measured and
+  reported for diagnostics, but no longer classifies — in a small corpus a single irrelevant
+  candidate is trivially "agreed on" by both searches simply for being the only thing there.
 
 ## What deliberately does NOT exist yet
 
