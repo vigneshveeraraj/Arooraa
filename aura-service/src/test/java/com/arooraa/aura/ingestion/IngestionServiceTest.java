@@ -1,9 +1,10 @@
 package com.arooraa.aura.ingestion;
 
+import com.arooraa.aura.ingestion.config.ChunkingProperties;
 import com.arooraa.aura.knowledge.domain.AuraChunk;
 import com.arooraa.aura.knowledge.domain.AuraDocumentVersion;
 import com.arooraa.aura.knowledge.domain.AuraEmbedding;
-import com.arooraa.aura.knowledge.domain.ProductStatus;
+import com.arooraa.aura.knowledge.domain.DocumentStatus;
 import com.arooraa.aura.knowledge.domain.Visibility;
 import com.arooraa.aura.knowledge.repository.AuraChunkRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentVersionRepository;
@@ -11,9 +12,13 @@ import com.arooraa.aura.knowledge.repository.AuraEmbeddingRepository;
 import com.arooraa.aura.provider.EmbeddingProvider;
 import com.arooraa.aura.provider.EmbeddingResult;
 import com.arooraa.aura.provider.ProviderDisabledException;
+import com.arooraa.aura.provider.ProviderPermanentException;
+import com.arooraa.aura.provider.ProviderTransientException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,15 +49,22 @@ class IngestionServiceTest {
         jobRepository = mock(AuraIngestionJobRepository.class);
         embeddingProvider = mock(EmbeddingProvider.class);
         service = new IngestionService(versionRepository, chunkRepository, embeddingRepository,
-                jobRepository, embeddingProvider, new ChunkingService());
+                jobRepository, embeddingProvider, new ChunkingService(new ChunkingProperties(1000, 150)),
+                new SimpleMeterRegistry());
 
         when(jobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(chunkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(versionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
-    private static AuraDocumentVersion sampleVersion() {
+    private static AuraDocumentVersion draftVersion() {
         return new AuraDocumentVersion(UUID.randomUUID(), 1, Visibility.PUBLIC, null, null, "Approved content to ingest.");
+    }
+
+    private static AuraDocumentVersion approvedVersion() {
+        AuraDocumentVersion version = draftVersion();
+        version.approve("owner@arooraa.com");
+        return version;
     }
 
     @Test
@@ -64,8 +76,38 @@ class IngestionServiceTest {
     }
 
     @Test
+    void onlyApprovedVersionsCanEnterIndexing() {
+        AuraDocumentVersion version = draftVersion();
+        when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
+
+        AuraIngestionJob job = service.ingest(version.getId());
+
+        assertEquals(IngestionJobStatus.FAILED, job.getStatus());
+        assertEquals("VERSION_NOT_APPROVED", job.getErrorMessage());
+        verify(chunkRepository, never()).save(any());
+        verify(embeddingRepository, never()).save(any());
+    }
+
+    @Test
+    void reingestingAnAlreadyIndexedVersionIsIdempotentAndDoesNotDuplicateChunks() {
+        AuraDocumentVersion version = approvedVersion();
+        version.markIndexed();
+        when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
+        when(chunkRepository.findByDocumentVersionIdOrderByChunkIndex(version.getId()))
+                .thenReturn(List.of(new AuraChunk(version.getId(), 0, "existing chunk", null)));
+
+        AuraIngestionJob job = service.ingest(version.getId());
+
+        assertEquals(IngestionJobStatus.SUCCEEDED, job.getStatus());
+        assertEquals(1, job.getChunkCount());
+        verify(chunkRepository, never()).save(any());
+        verify(embeddingRepository, never()).save(any());
+        verify(embeddingProvider, never()).embed(any());
+    }
+
+    @Test
     void disabledEmbeddingProviderFailsTheJobCleanlyAndPersistsNothing() {
-        AuraDocumentVersion version = sampleVersion();
+        AuraDocumentVersion version = approvedVersion();
         when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
         when(embeddingProvider.isEnabled()).thenReturn(false);
 
@@ -80,23 +122,68 @@ class IngestionServiceTest {
 
     @Test
     void enabledProviderChunksEmbedsAndMarksTheVersionIndexed() {
-        AuraDocumentVersion version = sampleVersion();
+        AuraDocumentVersion version = approvedVersion();
         when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
         when(embeddingProvider.isEnabled()).thenReturn(true);
-        when(embeddingProvider.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f, 0.2f}, "stub-model"));
+        when(embeddingProvider.dimensions()).thenReturn(2);
+        when(embeddingProvider.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f, 0.2f}, "stub-model", "stub"));
 
         AuraIngestionJob job = service.ingest(version.getId());
 
         assertEquals(IngestionJobStatus.SUCCEEDED, job.getStatus());
         assertEquals(1, job.getChunkCount());
+        assertEquals(DocumentStatus.INDEXED, version.getStatus());
         verify(chunkRepository, times(1)).save(any(AuraChunk.class));
         verify(embeddingRepository, times(1)).save(any(AuraEmbedding.class));
         verify(versionRepository).save(version);
     }
 
     @Test
+    void embeddingDimensionMismatchFailsTheJobAsAPermanentError() {
+        AuraDocumentVersion version = approvedVersion();
+        when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
+        when(embeddingProvider.isEnabled()).thenReturn(true);
+        when(embeddingProvider.dimensions()).thenReturn(1536);
+        when(embeddingProvider.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f, 0.2f}, "stub-model", "stub"));
+
+        AuraIngestionJob job = service.ingest(version.getId());
+
+        assertEquals(IngestionJobStatus.FAILED, job.getStatus());
+        assertEquals("EMBEDDING_PROVIDER_PERMANENT_ERROR", job.getErrorMessage());
+        assertEquals(DocumentStatus.APPROVED, version.getStatus(),
+                "a failed embedding run must never leave the version INDEXED");
+        verify(embeddingRepository, never()).save(any());
+    }
+
+    @Test
+    void transientProviderFailureIsClassifiedSeparatelyFromPermanentFailure() {
+        AuraDocumentVersion version = approvedVersion();
+        when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
+        when(embeddingProvider.isEnabled()).thenReturn(true);
+        when(embeddingProvider.embed(any())).thenThrow(new ProviderTransientException("simulated timeout"));
+
+        AuraIngestionJob job = service.ingest(version.getId());
+
+        assertEquals(IngestionJobStatus.FAILED, job.getStatus());
+        assertEquals("EMBEDDING_PROVIDER_TRANSIENT_ERROR", job.getErrorMessage());
+    }
+
+    @Test
+    void permanentProviderFailureIsClassifiedDistinctlyFromTransient() {
+        AuraDocumentVersion version = approvedVersion();
+        when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
+        when(embeddingProvider.isEnabled()).thenReturn(true);
+        when(embeddingProvider.embed(any())).thenThrow(new ProviderPermanentException("simulated auth failure"));
+
+        AuraIngestionJob job = service.ingest(version.getId());
+
+        assertEquals(IngestionJobStatus.FAILED, job.getStatus());
+        assertEquals("EMBEDDING_PROVIDER_PERMANENT_ERROR", job.getErrorMessage());
+    }
+
+    @Test
     void providerFailureDuringEmbeddingFailsTheJobWithoutLeakingProviderDetail() {
-        AuraDocumentVersion version = sampleVersion();
+        AuraDocumentVersion version = approvedVersion();
         when(versionRepository.findById(version.getId())).thenReturn(Optional.of(version));
         when(embeddingProvider.isEnabled()).thenReturn(true);
         when(embeddingProvider.embed(any())).thenThrow(new ProviderDisabledException("some internal provider detail"));

@@ -6,7 +6,10 @@ import com.arooraa.aura.provider.RerankingProvider;
 import com.arooraa.aura.provider.disabled.DisabledChatGenerationProvider;
 import com.arooraa.aura.provider.disabled.DisabledEmbeddingProvider;
 import com.arooraa.aura.provider.disabled.DisabledRerankingProvider;
+import com.arooraa.aura.provider.openai.OpenAiEmbeddingProvider;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,5 +63,41 @@ class ProviderConfigurationTest {
         contextRunner
                 .withPropertyValues("aura.provider.chat.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(ChatGenerationProvider.class));
+    }
+
+    @Test
+    void embeddingEnabledWithNoOpenAiKeyFallsBackToTheDisabledProviderInsteadOfFailingStartup() {
+        contextRunner
+                .withPropertyValues("aura.provider.embedding.enabled=true", "aura.provider.embedding.provider=openai")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(EmbeddingProvider.class);
+                    assertThat(context.getBean(EmbeddingProvider.class)).isInstanceOf(DisabledEmbeddingProvider.class);
+                });
+    }
+
+    @Test
+    void embeddingEnabledWithAnUnrecognizedProviderNameFallsBackToTheDisabledProvider() {
+        contextRunner
+                .withSystemProperties("OPENAI_API_KEY=sk-test-key")
+                .withPropertyValues("aura.provider.embedding.enabled=true", "aura.provider.embedding.provider=unknown-vendor")
+                .run(context -> assertThat(context.getBean(EmbeddingProvider.class)).isInstanceOf(DisabledEmbeddingProvider.class));
+    }
+
+    @Test
+    void embeddingEnabledWithOpenAiProviderAndApiKeyWiresTheRealAdapter() {
+        contextRunner
+                .withConfiguration(AutoConfigurations.of(RestClientAutoConfiguration.class))
+                .withSystemProperties("OPENAI_API_KEY=sk-test-key")
+                .withPropertyValues(
+                        "aura.provider.embedding.enabled=true",
+                        "aura.provider.embedding.provider=openai",
+                        "aura.provider.embedding.model=text-embedding-3-small",
+                        "aura.provider.embedding.dimensions=1536")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(EmbeddingProvider.class);
+                    assertThat(context.getBean(EmbeddingProvider.class)).isInstanceOf(OpenAiEmbeddingProvider.class);
+                    assertThat(context.getBean(EmbeddingProvider.class).isEnabled()).isTrue();
+                    assertThat(context.getBean(EmbeddingProvider.class).dimensions()).isEqualTo(1536);
+                });
     }
 }

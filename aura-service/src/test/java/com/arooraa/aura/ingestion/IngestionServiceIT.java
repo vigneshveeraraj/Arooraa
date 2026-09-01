@@ -103,6 +103,9 @@ class IngestionServiceIT {
             assertEquals(1536, embedding.getDimensions());
             assertEquals(1536, embedding.getEmbedding().length);
             assertEquals("stub-embedding-model", embedding.getEmbeddingModel());
+            // A2 embedding provenance metadata — provider and generation persisted per vector.
+            assertEquals("stub", embedding.getProvider());
+            assertEquals(1, embedding.getGeneration());
         }
 
         AuraDocumentVersion reloaded = versionRepository.findById(version.getId()).orElseThrow();

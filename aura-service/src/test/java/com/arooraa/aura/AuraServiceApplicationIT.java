@@ -66,9 +66,16 @@ class AuraServiceApplicationIT {
 
     @Test
     void flywayMigratedTheFullSchemaSuccessfully() {
+        // Not pinned to an exact migration count — that would break every time a milestone adds a
+        // forward migration (exactly what happened when A2 added V2). The invariant is: nothing
+        // failed, and every migration this build ships has actually been applied.
+        Integer failedCount = jdbcTemplate.queryForObject(
+                "select count(*) from flyway_schema_history where success = false", Integer.class);
+        assertEquals(0, failedCount);
+
         Integer appliedCount = jdbcTemplate.queryForObject(
-                "select count(*) from flyway_schema_history where success = true", Integer.class);
-        assertEquals(1, appliedCount);
+                "select count(*) from flyway_schema_history where success = true and version is not null", Integer.class);
+        assertEquals(2, appliedCount, "expected V1 and V2 applied");
 
         for (String table : new String[]{
                 "aura_documents", "aura_document_versions", "aura_chunks", "aura_embeddings", "aura_ingestion_jobs"}) {
