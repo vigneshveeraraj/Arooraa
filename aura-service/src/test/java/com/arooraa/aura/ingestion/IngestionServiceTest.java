@@ -14,6 +14,7 @@ import com.arooraa.aura.provider.EmbeddingResult;
 import com.arooraa.aura.provider.ProviderDisabledException;
 import com.arooraa.aura.provider.ProviderPermanentException;
 import com.arooraa.aura.provider.ProviderTransientException;
+import com.arooraa.aura.provider.config.ProviderProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,15 @@ import static org.mockito.Mockito.when;
 /** Pure unit coverage of the pipeline decision logic — no Spring context, no DB. */
 class IngestionServiceTest {
 
+    private static final int EMBEDDING_GENERATION = 1;
+
+    private static ProviderProperties providerProperties(int generation) {
+        return new ProviderProperties(
+                new ProviderProperties.Chat(false, null, 30),
+                new ProviderProperties.Embedding(false, "openai", "test-model", 1536, 30, generation),
+                new ProviderProperties.Reranking(false, null, 30));
+    }
+
     private AuraDocumentVersionRepository versionRepository;
     private AuraChunkRepository chunkRepository;
     private AuraEmbeddingRepository embeddingRepository;
@@ -50,7 +60,7 @@ class IngestionServiceTest {
         embeddingProvider = mock(EmbeddingProvider.class);
         service = new IngestionService(versionRepository, chunkRepository, embeddingRepository,
                 jobRepository, embeddingProvider, new ChunkingService(new ChunkingProperties(1000, 150)),
-                new SimpleMeterRegistry());
+                providerProperties(EMBEDDING_GENERATION), new SimpleMeterRegistry());
 
         when(jobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(chunkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));

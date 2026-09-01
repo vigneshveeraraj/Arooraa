@@ -99,7 +99,7 @@ class IngestionServiceIT {
         assertFalse(chunks.isEmpty());
 
         for (AuraChunk chunk : chunks) {
-            AuraEmbedding embedding = embeddingRepository.findByChunkId(chunk.getId()).orElseThrow();
+            AuraEmbedding embedding = embeddingRepository.findByChunkIdAndGeneration(chunk.getId(), 1).orElseThrow();
             assertEquals(1536, embedding.getDimensions());
             assertEquals(1536, embedding.getEmbedding().length);
             assertEquals("stub-embedding-model", embedding.getEmbeddingModel());

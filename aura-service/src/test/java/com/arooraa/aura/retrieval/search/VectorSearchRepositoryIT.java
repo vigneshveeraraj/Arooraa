@@ -63,6 +63,8 @@ class VectorSearchRepositoryIT {
     @Autowired
     private VectorSearchRepository vectorSearchRepository;
 
+    private static final int GENERATION = 1;
+
     private final EmbeddingProvider stub = new StubEmbeddingProvider();
 
     private UUID seedChunk(String text, Visibility visibility, DocumentStatus status, boolean active, String knowledgeSpace) {
@@ -90,7 +92,7 @@ class VectorSearchRepositoryIT {
                 Visibility.PUBLIC, DocumentStatus.INDEXED, true, "AROORAA_PUBLIC");
 
         List<VectorHit> hits = vectorSearchRepository.search(
-                stub.embed("What does MESA do for restaurants?").vector(), Set.of("AROORAA_PUBLIC"), 10);
+                stub.embed("What does MESA do for restaurants?").vector(), Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().anyMatch(h -> h.chunkId().equals(mesaChunk)));
         int mesaIndex = indexOf(hits, mesaChunk);
@@ -104,7 +106,7 @@ class VectorSearchRepositoryIT {
                 Visibility.INTERNAL, DocumentStatus.INDEXED, true, "AROORAA_PUBLIC");
 
         List<VectorHit> hits = vectorSearchRepository.search(
-                stub.embed("INTERNAL_SECRET_ARCHITECTURE_TOKEN_XYZ").vector(), Set.of("AROORAA_PUBLIC"), 10);
+                stub.embed("INTERNAL_SECRET_ARCHITECTURE_TOKEN_XYZ").vector(), Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().noneMatch(h -> h.chunkId().equals(internalChunk)));
     }
@@ -120,7 +122,7 @@ class VectorSearchRepositoryIT {
                 stub.embed("Draft content never approved.").vector()));
 
         List<VectorHit> hits = vectorSearchRepository.search(
-                stub.embed("Draft content never approved.").vector(), Set.of("AROORAA_PUBLIC"), 10);
+                stub.embed("Draft content never approved.").vector(), Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().noneMatch(h -> h.chunkId().equals(chunk.getId())));
     }
@@ -140,7 +142,7 @@ class VectorSearchRepositoryIT {
                 stub.embed("Archived content.").vector()));
 
         List<VectorHit> hits = vectorSearchRepository.search(
-                stub.embed("Archived content.").vector(), Set.of("AROORAA_PUBLIC"), 10);
+                stub.embed("Archived content.").vector(), Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().noneMatch(h -> h.chunkId().equals(chunk.getId())));
     }
@@ -152,7 +154,7 @@ class VectorSearchRepositoryIT {
 
         List<VectorHit> hits = vectorSearchRepository.search(
                 stub.embed("UniqueInactiveVectorMarker content from a superseded historical version.").vector(),
-                Set.of("AROORAA_PUBLIC"), 10);
+                Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().noneMatch(h -> h.chunkId().equals(inactiveChunk)));
     }
@@ -164,7 +166,7 @@ class VectorSearchRepositoryIT {
 
         List<VectorHit> hits = vectorSearchRepository.search(
                 stub.embed("Content that would otherwise be perfectly eligible for retrieval.").vector(),
-                Set.of("AROORAA_PUBLIC"), 10);
+                Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         assertTrue(hits.stream().noneMatch(h -> h.chunkId().equals(chunkInOtherSpace)),
                 "common Aura platform must not mean common searchable data across knowledge spaces");
@@ -175,7 +177,7 @@ class VectorSearchRepositoryIT {
         UUID chunk = seedChunk("A specific sentence for similarity scoring.", Visibility.PUBLIC, DocumentStatus.INDEXED, true, "AROORAA_PUBLIC");
 
         List<VectorHit> hits = vectorSearchRepository.search(
-                stub.embed("A specific sentence for similarity scoring.").vector(), Set.of("AROORAA_PUBLIC"), 10);
+                stub.embed("A specific sentence for similarity scoring.").vector(), Set.of("AROORAA_PUBLIC"), GENERATION, 10);
 
         VectorHit exactMatch = hits.stream().filter(h -> h.chunkId().equals(chunk)).findFirst().orElseThrow();
         assertEquals(0.0, exactMatch.distance(), 0.01, "identical text embedded twice should have ~zero cosine distance");
