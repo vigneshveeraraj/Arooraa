@@ -22,6 +22,14 @@ import java.util.Set;
  * <p>{@link ConversationMode#SOCIAL} skips it for a third reason again: there is no question in a
  * hello. Searching anyway does not find nothing — it finds the nearest vectors in the corpus and
  * dresses coincidence up as evidence, which is exactly what "Hi Aura" did before this mode existed.
+ *
+ * <p>{@link ConversationMode#PROJECT_DISCOVERY} is the one mode where the answer depends on the
+ * turn rather than the mode (A3.3). "I have a software product idea" is someone starting to
+ * describe their project — nothing to look up, and searching produced exactly the same
+ * nearest-vector noise a greeting did. "I have a product idea, what services can AROORAA provide
+ * to build it?" contains a real question about us and should be grounded. So the decision reads
+ * {@link ScopeDecision#mentionsOrganisationSubject()} rather than turning retrieval off for the
+ * whole mode.
  */
 @Component
 public class RetrievalPlanner {
@@ -29,11 +37,11 @@ public class RetrievalPlanner {
     private static final Set<ConversationMode> RETRIEVING_MODES = EnumSet.of(
             ConversationMode.GROUNDED_QA,
             ConversationMode.PRODUCT_DISCOVERY,
-            ConversationMode.PROJECT_DISCOVERY,
             ConversationMode.NAVIGATION,
             ConversationMode.CAREERS);
 
-    public RetrievalDecision decide(ConversationMode mode) {
+    public RetrievalDecision decide(ScopeDecision scope) {
+        ConversationMode mode = scope.mode();
         if (RETRIEVING_MODES.contains(mode)) {
             return new RetrievalDecision(true, "MODE_REQUIRES_APPROVED_EVIDENCE");
         }
@@ -41,7 +49,10 @@ public class RetrievalPlanner {
             case INTERNAL_BOUNDARY -> new RetrievalDecision(false, "CONFIDENTIALITY_BOUNDARY");
             case GENERAL_CONSULTING -> new RetrievalDecision(false, "GENERAL_KNOWLEDGE_SUFFICES");
             case OUT_OF_SCOPE -> new RetrievalDecision(false, "OUT_OF_SCOPE");
-            case SOCIAL -> new RetrievalDecision(false, "SOCIAL_OPENER");
+            case SOCIAL -> new RetrievalDecision(false, "SOCIAL_SMALL_TALK");
+            case PROJECT_DISCOVERY -> scope.mentionsOrganisationSubject()
+                    ? new RetrievalDecision(true, "DISCOVERY_ASKS_ABOUT_US")
+                    : new RetrievalDecision(false, "DISCOVERY_OPENER_HAS_NOTHING_TO_LOOK_UP");
             default -> new RetrievalDecision(false, "NOT_APPLICABLE");
         };
     }

@@ -173,7 +173,7 @@ public class ConversationOrchestrator {
         sequence++;
 
         // 6 + 7 + 8. Retrieval decision, hybrid retrieval, and the A2.2 evidence gate.
-        RetrievalDecision retrievalDecision = retrievalPlanner.decide(mode);
+        RetrievalDecision retrievalDecision = retrievalPlanner.decide(scope);
         RetrievalResult retrieval = retrievalDecision.retrieve()
                 ? retrievalService.retrieve(new RetrievalRequest(message, profile.profile(), profile.channel()))
                 : RetrievalResult.noEvidence(message);

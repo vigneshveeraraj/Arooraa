@@ -6,7 +6,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Routing precedence, which is what decides how much freedom a turn is given downstream. */
 class ScopeClassifierTest {
@@ -114,6 +116,40 @@ class ScopeClassifierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
+            "tell me a joke",
+            "tell me the joke",
+            "another joke",
+            "one more joke please",
+            "make me laugh",
+            "haha",
+            "that's funny",
+            "nice 😄",
+            "thanks Aura",
+            "thanks so much",
+            "good night",
+            "cool"})
+    void lightHumourAndAcknowledgementsAreSmallTalkToo(String message) {
+        // "tell me the joke" came back GENERAL_CONSULTING in the first real owner conversation.
+        // The joke itself was fine — a short harmless one is part of the personality — but the
+        // routing was not: this is small talk, and small talk looks nothing up.
+        assertEquals(ConversationMode.SOCIAL, modeOf(message), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "tell me a joke about the election",
+            "write a poem about the moon",
+            "tell me about MESA",
+            "tell me more about your services",
+            "that is a funny way to build software"})
+    void humourWithASubjectAttachedIsNotSmallTalk(String message) {
+        // The line that keeps Aura from becoming an entertainment bot: the moment a subject
+        // appears, this is a request to write something about that subject.
+        assertNotEquals(ConversationMode.SOCIAL, modeOf(message), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
             "Hi Aura, what is MESA?",
             "Hello — can AROORAA help my restaurant?",
             "Hey, I have an app idea.",
@@ -125,6 +161,39 @@ class ScopeClassifierTest {
         // routed into a mode that answers without looking anything up. One unrecognised word is
         // enough to disqualify an opener, which is why this list is safe to keep short.
         assertNotEquals(ConversationMode.SOCIAL, modeOf(message), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "I have a product idea",
+            "I want to build an app",
+            "Enaku software idea iruku",
+            "எனக்கு ஒரு product idea இருக்கு",
+            "எனக்கு ஒரு software product idea இருக்கு."})
+    void aDiscoveryOpenerCarriesNoQuestionAboutUs(String message) {
+        ScopeDecision decision = classifier.classify(message);
+
+        assertEquals(ConversationMode.PROJECT_DISCOVERY, decision.mode(), message);
+        assertFalse(decision.mentionsOrganisationSubject(),
+                "nothing here asks about us, so there is nothing to look up: " + message);
+    }
+
+    @Test
+    void aDiscoveryTurnThatAlsoAsksAboutUsStaysDiscoveryAndSaysSo() {
+        // Both things are true at once, and the turn needs both facts: it is discovery, and it
+        // contains a real question about AROORAA that deserves grounding.
+        ScopeDecision decision = classifier.classify(
+                "I have a product idea. What services can AROORAA provide to build it?");
+
+        assertEquals(ConversationMode.PROJECT_DISCOVERY, decision.mode());
+        assertTrue(decision.mentionsOrganisationSubject());
+    }
+
+    @Test
+    void aCapabilityQuestionSharingADiscoveryVerbIsStillAQuestionAboutUs() {
+        // The distinction the ordering exists for: same verb, different owner of the system.
+        assertEquals(ConversationMode.GROUNDED_QA, modeOf("Can AROORAA modernize an existing application?"));
+        assertEquals(ConversationMode.PROJECT_DISCOVERY, modeOf("I want to modernize my existing application"));
     }
 
     @Test
