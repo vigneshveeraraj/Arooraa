@@ -8,6 +8,7 @@ import com.arooraa.aura.knowledge.repository.AuraChunkRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentVersionRepository;
 import com.arooraa.aura.provider.EmbeddingProvider;
+import com.arooraa.aura.provider.config.ProviderProperties;
 import com.arooraa.aura.retrieval.access.AccessPolicy;
 import com.arooraa.aura.retrieval.config.RetrievalProperties;
 import com.arooraa.aura.retrieval.search.LexicalHit;
@@ -35,9 +36,11 @@ import java.util.UUID;
  * configuration present, same production-safety principle as the provider layer itself.
  *
  * <p>Reranking: {@code RerankingProvider} stays disabled by default (frozen A0/A1 wiring,
- * untouched); the RRF-fused order itself is A2's deterministic baseline ranking. A real model
- * reranker is an explicit future step once baseline retrieval quality is measured — see the A2
- * final report's recommendation for A3.
+ * untouched); the RRF-fused order itself is the deterministic baseline ranking. A real model
+ * reranker is an explicit future step once baseline retrieval quality is accepted.
+ *
+ * <p>Confidence vs. ranking (A2.1): RRF orders {@link Evidence}, it never decides
+ * {@link EvidenceLevel} — see {@link #measureRelevance} and {@link EvidenceGateService}.
  */
 @Service
 public class HybridRetrievalService {
@@ -54,7 +57,13 @@ public class HybridRetrievalService {
     private final EvidenceGateService evidenceGateService;
     private final RetrievalProperties properties;
     private final AuraSafetyProperties safetyProperties;
+    /** Retrieval only ever searches one embedding cohort — mixing generations would compare vectors produced by different models. */
+    private final int embeddingGeneration;
     private final Timer retrievalLatencyTimer;
+    /** Component-level timers (A2.1 performance baseline) — separate from the total so a slow query can be attributed to embedding, vector search, or lexical search specifically. */
+    private final Timer embeddingLatencyTimer;
+    private final Timer vectorSearchLatencyTimer;
+    private final Timer lexicalSearchLatencyTimer;
     private final DistributionSummary vectorResultCountSummary;
     private final DistributionSummary lexicalResultCountSummary;
 
@@ -68,6 +77,7 @@ public class HybridRetrievalService {
                                    EvidenceGateService evidenceGateService,
                                    RetrievalProperties properties,
                                    AuraSafetyProperties safetyProperties,
+                                   ProviderProperties providerProperties,
                                    MeterRegistry meterRegistry) {
         this.accessPolicy = accessPolicy;
         this.embeddingProvider = embeddingProvider;
@@ -79,7 +89,11 @@ public class HybridRetrievalService {
         this.evidenceGateService = evidenceGateService;
         this.properties = properties;
         this.safetyProperties = safetyProperties;
+        this.embeddingGeneration = providerProperties.embedding().generation();
         this.retrievalLatencyTimer = meterRegistry.timer("aura.retrieval.latency");
+        this.embeddingLatencyTimer = meterRegistry.timer("aura.retrieval.embedding.latency");
+        this.vectorSearchLatencyTimer = meterRegistry.timer("aura.retrieval.vector.latency");
+        this.lexicalSearchLatencyTimer = meterRegistry.timer("aura.retrieval.lexical.latency");
         this.vectorResultCountSummary = DistributionSummary.builder("aura.retrieval.vector.results").register(meterRegistry);
         this.lexicalResultCountSummary = DistributionSummary.builder("aura.retrieval.lexical.results").register(meterRegistry);
     }
@@ -99,14 +113,18 @@ public class HybridRetrievalService {
         if (knowledgeSpaces.isEmpty()) {
             log.warn("No knowledge space authorized for profile={} channel={} — returning NO_EVIDENCE.",
                     request.profile(), request.channel());
-            return new RetrievalResult(request.query(), EvidenceLevel.NO_EVIDENCE, List.of());
+            return RetrievalResult.noEvidence(request.query());
         }
 
         boolean vectorSearchRan = embeddingProvider.isEnabled();
-        List<VectorHit> vectorHits = vectorSearchRan
-                ? vectorSearchRepository.search(embeddingProvider.embed(request.query()).vector(), knowledgeSpaces, properties.candidateLimit())
-                : List.of();
-        List<LexicalHit> lexicalHits = lexicalSearchRepository.search(request.query(), knowledgeSpaces, properties.candidateLimit());
+        List<VectorHit> vectorHits = List.of();
+        if (vectorSearchRan) {
+            float[] queryVector = embeddingLatencyTimer.record(() -> embeddingProvider.embed(request.query())).vector();
+            vectorHits = vectorSearchLatencyTimer.record(() -> vectorSearchRepository.search(
+                    queryVector, knowledgeSpaces, embeddingGeneration, properties.candidateLimit()));
+        }
+        List<LexicalHit> lexicalHits = lexicalSearchLatencyTimer.record(
+                () -> lexicalSearchRepository.search(request.query(), knowledgeSpaces, properties.candidateLimit()));
 
         vectorResultCountSummary.record(vectorHits.size());
         lexicalResultCountSummary.record(lexicalHits.size());
@@ -145,9 +163,37 @@ public class HybridRetrievalService {
                     .ifPresent(evidence::add);
         }
 
-        EvidenceLevel level = evidenceGateService.classify(evidence);
-        log.info("Retrieval returned {} evidence item(s), level={}.", evidence.size(), level);
-        return new RetrievalResult(request.query(), level, evidence);
+        RelevanceSignals signals = measureRelevance(request.query(), evidence, vectorRankByChunk, lexicalRankByChunk);
+        EvidenceLevel level = evidenceGateService.classify(evidence, signals);
+        log.info("Retrieval returned {} evidence item(s), level={} (topSimilarity={}, coverage={}, agree={}).",
+                evidence.size(), level, format(signals.topVectorSimilarity()),
+                format(signals.queryTermCoverage()), signals.signalsAgree());
+        return new RetrievalResult(request.query(), level, signals, evidence);
+    }
+
+    /**
+     * Measures the absolute relevance of the top-ranked evidence. Deliberately reads only the top
+     * result: the gate's question is "can the best thing we found support a claim?", and averaging
+     * in weaker neighbours would let a large corpus dilute — or a small one inflate — that answer.
+     */
+    private RelevanceSignals measureRelevance(String query, List<Evidence> evidence,
+                                               Map<UUID, Integer> vectorRankByChunk,
+                                               Map<UUID, Integer> lexicalRankByChunk) {
+        if (evidence.isEmpty()) {
+            return RelevanceSignals.none();
+        }
+        Evidence top = evidence.get(0);
+        boolean agree = vectorRankByChunk.containsKey(top.chunkId()) && lexicalRankByChunk.containsKey(top.chunkId());
+        double coverage = QueryTermCoverage.of(query, top.text());
+        return new RelevanceSignals(top.vectorSimilarity(), top.lexicalScore(), coverage, agree);
+    }
+
+    private static String format(Double value) {
+        return value == null ? "n/a" : String.format(java.util.Locale.ROOT, "%.3f", value);
+    }
+
+    private static String format(double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     private java.util.Optional<Evidence> loadEvidence(UUID chunkId, Integer vectorRank, Double vectorSimilarity,
@@ -165,7 +211,7 @@ public class HybridRetrievalService {
                                  int combinedRank, double combinedScore, double normalizedScore) {
         return new Evidence(
                 document.getId(), document.getSlug(), document.getTitle(),
-                version.getId(), version.getVersionNumber(),
+                version.getId(), version.getVersionNumber(), document.getKnowledgeSpace(),
                 chunk.getId(), chunk.getChunkIndex(), chunk.getSectionHeading(),
                 version.getSourceUrl(), chunk.getContent(),
                 vectorRank, vectorSimilarity, lexicalRank, lexicalScore,

@@ -4,7 +4,6 @@ import com.arooraa.aura.knowledge.domain.AuraDocument;
 import com.arooraa.aura.knowledge.domain.AuraDocumentVersion;
 import com.arooraa.aura.knowledge.repository.AuraDocumentRepository;
 import com.arooraa.aura.knowledge.repository.AuraDocumentVersionRepository;
-import com.arooraa.aura.support.Sha256;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,9 +23,11 @@ import java.util.Optional;
  * version starts life in {@code DRAFT}; import never approves anything itself, no matter what the
  * source file's editorial {@code review_status} says.
  *
- * <p>Idempotent: importing the same unchanged file content twice returns the same existing
- * version rather than creating a duplicate (checksum of the whole source file, frontmatter
- * included — any change to metadata like visibility is a real change, not only a body edit).
+ * <p>Idempotent: importing unchanged content twice returns the same existing version rather than
+ * creating a duplicate. "Unchanged" means the {@link DocumentFingerprint} — normalized
+ * retrieval-relevant metadata plus body — is identical, so a visibility, knowledge-space, title,
+ * product or product-status change does create a new version, while a line-ending or
+ * {@code review_status} edit does not.
  */
 @Service
 public class KnowledgeImportService {
@@ -60,17 +61,26 @@ public class KnowledgeImportService {
     @Transactional
     public AuraDocumentVersion importContent(String sourcePath, String fileContent) {
         ParsedKnowledgeDocument parsed = parser.parse(sourcePath, fileContent);
-        String checksum = Sha256.hex(fileContent);
+        // Fingerprints normalized retrieval-relevant metadata + body, not the raw file (A2.1) —
+        // see DocumentFingerprint for exactly which fields participate and why.
+        String checksum = DocumentFingerprint.of(parsed);
 
         AuraDocument document = documentRepository.findBySlug(parsed.slug())
                 .orElseGet(() -> documentRepository.save(new AuraDocument(
                         parsed.slug(), parsed.title(), parsed.domain(), parsed.category(),
-                        parsed.product(), parsed.service())));
+                        parsed.product(), parsed.service(), parsed.knowledgeSpace())));
+
+        if (document.updateEditorialMetadata(parsed.title(), parsed.domain(), parsed.category(),
+                parsed.product(), parsed.service(), parsed.knowledgeSpace())) {
+            document = documentRepository.save(document);
+            log.info("Refreshed editorial metadata for \"{}\" from its source.", parsed.slug());
+        }
 
         Optional<AuraDocumentVersion> latest =
                 versionRepository.findFirstByDocumentIdOrderByVersionNumberDesc(document.getId());
         if (latest.isPresent() && checksum.equals(latest.get().getContentChecksum())) {
-            log.info("Import of \"{}\" is a no-op — source content unchanged (checksum {}).", parsed.slug(), checksum);
+            log.info("Import of \"{}\" is a no-op — retrieval-relevant content unchanged (fingerprint {}).",
+                    parsed.slug(), checksum);
             return latest.get();
         }
 

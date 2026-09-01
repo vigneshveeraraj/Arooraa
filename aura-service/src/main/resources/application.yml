@@ -34,6 +34,10 @@ aura:
       # brief's generic AURA_PROVIDER_TIMEOUT suggestion, which the brief itself allows
       # ("exact names may follow repository conventions").
       timeout-seconds: ${AURA_EMBEDDING_PROVIDER_TIMEOUT_SECONDS:30}
+      # The vector cohort ingestion writes and retrieval searches. Bump this (and re-embed) when
+      # the provider, model or dimension changes — never mix cohorts in one similarity search.
+      # Generation 1 = A2's development vectors; 2 = the real-provider calibration cohort.
+      generation: ${AURA_EMBEDDING_GENERATION:1}
     reranking:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
@@ -58,12 +62,20 @@ aura:
     # corpus yet.
     rrf-k: ${AURA_RETRIEVAL_RRF_K:60}
     evidence:
-      # PROVISIONAL — not measured against real usage yet (frozen requirement: don't invent final
-      # production thresholds without measurement). Scored 0..1 against the maximum possible RRF
-      # score for the number of signals actually searched; tune once real query/evidence quality
-      # data exists (see the acceptance report's Tamil/Tanglish baseline and A3 recommendation).
-      strong-threshold: ${AURA_RETRIEVAL_EVIDENCE_STRONG_THRESHOLD:0.5}
-      weak-threshold: ${AURA_RETRIEVAL_EVIDENCE_WEAK_THRESHOLD:0.15}
+      # A2.1: ABSOLUTE relevance thresholds. These are compared against raw cosine similarity and
+      # query-term coverage — never against an RRF score, which only reflects rank and so rated
+      # every query on a small corpus as "best available" = confident (the A2 defect).
+      #
+      # Cosine-similarity values look low next to intuition: for question-vs-passage embeddings
+      # (text-embedding-3-small), a genuinely relevant passage typically lands well under 0.6,
+      # while unrelated text still scores meaningfully above 0. Calibrate with
+      # EmbeddingCalibrationIT (see its Javadoc), which prints the measured positive/negative
+      # distributions and the separation they imply, then set these from that output.
+      strong-vector-similarity: ${AURA_EVIDENCE_STRONG_VECTOR_SIMILARITY:0.42}
+      weak-vector-similarity: ${AURA_EVIDENCE_WEAK_VECTOR_SIMILARITY:0.28}
+      # Fraction of the question's meaningful words present in the evidence text.
+      strong-query-term-coverage: ${AURA_EVIDENCE_STRONG_QUERY_TERM_COVERAGE:0.75}
+      weak-query-term-coverage: ${AURA_EVIDENCE_WEAK_QUERY_TERM_COVERAGE:0.40}
 
 management:
   endpoints:

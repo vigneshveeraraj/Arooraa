@@ -11,6 +11,7 @@ import com.arooraa.aura.provider.EmbeddingProvider;
 import com.arooraa.aura.provider.EmbeddingResult;
 import com.arooraa.aura.provider.ProviderPermanentException;
 import com.arooraa.aura.provider.ProviderTransientException;
+import com.arooraa.aura.provider.config.ProviderProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ import java.util.UUID;
 public class IngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
-    private static final int EMBEDDING_GENERATION = 1;
 
     private final AuraDocumentVersionRepository versionRepository;
     private final AuraChunkRepository chunkRepository;
@@ -47,6 +47,7 @@ public class IngestionService {
     private final AuraIngestionJobRepository jobRepository;
     private final EmbeddingProvider embeddingProvider;
     private final ChunkingService chunkingService;
+    private final int embeddingGeneration;
     private final Counter documentsProcessedCounter;
     private final Counter chunksGeneratedCounter;
     private final Counter embeddingCallsCounter;
@@ -58,6 +59,7 @@ public class IngestionService {
                              AuraIngestionJobRepository jobRepository,
                              EmbeddingProvider embeddingProvider,
                              ChunkingService chunkingService,
+                             ProviderProperties providerProperties,
                              MeterRegistry meterRegistry) {
         this.versionRepository = versionRepository;
         this.chunkRepository = chunkRepository;
@@ -65,6 +67,7 @@ public class IngestionService {
         this.jobRepository = jobRepository;
         this.embeddingProvider = embeddingProvider;
         this.chunkingService = chunkingService;
+        this.embeddingGeneration = providerProperties.embedding().generation();
         this.documentsProcessedCounter = meterRegistry.counter("aura.ingestion.documents.processed");
         this.chunksGeneratedCounter = meterRegistry.counter("aura.ingestion.chunks.generated");
         this.embeddingCallsCounter = meterRegistry.counter("aura.ingestion.embedding.calls");
@@ -110,7 +113,7 @@ public class IngestionService {
                     throw new ProviderPermanentException("EMBEDDING_DIMENSION_MISMATCH");
                 }
                 embeddingRepository.save(new AuraEmbedding(chunk.getId(), result.model(), result.provider(),
-                        EMBEDDING_GENERATION, result.vector()));
+                        embeddingGeneration, result.vector()));
             }
             version.markIndexed();
             versionRepository.save(version);
@@ -125,6 +128,63 @@ public class IngestionService {
             job.markFailed("EMBEDDING_PROVIDER_TRANSIENT_ERROR");
         } catch (RuntimeException e) {
             job.markFailed("INGESTION_FAILED");
+        }
+        return jobRepository.save(job);
+    }
+
+    /**
+     * Re-embeds an already-{@code INDEXED} version's existing chunks at the currently configured
+     * embedding generation, without re-chunking and without touching the version's status or its
+     * previous vectors. This is how a corpus moves onto a new provider/model cohort (A2.1's real
+     * embedding calibration) while the old generation stays intact for comparison.
+     *
+     * <p>Idempotent: a chunk that already has a vector at this generation is skipped, so an
+     * interrupted run can simply be repeated.
+     */
+    @Transactional
+    public AuraIngestionJob reembed(UUID documentVersionId) {
+        AuraDocumentVersion version = versionRepository.findById(documentVersionId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown document version: " + documentVersionId));
+
+        AuraIngestionJob job = jobRepository.save(new AuraIngestionJob(documentVersionId));
+
+        if (version.getStatus() != DocumentStatus.INDEXED) {
+            job.markFailed("VERSION_NOT_INDEXED");
+            return jobRepository.save(job);
+        }
+        if (!embeddingProvider.isEnabled()) {
+            job.markFailed("EMBEDDING_PROVIDER_DISABLED");
+            return jobRepository.save(job);
+        }
+
+        job.markRunning();
+        try {
+            List<AuraChunk> chunks = chunkRepository.findByDocumentVersionIdOrderByChunkIndex(documentVersionId);
+            int embedded = 0;
+            for (AuraChunk chunk : chunks) {
+                if (embeddingRepository.existsByChunkIdAndGeneration(chunk.getId(), embeddingGeneration)) {
+                    continue;
+                }
+                embeddingCallsCounter.increment();
+                EmbeddingResult result = embeddingProvider.embed(chunk.getContent());
+                if (result.vector().length != embeddingProvider.dimensions()) {
+                    throw new ProviderPermanentException("EMBEDDING_DIMENSION_MISMATCH");
+                }
+                embeddingRepository.save(new AuraEmbedding(chunk.getId(), result.model(), result.provider(),
+                        embeddingGeneration, result.vector()));
+                embedded++;
+            }
+            job.markSucceeded(chunks.size());
+            log.info("Re-embedded {} of {} chunk(s) for version {} at generation {}.",
+                    embedded, chunks.size(), documentVersionId, embeddingGeneration);
+        } catch (ProviderPermanentException e) {
+            embeddingFailuresCounter.increment();
+            job.markFailed("EMBEDDING_PROVIDER_PERMANENT_ERROR");
+        } catch (ProviderTransientException e) {
+            embeddingFailuresCounter.increment();
+            job.markFailed("EMBEDDING_PROVIDER_TRANSIENT_ERROR");
+        } catch (RuntimeException e) {
+            job.markFailed("REEMBED_FAILED");
         }
         return jobRepository.save(job);
     }

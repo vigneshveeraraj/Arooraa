@@ -30,6 +30,7 @@ public class VectorSearchRepository {
               AND v.visibility = 'PUBLIC'
               AND v.status = 'INDEXED'
               AND d.knowledge_space IN (:knowledgeSpaces)
+              AND e.generation = :generation
             ORDER BY distance ASC
             LIMIT :limit
             """;
@@ -40,11 +41,13 @@ public class VectorSearchRepository {
         this.entityManager = entityManager;
     }
 
+    /** {@code generation} scopes the search to one embedding cohort — vectors from different models are not comparable, so they are never searched together. */
     @SuppressWarnings("unchecked")
-    public List<VectorHit> search(float[] queryVector, Collection<String> knowledgeSpaces, int limit) {
+    public List<VectorHit> search(float[] queryVector, Collection<String> knowledgeSpaces, int generation, int limit) {
         Query query = entityManager.createNativeQuery(SQL)
                 .setParameter("queryVector", VectorLiteral.of(queryVector))
                 .setParameter("knowledgeSpaces", knowledgeSpaces)
+                .setParameter("generation", generation)
                 .setParameter("limit", limit);
 
         List<Object[]> rows = query.getResultList();

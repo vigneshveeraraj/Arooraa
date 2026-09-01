@@ -36,7 +36,8 @@ public class AuraEmbedding {
     @Id
     private UUID id;
 
-    @Column(name = "chunk_id", nullable = false, unique = true)
+    /** Unique per (chunk, generation), not per chunk — see V3: a re-embedding run at a new generation coexists with the old vectors instead of overwriting them. */
+    @Column(name = "chunk_id", nullable = false)
     private UUID chunkId;
 
     /** Config-driven identifier of the model that produced this vector — never hardcoded business logic (see {@code EmbeddingProvider}). */

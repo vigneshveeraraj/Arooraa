@@ -69,14 +69,9 @@ public class AuraDocument {
     protected AuraDocument() {
     }
 
-    /**
-     * Defaults to the {@code AROORAA_PUBLIC} knowledge space — every A0/A1 call site stays valid
-     * unchanged. Literal, not {@code retrieval.context.KnowledgeSpace.AROORAA_PUBLIC}: this
-     * package must not depend on the retrieval package (retrieval already depends on domain), so
-     * the two are kept in sync by convention + {@code KnowledgeSpaceTest}.
-     */
+    /** Defaults to the {@code AROORAA_PUBLIC} knowledge space — every A0/A1 call site stays valid unchanged. */
     public AuraDocument(String slug, String title, String domain, String category, String product, String service) {
-        this(slug, title, domain, category, product, service, "AROORAA_PUBLIC");
+        this(slug, title, domain, category, product, service, KnowledgeSpaces.AROORAA_PUBLIC);
     }
 
     public AuraDocument(String slug, String title, String domain, String category, String product, String service,
@@ -89,6 +84,35 @@ public class AuraDocument {
         this.product = product;
         this.service = service;
         this.knowledgeSpace = knowledgeSpace;
+    }
+
+    /**
+     * Applies corrected editorial metadata from a re-import. These fields are unversioned by
+     * design (identity, not content) but several of them — title, product, service — are searched
+     * directly by lexical retrieval, so leaving them stale after the source changed (A2's
+     * behaviour) meant the index disagreed with the approved source. The content change itself is
+     * still versioned separately; this only keeps the document's own metadata truthful.
+     *
+     * @return true if anything actually changed
+     */
+    public boolean updateEditorialMetadata(String title, String domain, String category, String product,
+                                            String service, String knowledgeSpace) {
+        if (equal(this.title, title) && equal(this.domain, domain) && equal(this.category, category)
+                && equal(this.product, product) && equal(this.service, service)
+                && equal(this.knowledgeSpace, knowledgeSpace)) {
+            return false;
+        }
+        this.title = title;
+        this.domain = domain;
+        this.category = category;
+        this.product = product;
+        this.service = service;
+        this.knowledgeSpace = knowledgeSpace;
+        return true;
+    }
+
+    private static boolean equal(String left, String right) {
+        return left == null ? right == null : left.equals(right);
     }
 
     @PrePersist

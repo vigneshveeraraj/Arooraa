@@ -1,5 +1,6 @@
 package com.arooraa.aura.knowledge.imports;
 
+import com.arooraa.aura.knowledge.domain.KnowledgeSpaces;
 import com.arooraa.aura.knowledge.domain.ProductStatus;
 import com.arooraa.aura.knowledge.domain.Visibility;
 import org.springframework.stereotype.Component;
@@ -43,11 +44,15 @@ public class KnowledgeDocumentParser {
         ProductStatus productStatus = parseProductStatus(fields.get("product_status"), sourceIdentifier);
         validateReviewStatus(fields.get("review_status"), sourceIdentifier);
 
+        String knowledgeSpace = nullable(fields.get("knowledge_space"));
+
         return new ParsedKnowledgeDocument(
                 slug, title,
                 nullable(fields.get("domain")), nullable(fields.get("category")),
                 nullable(fields.get("product")), nullable(fields.get("service")),
-                visibility, productStatus, nullable(fields.get("source")), body);
+                visibility, productStatus,
+                knowledgeSpace == null ? KnowledgeSpaces.AROORAA_PUBLIC : knowledgeSpace,
+                nullable(fields.get("source")), body);
     }
 
     private Map<String, String> parseFields(String frontmatter, String sourceIdentifier) {
