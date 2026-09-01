@@ -115,30 +115,31 @@ class KnowledgeBaseAcceptanceIT {
     // --- Positive set: relevant approved knowledge should be found -----------------------------
 
     /**
-     * Asserted as an aggregate pass rate, not "every query must reach at least WEAK": this corpus
-     * intentionally holds only 3 of 6 service lines (see {@link KnowledgeCorpusFixture}), and the
-     * stub embedding is bag-of-words — a broad question like "what services does AROORAA offer?"
-     * can legitimately land below the weak threshold against a partial catalogue and non-semantic
-     * vectors. That is a corpus/stub limitation to note for the real-provider run
-     * ({@link EmbeddingCalibrationIT}), not a defect in the gate. Every {@code expectedSlug} that
-     * IS returned must still be correct — that assertion stays exact.
+     * Asserts <em>retrieval</em>, not confidence: the right document must come back for each
+     * question the corpus answers. Evidence level is deliberately not asserted here, because A2.2
+     * calibrated the similarity thresholds against the real provider (positives 0.583..0.740,
+     * unrelated 0.042..0.275) and the bag-of-words stub produces similarities on a completely
+     * different scale (positives 0.180..0.470) — a level assertion here would measure the stub's
+     * arithmetic, not the gate's correctness. The bands are proven deterministically by
+     * {@link EvidenceBandsIT} and against the real provider by {@link EmbeddingCalibrationIT};
+     * levels are still logged above for the record.
      */
     @Test
     void positiveSetRetrievesRelevantEvidence() {
-        int reachedAtLeastWeak = 0;
+        int returnedEvidence = 0;
         for (EvaluationSets.Query query : EvaluationSets.POSITIVE) {
             RetrievalResult result = evaluate(query.text());
-            if (result.evidenceLevel() != EvidenceLevel.NO_EVIDENCE) {
-                reachedAtLeastWeak++;
+            if (!result.evidence().isEmpty()) {
+                returnedEvidence++;
             }
             if (query.expectedSlug() != null && !result.evidence().isEmpty()) {
                 assertTrue(result.evidence().stream().anyMatch(e -> e.documentSlug().equals(query.expectedSlug())),
                         "expected " + query.expectedSlug() + " among evidence for: " + query.text());
             }
         }
-        assertTrue(reachedAtLeastWeak >= (int) Math.ceil(EvaluationSets.POSITIVE.size() * 0.8),
-                "expected at least 80% of positive questions to reach WEAK_EVIDENCE or better, got "
-                        + reachedAtLeastWeak + "/" + EvaluationSets.POSITIVE.size());
+        assertTrue(returnedEvidence >= (int) Math.ceil(EvaluationSets.POSITIVE.size() * 0.8),
+                "expected at least 80% of positive questions to retrieve candidate evidence, got "
+                        + returnedEvidence + "/" + EvaluationSets.POSITIVE.size());
     }
 
     // --- Negative set: no AROORAA-specific evidence should be manufactured --------------------
@@ -148,7 +149,8 @@ class KnowledgeBaseAcceptanceIT {
      * WEAK is tolerated here: the bag-of-words stub can spuriously inflate similarity for a short,
      * vocabulary-sparse query through pure hash-collision noise (observed for "Write a poem about
      * the moon.", similarity 0.386 against no real shared meaning) in a way a genuine embedding
-     * model would not. See the A2.1 report's false-positive analysis.
+     * model does not — the same question measures 0.136 with the real provider and lands at
+     * NO_EVIDENCE, which {@link EmbeddingCalibrationIT} asserts for the whole negative set.
      */
     @Test
     void negativeSetNeverProducesStrongEvidence() {

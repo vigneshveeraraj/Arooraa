@@ -28,10 +28,12 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A2.1's real-embedding calibration run — the local, controlled measurement the milestone
- * requires ("real OpenAI embeddings have been evaluated locally"). Deliberately NOT part of the
- * secretless test suite: gated on {@code OPENAI_API_KEY} actually being present in the
- * environment, so {@code mvn verify} without a key skips it cleanly rather than failing.
+ * The real-embedding calibration run — the local, controlled measurement the milestone requires
+ * ("real OpenAI embeddings have been evaluated locally"). A2.1 built it and measured with it; A2.2
+ * derived the shipped evidence thresholds from its output and now asserts against them, so a rerun
+ * verifies the calibration still holds. Deliberately NOT part of the secretless test suite: gated
+ * on {@code OPENAI_API_KEY} actually being present in the environment, so {@code mvn verify}
+ * without a key skips it cleanly rather than failing.
  *
  * <p>Never touches the key directly — it is read only by {@code OpenAiEmbeddingProvider} via
  * Spring's normal environment resolution ({@code @Value("${OPENAI_API_KEY:}")}), which this class
@@ -116,15 +118,31 @@ class EmbeddingCalibrationIT {
                     "adversarial token leaked with the real provider: " + token);
         }
 
-        // Sanity check that the real embeddings carry actual signal: on average, questions the
-        // corpus answers should score higher than questions it has nothing to do with. This is
-        // intentionally the only hard assertion on quality — everything else is measurement to be
-        // read from the log, not asserted, because calibrating IS this test's purpose.
         double meanPositive = positive.stream().mapToDouble(m -> m.similarity() == null ? 0 : m.similarity()).average().orElse(0);
         double meanNegative = negative.stream().mapToDouble(m -> m.similarity() == null ? 0 : m.similarity()).average().orElse(0);
         log.info("Mean top similarity — positive: {}, negative: {}", fmt(meanPositive), fmt(meanNegative));
         assertTrue(meanPositive > meanNegative,
                 "real embeddings should separate relevant from irrelevant questions on average");
+
+        // A2.1 asserted separation only, because the thresholds were still guesses. A2.2 calibrated
+        // them from this run's measured distributions (positives 0.583..0.740, unrelated
+        // 0.042..0.275), so the calibration itself is now checkable: a future model or corpus change
+        // that breaks these is exactly what this run exists to catch.
+        for (Measurement m : negative) {
+            assertTrue(m.level() == EvidenceLevel.NO_EVIDENCE,
+                    "a question the corpus has nothing to do with must be NO_EVIDENCE, got "
+                            + m.level() + " (similarity=" + fmt(m.similarity()) + ") for: " + m.query());
+        }
+        long confidentPositives = positive.stream().filter(m -> m.level() == EvidenceLevel.STRONG_EVIDENCE).count();
+        log.info("Positive questions reaching STRONG_EVIDENCE: {}/{}", confidentPositives, positive.size());
+        assertTrue(confidentPositives >= (long) Math.ceil(positive.size() * 0.8),
+                "expected at least 80% of answerable questions to reach STRONG_EVIDENCE, got "
+                        + confidentPositives + "/" + positive.size());
+
+        long confidentMultilingual = multilingual.stream().filter(m -> m.level() == EvidenceLevel.STRONG_EVIDENCE).count();
+        log.info("Tamil/Tanglish questions reaching STRONG_EVIDENCE: {}/{} (measured, not asserted — "
+                + "multilingual quality is reported, not gated, until A3 reviews it)",
+                confidentMultilingual, multilingual.size());
     }
 
     private List<Measurement> measure(List<EvaluationSets.Query> queries, String label) {

@@ -160,6 +160,41 @@ class EvidenceBandsIT {
         assertEquals(EvidenceLevel.WEAK_EVIDENCE, result.evidenceLevel());
     }
 
+    /**
+     * The A2.2 defect, reproduced end to end: measured against the real provider, "What is today's
+     * weather?" scored similarity 0.275 with query-term coverage 0.5 — the passage happened to
+     * contain "today" — and A2.1's gate promoted it to WEAK_EVIDENCE on that lexical overlap alone.
+     * Semantic similarity is the primary signal; below its floor no coverage value can rescue a
+     * result.
+     */
+    @Test
+    void coincidentalLexicalOverlapCannotRescueALowSimilarityResult() {
+        seedChunkAtOrigin("AROORAA reviews the work today, this week and at every milestone with the client.");
+
+        RetrievalResult result = retrieveWithSimilarity("What is today's weather?", 0.275);
+
+        assertEquals(EvidenceLevel.NO_EVIDENCE, result.evidenceLevel());
+        assertTrue(result.signals().queryTermCoverage() > 0.0,
+                "the lexical overlap is genuinely present — it simply must not count for anything here");
+    }
+
+    /**
+     * With real embeddings, Tamil/Tanglish queries retrieve the correct document confidently
+     * ("AROORAA enna company?" → 01-company-overview at 0.703) while scoring low on
+     * {@link QueryTermCoverage}, which compares English tokens. Requiring lexical corroboration
+     * would cap every correct multilingual answer at WEAK.
+     */
+    @Test
+    void highSimilarityMultilingualQueryProducesStrongEvidenceWithoutNearExactLexicalCoverage() {
+        seedChunkAtOrigin("AROORAA is a small senior team that turns business problems into production software.");
+
+        RetrievalResult result = retrieveWithSimilarity("AROORAA என்ன மாதிரி நிறுவனம்?", 0.70);
+
+        assertEquals(EvidenceLevel.STRONG_EVIDENCE, result.evidenceLevel());
+        assertTrue(result.signals().queryTermCoverage() < 0.75,
+                "coverage falls well short of a near-exact match — STRONG came from similarity alone");
+    }
+
     @Test
     void lowAbsoluteSimilarityProducesNoEvidence() {
         seedChunkAtOrigin("MESA connects dine-in ordering, kitchen and staff operations into one real-time system.");
