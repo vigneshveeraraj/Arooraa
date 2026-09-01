@@ -6,6 +6,7 @@ category: conversation-policy
 product: null
 service: null
 visibility: INTERNAL
+knowledge_space: AURA_POLICY
 product_status: null
 review_status: DRAFT
 source: AROORAA AURA Phase A0/A1 milestone brief (conversation modes, product truth model)

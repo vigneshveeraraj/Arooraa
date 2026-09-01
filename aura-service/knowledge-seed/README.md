@@ -19,10 +19,30 @@ category: product-overview    # -> AuraDocument.category
 product: MESA                 # -> AuraDocument.product (null if not product-specific)
 service: null                 # -> AuraDocument.service (null if not service-specific)
 visibility: PUBLIC             # -> AuraDocumentVersion.visibility (PUBLIC | INTERNAL)
+knowledge_space: AROORAA_PUBLIC # -> AuraDocument.knowledgeSpace (optional; defaults to AROORAA_PUBLIC)
 product_status: AVAILABLE      # -> AuraDocumentVersion.productStatus (null if not applicable)
 review_status: DRAFT           # DRAFT | NEEDS_OWNER_APPROVAL | OWNER_APPROVED — see below
 source: frontend-v2/src/lib/content/about.ts   # where the facts came from
 ```
+
+## Public knowledge vs Aura policy — two different things
+
+- **`AROORAA_PUBLIC`** (`01`–`50`) is *public factual knowledge*: what Aura may retrieve and cite
+  back to a visitor.
+- **`AURA_POLICY`** (`90`–`95`) is *Aura's own operating policy*: how it should behave. It is
+  consumed by the runtime prompt/policy layer, and is **never** ordinary visitor-retrievable RAG
+  evidence — nobody should ever be shown Aura's confidentiality rules as an "answer".
+
+That separation is enforced twice over: policy documents are `visibility: INTERNAL` **and** live in
+a knowledge space the public website profile isn't authorized for, so mislabelling either one alone
+still leaves them unretrievable.
+
+## Fingerprinting — what counts as a content change
+
+An import creates a new version when the *retrieval-relevant* fingerprint changes: title, domain,
+category, product, service, source URL, visibility, product status, knowledge space, or the body.
+Editing `review_status`, or only line endings/trailing whitespace, does not re-version content.
+See `DocumentFingerprint`.
 
 ## `review_status` — every document in this seed starts at DRAFT or NEEDS_OWNER_APPROVAL
 
