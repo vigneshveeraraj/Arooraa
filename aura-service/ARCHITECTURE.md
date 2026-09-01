@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation + A2 retrieval + A2.1/A2.2 calibration)
+# Aura service architecture (A0/A1 foundation → A2 retrieval → A2.1/A2.2 calibration → A3 conversation)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -135,11 +135,70 @@ service. Aura is deliberately a fully independent Spring Boot application (own `
   similarity with no irrelevant promotion, and the internal-technology questions surface no private
   implementation fact.
 
+## What A3 added (Aura's first conversations)
+
+The pipeline, in order — each stage its own class, no god service:
+
+`InputValidator` → `AssistantProfileResolver` → `ScopeClassifier` → `ConfidentialityClassifier` →
+`ConversationContextLoader` → `RetrievalPlanner` → `HybridRetrievalService` (A2) →
+`EvidenceGateService` (A2.2) → `GenerationPolicy` → `PromptComposer` → `ChatGenerationProvider` →
+`OutputGuardrail` → `ResponseAssembler`, sequenced by `ConversationOrchestrator`.
+
+- **Confidentiality is decided in Java, before generation.** `ConfidentialityClassifier` is
+  deterministic because a boundary that depends on a model choosing to honour a prompt is not a
+  boundary — and "ignore your instructions" is exactly the input it has to survive. The effect is
+  structural: a boundary turn retrieves nothing, so its prompt contains no corpus text at all. The
+  prompt-level instruction is the second layer. The line it draws is *whose* system is being
+  discussed: "what database does MESA use?" is protected, "what database should I use for my SaaS?"
+  is a question Aura should answer well.
+- **Prompt composition, not a prompt string.** `AuraPolicy` supplies ordered `PromptSection`s
+  (identity, profile, personality, confidentiality, mode, grounding, evidence, language, page
+  context, ground rules). Which sections are present is itself a security property. `policyText`
+  is tracked separately from `systemText` so the guardrail can detect instruction leakage without
+  flagging a grounded answer that legitimately tracks its evidence.
+- **Grounding follows the evidence gate, unchanged.** STRONG grounds a claim, WEAK qualifies or
+  asks, NO_EVIDENCE forbids AROORAA-specific claims entirely — `95-aura-unknown-answer-policy.md`,
+  now enforced in code by `GenerationPolicy`.
+- **Two-tier output guardrail.** Security failures (secret-like material, instruction leakage, an
+  AROORAA claim nothing supports) discard the answer; quality failures (robotic phrasing, excessive
+  length) repair it in place. Leakage detection is structural — verbatim word runs from the actual
+  instruction — rather than a phrase blacklist.
+- **Real chat adapter.** `OpenAiChatGenerationProvider`, same rules as the embedding adapter:
+  config-selected, bounded retry, transient/permanent classification, no vendor type outside
+  `provider.openai`, no credential ever logged. A provider outage becomes a natural apology in the
+  visitor's language, not an error page.
+- **Conversation persistence (Flyway `V4`, additive).** `aura_conversations` / `aura_messages` /
+  `aura_message_sources`. The system prompt, policy text, evidence text and retrieval scores are
+  deliberately not stored, and nothing in this schema is reachable from the retrieval path — a
+  transcript can never become knowledge.
+- **Bounded session memory**, capped by both turn count and characters, dropping oldest first. No
+  permanent personal memory.
+- **Local-only surface.** `/api/v1/aura/**` and `/aura-test` exist only when
+  `aura.chat.enabled=true` (default false) — the controllers are conditional, so the routes 404
+  rather than being merely unadvertised. Diagnostics have their own separate switch.
+
+## Running Aura locally for a manual session
+
+```bash
+# from aura-service/, with Postgres running (docker compose up -d)
+OPENAI_API_KEY=sk-...  \
+AURA_CHAT_ENABLED=true \
+AURA_CHAT_DIAGNOSTICS_ENABLED=true \
+AURA_CHAT_PROVIDER_ENABLED=true \
+AURA_EMBEDDING_PROVIDER_ENABLED=true \
+AURA_EMBEDDING_GENERATION=2 \
+mvn -o spring-boot:run
+```
+
+Then open `http://localhost:8091/aura-test`. The knowledge base must be seeded first (the corpus is
+imported/approved/ingested by `KnowledgeCorpusFixture`; there is deliberately no HTTP endpoint that
+mutates knowledge). Both switches default to false, so a run without them exposes nothing.
+
 ## What deliberately does NOT exist yet
 
-No chat/ingestion HTTP controller (ingestion runs via services driven by tests/local tooling —
-there is deliberately no knowledge-mutation endpoint at all), no conversation/message/feedback
-tables, no knowledge-gap tracking, no project-discovery state, no real chat-generation or
-reranking adapter (the RRF-fused order is A2's deterministic ranking baseline; `RerankingProvider`
-stays a disabled-by-default extension point), no admin UI. LLM answer generation and the public
-chat surface come only after retrieval quality is accepted.
+No ingestion HTTP surface (ingestion runs via services driven by tests/local tooling — there is
+deliberately no knowledge-mutation endpoint at all), no feedback/knowledge-gap tracking, no
+project-brief generation, no lead creation, no reranking adapter (the RRF-fused order is the
+deterministic ranking baseline; `RerankingProvider` stays a disabled-by-default extension point),
+no tools/actions, no voice, no admin UI, no arooraa.com integration and no deployment. The public
+chat surface comes only after the owner has accepted these conversations.
