@@ -16,6 +16,18 @@ spring:
     enabled: true
 
 aura:
+  bootstrap:
+    # Loads AROORAA's approved public corpus into this database through the normal
+    # import → approve → chunk → embed → activate pipeline (see PublicKnowledgeBootstrap).
+    # Off by default: loading knowledge is a deliberate operator action, and there is no HTTP
+    # equivalent anywhere in this service. Idempotent — rerunning it changes nothing.
+    public-knowledge: ${AURA_BOOTSTRAP_PUBLIC_KNOWLEDGE:false}
+    source-directory: ${AURA_BOOTSTRAP_SOURCE_DIR:knowledge-seed}
+    # Running the bootstrap IS the approval action; this is who it is recorded against.
+    approved-by: ${AURA_BOOTSTRAP_APPROVED_BY:local-bootstrap@arooraa.com}
+    # Shut down once loading finishes, so the bootstrap can be a one-shot command rather than a
+    # server that happens to have indexed something.
+    exit-after-bootstrap: ${AURA_BOOTSTRAP_EXIT_AFTER:false}
   chat:
     # The local chat API (/api/v1/aura/**) and manual test page (/aura-test) only exist when this
     # is true — the controllers are conditional, so with it off the routes 404 rather than being

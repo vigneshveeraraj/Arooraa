@@ -42,7 +42,7 @@ public class KnowledgeDocumentParser {
         String title = requireField(fields, "title", sourceIdentifier);
         Visibility visibility = parseVisibility(fields.get("visibility"), sourceIdentifier);
         ProductStatus productStatus = parseProductStatus(fields.get("product_status"), sourceIdentifier);
-        validateReviewStatus(fields.get("review_status"), sourceIdentifier);
+        String reviewStatus = parseReviewStatus(fields.get("review_status"), sourceIdentifier);
 
         String knowledgeSpace = nullable(fields.get("knowledge_space"));
 
@@ -52,7 +52,7 @@ public class KnowledgeDocumentParser {
                 nullable(fields.get("product")), nullable(fields.get("service")),
                 visibility, productStatus,
                 knowledgeSpace == null ? KnowledgeSpaces.AROORAA_PUBLIC : knowledgeSpace,
-                nullable(fields.get("source")), body);
+                nullable(fields.get("source")), reviewStatus, body);
     }
 
     private Map<String, String> parseFields(String frontmatter, String sourceIdentifier) {
@@ -105,11 +105,17 @@ public class KnowledgeDocumentParser {
         }
     }
 
-    private void validateReviewStatus(String raw, String sourceIdentifier) {
+    /** Defaults to DRAFT when unstated, matching the seed schema: unmarked means "not yet reviewed". */
+    private String parseReviewStatus(String raw, String sourceIdentifier) {
         String value = nullable(raw);
-        if (value != null && !VALID_REVIEW_STATUSES.contains(value.toUpperCase(Locale.ROOT))) {
+        if (value == null) {
+            return "DRAFT";
+        }
+        String normalized = value.toUpperCase(Locale.ROOT);
+        if (!VALID_REVIEW_STATUSES.contains(normalized)) {
             throw new MalformedKnowledgeDocumentException("Invalid review_status \"" + value + "\" in " + sourceIdentifier);
         }
+        return normalized;
     }
 
     private static String nullable(String value) {
