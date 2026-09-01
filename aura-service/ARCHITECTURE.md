@@ -183,6 +183,58 @@ The pipeline, in order — each stage its own class, no god service:
   `NEEDS_OWNER_APPROVAL` — and it refuses to start at all when the embedding configuration could
   not produce usable vectors, rather than filling a database with approved-but-unsearchable content.
 
+## What A3.2 fixed (the first real conversations)
+
+The first run against the real providers surfaced two defects the secretless suite could not have
+caught, and one question about encoding that needed measuring rather than guessing.
+
+- **Optimistic-lock failure on the second turn.** `ConversationOrchestrator.respond` used to accept
+  a loaded `AuraConversation` and save it again. That entity was detached — the read transaction it
+  came from had already committed — and `save()` on a detached entity is `merge()`, which returns a
+  *new* managed copy and leaves the caller's object holding the version it was loaded with. A caller
+  that kept the object (as the real-provider script does) merged a stale version on its second turn:
+  first turn 0 == 0 and passes, second turn 0 != 1 and throws `ObjectOptimisticLockingFailureException`.
+  The HTTP tests never saw it because a fresh request reloads the conversation by accident.
+  **The fix is the API, not the locking:** `respond` now takes the conversation's public id and
+  loads it inside its own transaction, so the entity is managed for the whole turn and the row is
+  updated by Hibernate's dirty check instead of a merge of someone's copy. No entity crosses a
+  transaction boundary, so none can go stale. `@Version` is untouched, still bumps on every turn,
+  and still rejects a genuinely concurrent write — `ConversationPersistenceIT` asserts both halves.
+  There is deliberately no retry anywhere in this path: a stale write should be visible.
+- **Greetings no longer perform RAG.** "Hi Aura" contains "Aura", matched the organisation-subject
+  rule, became a `GROUNDED_QA` question, and searched a corpus that has no document about saying
+  hello — returning the nearest vectors it could find (MESA, AI/Data, Mindra) and reporting
+  `WEAK_EVIDENCE`. A new `ConversationMode.SOCIAL`, checked after confidentiality and before the
+  organisation rule, routes a pure opener to no retrieval, no evidence and no sources, while
+  language, tone and session memory work exactly as before. It is narrow on purpose: an opener is
+  social only when *every* token is a greeting or greeting padding, so "Hi Aura, what is MESA?"
+  stays the question it is.
+- **The `?` characters in the log were the console, not the data.** `UnicodeRoundTripIT` measures
+  the whole path — JSON in → JPA → Postgres → JPA → JSON out — for emoji (including a
+  supplementary-plane surrogate pair), Tamil with combining marks, en dash, em dash and the curly
+  apostrophe, comparing by code point, and separately checks `length()` vs `octet_length()` inside
+  Postgres so the storage claim is made on the database's side of the wire. Everything round-trips
+  exactly. The substitution happens when a forked JVM's stdout is re-encoded for a Windows console
+  that cannot represent those characters, which is a rendering artefact and **not** something to fix
+  in business logic. `RealProviderConversationIT` therefore writes its transcript to
+  `target/aura-real-provider-transcript.md` in UTF-8 — read that file, not the terminal.
+
+### Running the real-provider gates
+
+`failsafe:integration-test` records results to disk and returns successfully by design; only
+`failsafe:verify` reads them back and fails the build. Run alone, the first goal happily prints
+`BUILD SUCCESS` over a report saying `Errors: 1` — which is exactly what happened in A3.1. Always
+run both goals:
+
+```powershell
+mvn -o failsafe:integration-test failsafe:verify "-Dit.test=RealProviderConversationIT"
+mvn -o failsafe:integration-test failsafe:verify "-Dit.test=EmbeddingCalibrationIT"
+```
+
+A run counts as acceptance only with `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0` **and**
+`BUILD SUCCESS`. `Skipped: 1` means `OPENAI_API_KEY` was not visible to that shell, not that the
+gate passed. (A plain `mvn -o verify` is already safe: the POM binds both failsafe goals.)
+
 ## Running Aura locally for a manual session
 
 Windows PowerShell, from `C:\MM\Arooraa\aura-service`. Both the chat surface and the bootstrap
@@ -212,6 +264,10 @@ mvn -o spring-boot:run
 ```
 
 Then open `http://localhost:8091/aura-test`.
+
+If emoji or Tamil appear as `?` in the console, that is the terminal, not Aura — the stored and
+returned text is correct (proved by `UnicodeRoundTripIT`). `chcp 65001` before running makes the
+console draw them, and the browser at `/aura-test` shows them correctly either way.
 
 Step 3 runs the ordinary import → approve → chunk → embed → activate pipeline over
 `knowledge-seed/`, indexing only documents that are `visibility: PUBLIC`, in the `AROORAA_PUBLIC`

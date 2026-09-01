@@ -45,7 +45,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * alongside — never overwrite — the generation-1 stub vectors {@link KnowledgeBaseAcceptanceIT}
  * produces, and both can be inspected independently in the same schema (V3).
  *
- * <p>To run: {@code OPENAI_API_KEY=sk-... mvn -o failsafe:integration-test -Dit.test=EmbeddingCalibrationIT}
+ * <h2>Running it</h2>
+ * With {@code OPENAI_API_KEY} set in the shell (never on the command line, never pasted anywhere):
+ * <pre>
+ * mvn -o failsafe:integration-test failsafe:verify "-Dit.test=EmbeddingCalibrationIT"
+ * </pre>
+ * Both goals, always. {@code failsafe:integration-test} writes its results to disk and returns
+ * successfully by design; only {@code failsafe:verify} reads them back and fails the build. Run
+ * alone, the first goal will happily print {@code BUILD SUCCESS} over a report that says
+ * {@code Errors: 1}. A calibration run counts only with {@code Tests run: 1, Failures: 0,
+ * Errors: 0, Skipped: 0} <em>and</em> {@code BUILD SUCCESS}.
  */
 @Testcontainers
 @SpringBootTest(properties = {
