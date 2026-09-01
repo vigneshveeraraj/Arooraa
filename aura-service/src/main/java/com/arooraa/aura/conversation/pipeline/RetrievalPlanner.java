@@ -18,6 +18,10 @@ import java.util.Set;
  * <p>{@link ConversationMode#GENERAL_CONSULTING} and {@link ConversationMode#OUT_OF_SCOPE} skip it
  * for a different reason: neither should produce an AROORAA-specific claim, so retrieved AROORAA
  * evidence would only tempt the model into attaching the company's name to general advice.
+ *
+ * <p>{@link ConversationMode#SOCIAL} skips it for a third reason again: there is no question in a
+ * hello. Searching anyway does not find nothing — it finds the nearest vectors in the corpus and
+ * dresses coincidence up as evidence, which is exactly what "Hi Aura" did before this mode existed.
  */
 @Component
 public class RetrievalPlanner {
@@ -37,6 +41,7 @@ public class RetrievalPlanner {
             case INTERNAL_BOUNDARY -> new RetrievalDecision(false, "CONFIDENTIALITY_BOUNDARY");
             case GENERAL_CONSULTING -> new RetrievalDecision(false, "GENERAL_KNOWLEDGE_SUFFICES");
             case OUT_OF_SCOPE -> new RetrievalDecision(false, "OUT_OF_SCOPE");
+            case SOCIAL -> new RetrievalDecision(false, "SOCIAL_OPENER");
             default -> new RetrievalDecision(false, "NOT_APPLICABLE");
         };
     }

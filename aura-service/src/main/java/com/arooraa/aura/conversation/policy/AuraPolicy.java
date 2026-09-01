@@ -85,8 +85,17 @@ public final class AuraPolicy {
                 """.formatted(organisation));
     }
 
-    public static PromptSection grounding(String organisation, boolean groundingAllowed, boolean mustQualify,
-                                           boolean forbidArooraaFactualClaims) {
+    public static PromptSection grounding(ConversationMode mode, String organisation, boolean groundingAllowed,
+                                           boolean mustQualify, boolean forbidArooraaFactualClaims) {
+        // A greeting is the one turn where "you have no approved information on that" would be an
+        // absurd thing to say. Nothing was looked up because nothing was asked, so the rule is
+        // simply: claim nothing, and say hello like a person.
+        if (mode == ConversationMode.SOCIAL) {
+            return new PromptSection("What you may claim", """
+                    Nothing was asked yet, so there is nothing to claim. Do not state any
+                    %s-specific fact, and do not fill the silence with what we offer.
+                    """.formatted(organisation));
+        }
         if (forbidArooraaFactualClaims) {
             return new PromptSection("What you may claim", """
                     You have no approved %s information for this turn, so you must not state any
@@ -122,6 +131,12 @@ public final class AuraPolicy {
 
     public static PromptSection mode(ConversationMode mode, String organisation) {
         String body = switch (mode) {
+            case SOCIAL -> """
+                    They are saying hello, nothing more. Say hello back — one or two warm sentences,
+                    in their language, and leave the floor to them. No summary of what we do, no
+                    menu of things you could help with, no question you have not been invited to
+                    ask. Somebody who has just said "hi" has not asked you anything yet.
+                    """;
             case GROUNDED_QA -> """
                     The visitor is asking about %s. Answer the question they actually asked, then
                     stop — no brochure, no list of everything we do.

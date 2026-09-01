@@ -54,8 +54,8 @@ public class PromptComposer {
         policySections.add(AuraPolicy.personality(tone, decision.humourAllowed()));
         policySections.add(AuraPolicy.confidentiality(organisation));
         policySections.add(AuraPolicy.mode(mode, organisation));
-        policySections.add(AuraPolicy.grounding(organisation, decision.groundingAllowed(), decision.mustQualify(),
-                decision.forbidArooraaFactualClaims()));
+        policySections.add(AuraPolicy.grounding(mode, organisation, decision.groundingAllowed(),
+                decision.mustQualify(), decision.forbidArooraaFactualClaims()));
         policySections.add(AuraPolicy.language(language));
         if (currentPath != null && !currentPath.isBlank()) {
             policySections.add(pageContextSection(currentPath));

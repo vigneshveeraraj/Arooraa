@@ -26,8 +26,11 @@ public class GenerationPolicy {
             case INTERNAL_BOUNDARY -> new GenerationDecision(false, false, true, false, false);
 
             // General technology talk about the visitor's own system: full use of general
-            // knowledge, zero AROORAA claims.
-            case GENERAL_CONSULTING, OUT_OF_SCOPE -> new GenerationDecision(false, false, true, humourAllowed, false);
+            // knowledge, zero AROORAA claims. SOCIAL joins them because a greeting retrieved
+            // nothing, so it has nothing to ground a claim on and nothing to cite — an opener that
+            // arrived with a list of sources attached was the A3.2 defect.
+            case GENERAL_CONSULTING, OUT_OF_SCOPE, SOCIAL ->
+                    new GenerationDecision(false, false, true, humourAllowed, false);
 
             default -> switch (evidenceLevel) {
                 case STRONG_EVIDENCE -> new GenerationDecision(true, false, false, humourAllowed, true);

@@ -67,6 +67,17 @@ class GenerationPolicyTest {
     }
 
     @Test
+    void aGreetingClaimsNothingAndCitesNothingButStaysWarm() {
+        GenerationDecision decision = policy.decide(
+                ConversationMode.SOCIAL, EvidenceLevel.NO_EVIDENCE, ConversationTone.CASUAL);
+
+        assertFalse(decision.groundingAllowed());
+        assertTrue(decision.forbidArooraaFactualClaims());
+        assertFalse(decision.includeSources(), "a hello has nothing to cite");
+        assertTrue(decision.humourAllowed(), "greetings are exactly where a bit of warmth belongs");
+    }
+
+    @Test
     void humourFollowsTheVisitorsTone() {
         assertTrue(policy.decide(ConversationMode.PROJECT_DISCOVERY, EvidenceLevel.WEAK_EVIDENCE,
                 ConversationTone.EXCITED).humourAllowed());

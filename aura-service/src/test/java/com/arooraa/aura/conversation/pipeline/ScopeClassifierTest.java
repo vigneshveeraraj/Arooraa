@@ -6,6 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /** Routing precedence, which is what decides how much freedom a turn is given downstream. */
 class ScopeClassifierTest {
@@ -89,6 +90,41 @@ class ScopeClassifierTest {
             "What database should I use for my SaaS?"})
     void technologyQuestionsWithoutAnArooraaSubjectAreConsulting(String message) {
         assertEquals(ConversationMode.GENERAL_CONSULTING, modeOf(message), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Hi",
+            "Hello",
+            "Hey Aura",
+            "Good morning",
+            "Vanakkam",
+            "வணக்கம்",
+            "Hi Aura",
+            "Hello there",
+            "Hey 😄",
+            "hi!!",
+            "Hey bro",
+            "Hi Aura, how are you?",
+            "how are you",
+            "Vanakkam Aura, epdi irukinga?"})
+    void aGreetingIsJustAGreeting(String message) {
+        assertEquals(ConversationMode.SOCIAL, modeOf(message), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "Hi Aura, what is MESA?",
+            "Hello — can AROORAA help my restaurant?",
+            "Hey, I have an app idea.",
+            "Good morning, are you hiring?",
+            "Hi, where can I find your contact page?",
+            "Hey Aura, what database does MESA use?"})
+    void aGreetingWithAQuestionAttachedIsStillTheQuestion(String message) {
+        // The failure that matters is the opposite direction of the one A3.2 fixed: a real question
+        // routed into a mode that answers without looking anything up. One unrecognised word is
+        // enough to disqualify an opener, which is why this list is safe to keep short.
+        assertNotEquals(ConversationMode.SOCIAL, modeOf(message), message);
     }
 
     @Test

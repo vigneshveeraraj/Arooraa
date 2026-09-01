@@ -155,6 +155,19 @@ class PromptComposerTest {
     }
 
     @Test
+    void aGreetingIsToldToSayHelloRatherThanToReportHavingNoInformation() {
+        // The generic "no approved information" wording is right for an unanswerable question and
+        // absurd in reply to "hi", so SOCIAL gets its own claim rule.
+        ComposedPrompt prompt = compose(ConversationMode.SOCIAL, NO_CLAIMS, List.of(),
+                ConversationContext.empty(), null, "Hi Aura");
+
+        assertFalse(prompt.systemText().contains("Approved material"));
+        assertFalse(prompt.systemText().contains("you do not have approved information"));
+        assertTrue(prompt.systemText().contains("They are saying hello"));
+        assertTrue(prompt.systemText().contains("nothing to claim"));
+    }
+
+    @Test
     void everyPromptForbidsTheRoboticOpeningsTheQualityBarRejects() {
         ComposedPrompt prompt = compose(ConversationMode.GROUNDED_QA, GROUNDED, List.of(),
                 ConversationContext.empty(), null, "What is MESA?");

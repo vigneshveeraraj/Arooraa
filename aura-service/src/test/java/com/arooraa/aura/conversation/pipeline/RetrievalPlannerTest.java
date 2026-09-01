@@ -34,4 +34,14 @@ class RetrievalPlannerTest {
         assertFalse(planner.decide(ConversationMode.GENERAL_CONSULTING).retrieve());
         assertFalse(planner.decide(ConversationMode.OUT_OF_SCOPE).retrieve());
     }
+
+    @Test
+    void aGreetingDoesNotSearch() {
+        // A2.2's gate cannot save a query that should never have run: given "hi" it faithfully
+        // ranks whatever is nearest and reports the best of a bad field. The fix is not searching.
+        RetrievalDecision decision = planner.decide(ConversationMode.SOCIAL);
+
+        assertFalse(decision.retrieve());
+        assertTrue(decision.reason().contains("SOCIAL"));
+    }
 }

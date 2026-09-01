@@ -11,6 +11,21 @@ package com.arooraa.aura.conversation.domain;
  */
 public enum ConversationMode {
 
+    /**
+     * A greeting or social opener and nothing else — "Hi", "Vanakkam", "Hey Aura 😄".
+     *
+     * <p>Exists because the alternative is worse than untidy. Without it "Hey Aura" matched the
+     * organisation-subject rule (Aura is one of the names it looks for), became a
+     * {@link #GROUNDED_QA} question, and searched the knowledge base for a document about saying
+     * hello — which returned the nearest vectors it could find and turned pure noise into
+     * WEAK_EVIDENCE with citations attached. A hello is not a question about anything, so there is
+     * nothing to retrieve and nothing to cite.
+     *
+     * <p>Narrow on purpose: an opener is social only when the <em>entire</em> message is one.
+     * "Hi Aura, what is MESA?" is a question with a greeting on the front, and stays a question.
+     */
+    SOCIAL,
+
     /** An AROORAA-specific factual question — answerable only from approved retrieved evidence. */
     GROUNDED_QA,
 

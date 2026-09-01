@@ -21,6 +21,8 @@ import com.arooraa.aura.retrieval.context.Channel;
 import com.arooraa.aura.support.HttpTestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -202,6 +204,59 @@ class AuraChatApiIT {
                 "/api/v1/aura/conversations/" + UUID.randomUUID() + "/messages", Map.of("message", "Hello"));
 
         assertEquals(404, response.status());
+    }
+
+    // --- greetings ------------------------------------------------------------------------------
+
+    @Test
+    void aGreetingDoesNotSearchTheKnowledgeBase() {
+        // The A3.2 defect: "Hi Aura" contains "Aura", matched the organisation-subject rule, became
+        // a grounded question, and searched a corpus that has no document about saying hello — so
+        // it returned the nearest vectors it could find (MESA, AI/Data, Mindra) and called the
+        // result WEAK_EVIDENCE.
+        HttpTestClient.Response response = say(openConversation(), "Hi Aura");
+
+        assertEquals("SOCIAL", diagnostic(response, "mode"));
+        assertEquals("NO_EVIDENCE", diagnostic(response, "evidenceLevel"));
+        assertEquals(0, sourceCount(response), "a hello has nothing to cite");
+        assertFalse(CHAT.lastSystemPrompt().contains("Approved material"),
+                "nothing should have been retrieved to attach");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Hi", "Hello", "Hey Aura", "Good morning", "Vanakkam", "Hi Aura",
+            "Hello there", "Hey 😄"})
+    void everyPlainOpenerIsAnsweredWithoutRetrieval(String opener) {
+        HttpTestClient.Response response = say(openConversation(), opener);
+
+        assertEquals("SOCIAL", diagnostic(response, "mode"), opener);
+        assertEquals(0, sourceCount(response), opener);
+        assertFalse(response.string("answer").isBlank(), opener);
+    }
+
+    @Test
+    void aGreetingIsStillReadForLanguageAndToneAndStillRemembered() {
+        // The lightweight mode is lightweight about retrieval only — everything else about a turn
+        // still happens, including it being part of the conversation that follows.
+        UUID conversation = openConversation();
+
+        HttpTestClient.Response opener = say(conversation, "Vanakkam Aura, epdi irukinga?");
+        assertEquals("SOCIAL", diagnostic(opener, "mode"));
+        assertEquals("TANGLISH", diagnostic(opener, "language"));
+        assertNotNull(diagnostic(opener, "tone"));
+        assertTrue(CHAT.lastSystemPrompt().contains("Tanglish"), "and the model is told which one");
+
+        say(conversation, "What is MESA?");
+        assertTrue(CHAT.lastMessages().toString().contains("Vanakkam Aura, epdi irukinga?"),
+                "the greeting is part of the conversation the model sees next");
+    }
+
+    @Test
+    void aGreetingWithARealQuestionAttachedIsStillTheQuestion() {
+        HttpTestClient.Response response = say(openConversation(), "Hi Aura, what is MESA?");
+
+        assertEquals("GROUNDED_QA", diagnostic(response, "mode"));
+        assertTrue(sourceCount(response) > 0, "a question with a hello on the front is still a question");
     }
 
     // --- grounding ----------------------------------------------------------------------------
