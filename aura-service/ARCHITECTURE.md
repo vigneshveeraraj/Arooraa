@@ -129,6 +129,11 @@ service. Aura is deliberately a fully independent Spring Boot application (own `
 - **Rank agreement left the decision**: `RelevanceSignals.signalsAgree` is still measured and
   reported for diagnostics, but no longer classifies — in a small corpus a single irrelevant
   candidate is trivially "agreed on" by both searches simply for being the only thing there.
+- **Verified after the patch**: `EmbeddingCalibrationIT` was rerun locally against the real
+  provider and passed — the answerable set reaches STRONG, all six unrelated questions (the weather
+  query included) return NO_EVIDENCE, Tamil/Tanglish splits STRONG/WEAK by actual semantic
+  similarity with no irrelevant promotion, and the internal-technology questions surface no private
+  implementation fact.
 
 ## What deliberately does NOT exist yet
 
