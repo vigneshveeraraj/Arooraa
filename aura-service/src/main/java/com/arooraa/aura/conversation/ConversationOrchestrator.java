@@ -45,6 +45,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The conversation pipeline, in order. Owns sequencing and nothing else — every decision belongs
@@ -60,6 +61,9 @@ import java.util.List;
  * <em>before</em> retrieval, so a confidentiality boundary is decided without any corpus content in
  * play. And the guardrail runs on every path out, including the fallbacks — a safe answer that
  * skips the last check is not a safe answer.
+ *
+ * <p>A turn is addressed by conversation id, never by a conversation object. That is a persistence
+ * rule, not a style preference: see {@link #respond}.
  */
 @Service
 public class ConversationOrchestrator {
@@ -120,9 +124,29 @@ public class ConversationOrchestrator {
         this.turnLatencyTimer = meterRegistry.timer("aura.conversation.turn.latency");
     }
 
+    /**
+     * Answers one turn.
+     *
+     * <p>Takes the conversation's public id rather than a loaded {@code AuraConversation}, and this
+     * is the fix for the A3.2 optimistic-lock defect rather than an incidental refactor. An entity
+     * handed in from outside is detached — the transaction it was loaded in has already committed —
+     * and {@code save()} on a detached instance is a {@code merge()}, which returns a <em>new</em>
+     * managed copy while leaving the caller's object holding the version it was loaded with. A
+     * caller that kept the object (the real-provider script does exactly that) therefore merged a
+     * stale version on its second turn and got {@code ObjectOptimisticLockingFailureException}.
+     *
+     * <p>Loading inside this transaction makes that impossible by construction: the instance is
+     * managed for the whole turn, so its version is always the row's current version and the
+     * update at the end is Hibernate's own dirty check rather than a merge of somebody's copy. No
+     * entity crosses a transaction boundary, so none can go stale. Optimistic locking is untouched
+     * and still does its real job — two turns racing on the same conversation both load version N,
+     * and the second to flush is rejected. There is no retry anywhere in this path; a stale write
+     * is meant to be visible, not smoothed over.
+     */
     @Transactional
-    public AuraAnswer respond(AuraConversation conversation, String rawMessage, String currentPath) {
+    public AuraAnswer respond(UUID conversationId, String rawMessage, String currentPath) {
         long startedAt = System.nanoTime();
+        AuraConversation conversation = load(conversationId);
         return turnLatencyTimer.record(() -> handle(conversation, rawMessage, currentPath, startedAt));
     }
 
@@ -188,8 +212,10 @@ public class ConversationOrchestrator {
         // 13. Response assembly. Sources are attached only where the policy allowed grounding and
         //     the answer survived the guardrail intact — a blocked answer cites nothing.
         boolean includeSources = decision.includeSources() && !guarded.replaced() && failureCode == null;
+        // No save() call: `conversation` is managed by this transaction, so marking it changes the
+        // row through Hibernate's dirty check at commit — and the @Version column is bumped by that
+        // same flush, against the version actually read a few milliseconds ago.
         conversation.touch();
-        conversationRepository.save(conversation);
 
         long latencyMs = (System.nanoTime() - startedAt) / 1_000_000;
         AuraAnswer answer = responseAssembler.assemble(conversation.getPublicId(), conversation.getId(), sequence,
@@ -211,7 +237,13 @@ public class ConversationOrchestrator {
     }
 
     /** Exposed for the API layer's history endpoint — the orchestrator owns no read model of its own. */
-    public List<AuraMessage> transcript(AuraConversation conversation) {
-        return messageRepository.findByConversationIdOrderBySequenceAsc(conversation.getId());
+    @Transactional(readOnly = true)
+    public List<AuraMessage> transcript(UUID conversationId) {
+        return messageRepository.findByConversationIdOrderBySequenceAsc(load(conversationId).getId());
+    }
+
+    private AuraConversation load(UUID conversationId) {
+        return conversationRepository.findByPublicId(conversationId)
+                .orElseThrow(() -> new UnknownConversationException(conversationId));
     }
 }

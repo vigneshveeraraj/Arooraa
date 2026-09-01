@@ -7,9 +7,6 @@ import com.arooraa.aura.conversation.repository.AuraConversationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.UUID;
-
 /**
  * Conversation lifecycle: opening one, and finding one again. Kept apart from
  * {@link ConversationOrchestrator}, which is about a single turn — mixing the two would put session
@@ -18,6 +15,11 @@ import java.util.UUID;
  * <p>A conversation is pinned to the profile and channel it was opened under, and neither can be
  * changed afterwards. A client that could re-declare its profile per message could ask for a
  * broader one; here the routing context is decided once, by the server.
+ *
+ * <p>There is deliberately no {@code find} here any more. Handing a loaded conversation back out of
+ * a read-only transaction, for someone else's write transaction to save again, is precisely what
+ * produced the A3.2 stale-version defect — so looking a conversation up now happens only inside the
+ * transaction that is about to use it (see {@link ConversationOrchestrator#respond}).
  */
 @Service
 public class ConversationService {
@@ -39,10 +41,5 @@ public class ConversationService {
                         .orElseThrow(() -> new UnknownAssistantProfileException(requestedProfileCode));
         return conversationRepository.save(
                 new AuraConversation(profile.profile().code(), profile.channel().code()));
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<AuraConversation> find(UUID publicId) {
-        return conversationRepository.findByPublicId(publicId);
     }
 }

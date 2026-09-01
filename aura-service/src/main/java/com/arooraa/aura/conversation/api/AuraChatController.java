@@ -3,6 +3,7 @@ package com.arooraa.aura.conversation.api;
 import com.arooraa.aura.conversation.ConversationOrchestrator;
 import com.arooraa.aura.conversation.ConversationService;
 import com.arooraa.aura.conversation.UnknownAssistantProfileException;
+import com.arooraa.aura.conversation.UnknownConversationException;
 import com.arooraa.aura.conversation.config.ChatProperties;
 import com.arooraa.aura.conversation.domain.AuraConversation;
 import com.arooraa.aura.conversation.pipeline.AuraAnswer;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -59,12 +59,15 @@ public class AuraChatController {
                 conversation.getPublicId(), conversation.getAssistantProfile(), conversation.getChannel()));
     }
 
+    /**
+     * Passes the identifier down rather than a loaded conversation. The orchestrator loads it inside
+     * the turn's own transaction, so no entity is carried across a transaction boundary here — see
+     * {@code ConversationOrchestrator#respond}.
+     */
     @PostMapping("/{conversationId}/messages")
     public ChatDtos.ChatResponse send(@PathVariable UUID conversationId,
                                        @RequestBody ChatDtos.SendMessageRequest request) {
-        AuraConversation conversation = conversationService.find(conversationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversation not found"));
-        AuraAnswer answer = orchestrator.respond(conversation,
+        AuraAnswer answer = orchestrator.respond(conversationId,
                 request == null ? null : request.message(),
                 request == null ? null : request.currentPath());
         return ChatDtos.ChatResponse.from(answer, properties.diagnosticsEnabled());
@@ -72,10 +75,8 @@ public class AuraChatController {
 
     @GetMapping("/{conversationId}")
     public ChatDtos.TranscriptResponse transcript(@PathVariable UUID conversationId) {
-        AuraConversation conversation = conversationService.find(conversationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversation not found"));
-        return new ChatDtos.TranscriptResponse(conversation.getPublicId(),
-                orchestrator.transcript(conversation).stream()
+        return new ChatDtos.TranscriptResponse(conversationId,
+                orchestrator.transcript(conversationId).stream()
                         .map(message -> new ChatDtos.TranscriptMessage(
                                 message.getRole().name(),
                                 message.getContent(),
@@ -94,5 +95,12 @@ public class AuraChatController {
     public ResponseEntity<ChatDtos.ErrorResponse> handleUnknownProfile(UnknownAssistantProfileException e) {
         return ResponseEntity.badRequest().body(
                 new ChatDtos.ErrorResponse("UNKNOWN_ASSISTANT_PROFILE", "That assistant profile is not available."));
+    }
+
+    /** Says nothing about whether the identifier is malformed, expired or simply someone else's. */
+    @ExceptionHandler(UnknownConversationException.class)
+    public ResponseEntity<ChatDtos.ErrorResponse> handleUnknownConversation(UnknownConversationException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                new ChatDtos.ErrorResponse("CONVERSATION_NOT_FOUND", "That conversation isn't available."));
     }
 }

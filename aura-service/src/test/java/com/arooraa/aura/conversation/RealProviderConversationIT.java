@@ -1,6 +1,6 @@
 package com.arooraa.aura.conversation;
 
-import com.arooraa.aura.conversation.domain.AuraConversation;
+import com.arooraa.aura.conversation.domain.ConversationMode;
 import com.arooraa.aura.conversation.pipeline.AuraAnswer;
 import com.arooraa.aura.ingestion.IngestionService;
 import com.arooraa.aura.knowledge.imports.KnowledgeActivationService;
@@ -20,23 +20,42 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The controlled real-provider conversation run: the owner's manual test script, executed against
- * the real chat and embedding providers, with every answer logged for review.
+ * the real chat and embedding providers, with every answer recorded for review.
  *
  * <p>Gated on {@code OPENAI_API_KEY} being present, exactly like {@code EmbeddingCalibrationIT}, so
  * a normal secretless {@code mvn verify} skips it cleanly. Nothing here touches, logs, asserts on
  * or persists the key — it is read only by the provider adapter through Spring's own environment
  * resolution, and no provider response header or raw payload is ever printed.
  *
- * <p>To run:
- * {@code OPENAI_API_KEY=sk-... mvn -o failsafe:integration-test -Dit.test=RealProviderConversationIT}
+ * <h2>Running it</h2>
+ * <pre>
+ * mvn -o failsafe:integration-test failsafe:verify "-Dit.test=RealProviderConversationIT"
+ * </pre>
+ * Both goals, always. {@code failsafe:integration-test} records failures to disk and returns
+ * successfully by design — it is {@code failsafe:verify} that reads those results and fails the
+ * build. Running only the first goal is how an A3.1 run reported {@code Errors: 1} underneath
+ * {@code BUILD SUCCESS}. An acceptance run counts only with {@code Tests run: 1, Failures: 0,
+ * Errors: 0, Skipped: 0} <em>and</em> {@code BUILD SUCCESS}.
+ *
+ * <h2>What it produces</h2>
+ * The whole script runs to the end even when something fails: problems are collected and reported
+ * together at the finish, so one bad turn never costs the owner the other twenty. Every turn is
+ * written to {@code target/aura-real-provider-transcript.md} in UTF-8 — read that file rather than
+ * the console, which on Windows re-encodes emoji and Tamil to {@code ?} on the way to the terminal
+ * (see {@code UnicodeRoundTripIT}: the text itself is intact).
  *
  * <p>The assertions are deliberately few and hard: this run exists to produce answers a human reads
  * and judges, and a test cannot decide whether Aura "sounds warm". What it can decide is whether a
@@ -57,6 +76,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RealProviderConversationIT {
 
     private static final Logger log = LoggerFactory.getLogger(RealProviderConversationIT.class);
+
+    private static final Path TRANSCRIPT = Path.of("target", "aura-real-provider-transcript.md");
 
     @Container
     static PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
@@ -121,45 +142,93 @@ class RealProviderConversationIT {
     @Autowired
     private AuraDocumentVersionRepository versionRepository;
 
+    private final List<String> problems = new ArrayList<>();
+    private final StringBuilder transcript = new StringBuilder();
+
     @Test
-    void talkToAuraWithTheRealProviders() {
+    void talkToAuraWithTheRealProviders() throws IOException {
         new KnowledgeCorpusFixture(importService, approvalService, ingestionService, activationService,
                 versionRepository).seedAll();
 
-        log.info("=== single-turn script ===");
-        AuraConversation script = conversationService.open(null);
-        for (String message : SCRIPT) {
-            transcribe(script, message);
+        try {
+            section("Single-turn script");
+            UUID script = conversationService.open(null).getPublicId();
+            for (String message : SCRIPT) {
+                transcribe(script, message);
+            }
+
+            section("Multi-turn: restaurants");
+            UUID restaurants = conversationService.open(null).getPublicId();
+            for (String message : RESTAURANT_THREAD) {
+                transcribe(restaurants, message);
+            }
+
+            section("Multi-turn: app idea");
+            UUID idea = conversationService.open(null).getPublicId();
+            for (String message : IDEA_THREAD) {
+                transcribe(idea, message);
+            }
+        } finally {
+            // Written whatever happened: a failed run is exactly when the owner most needs to see
+            // how far the conversation got and what the last answer looked like.
+            Files.createDirectories(TRANSCRIPT.getParent());
+            Files.writeString(TRANSCRIPT, transcript.toString(), StandardCharsets.UTF_8);
+            log.info("Real-provider transcript written (UTF-8) to {} — read that file, not the console.",
+                    TRANSCRIPT.toAbsolutePath());
         }
 
-        log.info("=== multi-turn: restaurants ===");
-        AuraConversation restaurants = conversationService.open(null);
-        for (String message : RESTAURANT_THREAD) {
-            transcribe(restaurants, message);
-        }
+        assertTrue(problems.isEmpty(), "the real-provider run produced "
+                + problems.size() + " problem(s):\n" + String.join("\n", problems));
+    }
 
-        log.info("=== multi-turn: app idea ===");
-        AuraConversation idea = conversationService.open(null);
-        for (String message : IDEA_THREAD) {
-            transcribe(idea, message);
+    private void transcribe(UUID conversation, String message) {
+        AuraAnswer answer = orchestrator.respond(conversation, message, null);
+        List<String> sources = answer.sources().stream()
+                .map(source -> source.title() + (source.section() == null ? "" : " — " + source.section()))
+                .toList();
+
+        transcript.append("**Visitor:** ").append(message).append("\n\n")
+                .append("**Aura** _(").append(answer.mode()).append(" · ").append(answer.evidenceLevel())
+                .append(" · ").append(answer.language()).append(" · ").append(answer.tone())
+                .append(" · ").append(answer.latencyMs()).append("ms)_\n\n")
+                .append(answer.answer()).append("\n\n")
+                .append("_Sources: ").append(sources.isEmpty() ? "none" : String.join("; ", sources))
+                .append("_\n\n---\n\n");
+
+        log.info("VISITOR: {} | mode={} evidence={} language={} tone={} sources={} latencyMs={}",
+                message, answer.mode(), answer.evidenceLevel(), answer.language(), answer.tone(),
+                sources.size(), answer.latencyMs());
+
+        if (answer.answer().isBlank()) {
+            problems.add("Aura said nothing at all, for: " + message);
+        }
+        for (Pattern forbidden : NEVER) {
+            if (forbidden.matcher(answer.answer()).find()) {
+                problems.add("an answer leaked something it must never contain, for: " + message);
+            }
+        }
+        if (answer.sources().stream().anyMatch(source -> source.title().toLowerCase().contains("aura —"))) {
+            problems.add("an internal Aura policy document was cited to a visitor, for: " + message);
+        }
+        // A3.2: a greeting must not retrieve, and must not arrive carrying citations for a
+        // question nobody asked.
+        if (isGreeting(message)) {
+            if (answer.mode() != ConversationMode.SOCIAL) {
+                problems.add("a greeting was routed to " + answer.mode() + ", not SOCIAL, for: " + message);
+            }
+            if (!answer.sources().isEmpty()) {
+                problems.add("a greeting came back with " + answer.sources().size()
+                        + " source(s) attached, for: " + message);
+            }
         }
     }
 
-    private void transcribe(AuraConversation conversation, String message) {
-        AuraAnswer answer = orchestrator.respond(conversation, message, null);
+    private boolean isGreeting(String message) {
+        return "Hi Aura".equals(message);
+    }
 
-        log.info("\nVISITOR: {}\nAURA [{} · {} · {} · {} · {}ms]: {}\nSOURCES: {}",
-                message, answer.mode(), answer.evidenceLevel(), answer.language(), answer.tone(),
-                answer.latencyMs(), answer.answer(),
-                answer.sources().stream().map(s -> s.title() + (s.section() == null ? "" : " — " + s.section()))
-                        .toList());
-
-        assertFalse(answer.answer().isBlank(), "Aura must always say something: " + message);
-        for (Pattern forbidden : NEVER) {
-            assertFalse(forbidden.matcher(answer.answer()).find(),
-                    "a real answer leaked something it must never contain, for: " + message);
-        }
-        assertTrue(answer.sources().stream().noneMatch(source -> source.title().toLowerCase().contains("aura —")),
-                "an internal Aura policy document must never be cited to a visitor: " + message);
+    private void section(String title) {
+        transcript.append("# ").append(title).append("\n\n");
+        log.info("=== {} ===", title);
     }
 }

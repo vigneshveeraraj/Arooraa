@@ -94,4 +94,13 @@ public class AuraConversation {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    /**
+     * Optimistic-locking version. Exposed so the guarantee can be asserted rather than assumed —
+     * "every turn is a write, and a write from a version that has moved on is refused" is a
+     * property {@code ConversationPersistenceIT} checks directly.
+     */
+    public long getVersion() {
+        return version;
+    }
 }
