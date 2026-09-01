@@ -32,6 +32,13 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+    <!-- Not pulled in by spring-boot-starter-web in Boot 4's modularized autoconfigure split —
+         needed explicitly so RestClient.Builder is an actual Spring bean, not just an importable
+         type, for OpenAiEmbeddingProvider (see ProviderConfiguration). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-restclient</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>

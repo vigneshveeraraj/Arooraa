@@ -9,6 +9,8 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import com.arooraa.aura.support.Sha256;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -55,6 +57,14 @@ public class AuraDocumentVersion {
     @Column(name = "source_url", length = 500)
     private String sourceUrl;
 
+    /** Where this version's content was imported from (e.g. a knowledge-seed file path) — provenance, distinct from {@link #sourceUrl} (a public-facing citation link). Null for versions created directly, not through import. */
+    @Column(name = "source_path", length = 500)
+    private String sourcePath;
+
+    /** SHA-256 hex of the full source file this version was imported from — lets repeated import of unchanged content be a no-op (see {@code KnowledgeImportService}). Always populated, even for non-imported versions (derived from rawContent), so it's never a special case. */
+    @Column(name = "content_checksum", nullable = false, length = 64)
+    private String contentChecksum;
+
     @Column(name = "effective_from")
     private Instant effectiveFrom;
 
@@ -79,8 +89,15 @@ public class AuraDocumentVersion {
     protected AuraDocumentVersion() {
     }
 
+    /** contentChecksum is derived from rawContent — every A0/A1 call site stays valid unchanged and still gets a real checksum. */
     public AuraDocumentVersion(UUID documentId, int versionNumber, Visibility visibility,
                                 ProductStatus productStatus, String sourceUrl, String rawContent) {
+        this(documentId, versionNumber, visibility, productStatus, sourceUrl, rawContent, null, Sha256.hex(rawContent));
+    }
+
+    public AuraDocumentVersion(UUID documentId, int versionNumber, Visibility visibility,
+                                ProductStatus productStatus, String sourceUrl, String rawContent,
+                                String sourcePath, String contentChecksum) {
         this.id = UUID.randomUUID();
         this.documentId = documentId;
         this.versionNumber = versionNumber;
@@ -89,6 +106,8 @@ public class AuraDocumentVersion {
         this.productStatus = productStatus;
         this.sourceUrl = sourceUrl;
         this.rawContent = rawContent;
+        this.sourcePath = sourcePath;
+        this.contentChecksum = contentChecksum;
         this.active = false;
     }
 
@@ -156,6 +175,14 @@ public class AuraDocumentVersion {
 
     public String getSourceUrl() {
         return sourceUrl;
+    }
+
+    public String getSourcePath() {
+        return sourcePath;
+    }
+
+    public String getContentChecksum() {
+        return contentChecksum;
     }
 
     public Instant getEffectiveFrom() {

@@ -43,6 +43,19 @@ public class AuraEmbedding {
     @Column(name = "embedding_model", nullable = false, length = 100)
     private String embeddingModel;
 
+    /** Which {@code EmbeddingProvider} produced this vector (e.g. "openai", "stub") — comes from {@link com.arooraa.aura.provider.EmbeddingResult#provider()}, never a hardcoded/branched value, so this table stays provider-neutral. */
+    @Column(name = "provider", nullable = false, length = 50)
+    private String provider;
+
+    /**
+     * Which embedding "generation" this vector belongs to — a forward-compatible marker so a
+     * future model/dimension change is a new generation (and, if the dimension differs, a new
+     * column/table — see V1's Javadoc on {@code embedding vector(1536)}) rather than an ambiguous
+     * in-place mutation of existing rows. Fixed at 1 for A2's single generation.
+     */
+    @Column(name = "generation", nullable = false)
+    private int generation;
+
     @Column(name = "dimensions", nullable = false)
     private int dimensions;
 
@@ -56,10 +69,17 @@ public class AuraEmbedding {
     protected AuraEmbedding() {
     }
 
+    /** provider defaults to "unknown", generation to 1 — kept only so any pre-A2 call site still compiles; {@code IngestionService} always uses the full constructor below. */
     public AuraEmbedding(UUID chunkId, String embeddingModel, float[] embedding) {
+        this(chunkId, embeddingModel, "unknown", 1, embedding);
+    }
+
+    public AuraEmbedding(UUID chunkId, String embeddingModel, String provider, int generation, float[] embedding) {
         this.id = UUID.randomUUID();
         this.chunkId = chunkId;
         this.embeddingModel = embeddingModel;
+        this.provider = provider;
+        this.generation = generation;
         this.embedding = embedding;
         this.dimensions = embedding.length;
     }
@@ -79,6 +99,14 @@ public class AuraEmbedding {
 
     public String getEmbeddingModel() {
         return embeddingModel;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public int getGeneration() {
+        return generation;
     }
 
     public int getDimensions() {

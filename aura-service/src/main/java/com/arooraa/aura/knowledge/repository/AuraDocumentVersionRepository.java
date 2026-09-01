@@ -14,6 +14,9 @@ public interface AuraDocumentVersionRepository extends JpaRepository<AuraDocumen
 
     List<AuraDocumentVersion> findByDocumentIdOrderByVersionNumberDesc(UUID documentId);
 
+    /** The most recent version of a document, if any — used by {@code KnowledgeImportService} to compare checksums for idempotent re-import. */
+    Optional<AuraDocumentVersion> findFirstByDocumentIdOrderByVersionNumberDesc(UUID documentId);
+
     /**
      * The public/approved retrieval boundary, enforced here at the query layer rather than only
      * through prompting (Phase A0/A1 security requirement): a version is eligible for Aura's

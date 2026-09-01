@@ -47,6 +47,15 @@ public class AuraDocument {
     @Column(name = "service", length = 50)
     private String service;
 
+    /**
+     * Which searchable corpus this document belongs to (see {@code retrieval.context.KnowledgeSpace}
+     * / {@code AccessPolicy}) — A2 extension point for the common Aura platform serving multiple
+     * future experiences (MESA, Mindra, ...) without sharing one unrestricted vector corpus. Plain
+     * text for the same reason as domain/category/product/service above.
+     */
+    @Column(name = "knowledge_space", nullable = false, length = 50)
+    private String knowledgeSpace;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -60,7 +69,18 @@ public class AuraDocument {
     protected AuraDocument() {
     }
 
+    /**
+     * Defaults to the {@code AROORAA_PUBLIC} knowledge space — every A0/A1 call site stays valid
+     * unchanged. Literal, not {@code retrieval.context.KnowledgeSpace.AROORAA_PUBLIC}: this
+     * package must not depend on the retrieval package (retrieval already depends on domain), so
+     * the two are kept in sync by convention + {@code KnowledgeSpaceTest}.
+     */
     public AuraDocument(String slug, String title, String domain, String category, String product, String service) {
+        this(slug, title, domain, category, product, service, "AROORAA_PUBLIC");
+    }
+
+    public AuraDocument(String slug, String title, String domain, String category, String product, String service,
+                         String knowledgeSpace) {
         this.id = UUID.randomUUID();
         this.slug = slug;
         this.title = title;
@@ -68,6 +88,7 @@ public class AuraDocument {
         this.category = category;
         this.product = product;
         this.service = service;
+        this.knowledgeSpace = knowledgeSpace;
     }
 
     @PrePersist
@@ -108,6 +129,10 @@ public class AuraDocument {
 
     public String getService() {
         return service;
+    }
+
+    public String getKnowledgeSpace() {
+        return knowledgeSpace;
     }
 
     public Instant getCreatedAt() {

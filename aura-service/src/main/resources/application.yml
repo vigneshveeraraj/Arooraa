@@ -23,19 +23,47 @@ aura:
       timeout-seconds: ${AURA_CHAT_PROVIDER_TIMEOUT_SECONDS:30}
     embedding:
       enabled: ${AURA_EMBEDDING_PROVIDER_ENABLED:false}
-      model: ${AURA_EMBEDDING_MODEL:}
+      # Selects which real adapter to wire when enabled — config-driven, never a code branch.
+      # A2 ships exactly one real adapter (see OpenAiEmbeddingProvider). The API key itself is
+      # read directly from OPENAI_API_KEY, never stored on this properties object.
+      provider: ${AURA_EMBEDDING_PROVIDER:openai}
+      model: ${AURA_EMBEDDING_MODEL:text-embedding-3-small}
       dimensions: ${AURA_EMBEDDING_DIMENSIONS:1536}
+      # AURA_EMBEDDING_PROVIDER_TIMEOUT_SECONDS keeps the existing A0/A1 per-provider naming
+      # convention (matching aura.provider.chat/.reranking below) rather than the milestone
+      # brief's generic AURA_PROVIDER_TIMEOUT suggestion, which the brief itself allows
+      # ("exact names may follow repository conventions").
       timeout-seconds: ${AURA_EMBEDDING_PROVIDER_TIMEOUT_SECONDS:30}
     reranking:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
       timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
   safety:
-    # No chat endpoint exists yet (A0/A1) — this is a represented, not-yet-consumed config
-    # surface so the next milestone doesn't invent its own ad hoc limit.
+    # No chat endpoint exists yet — this is a represented, not-yet-consumed-by-a-controller
+    # config surface so a future chat endpoint doesn't invent its own ad hoc limit. A2's
+    # retrieval path (HybridRetrievalService) does already consume raw-prompt-logging-enabled.
     max-input-chars: ${AURA_MAX_INPUT_CHARS:4000}
     # Never log full prompts/responses in production; off by default even in local dev.
     raw-prompt-logging-enabled: ${AURA_RAW_PROMPT_LOGGING_ENABLED:false}
+  ingestion:
+    chunking:
+      # Frozen A2 requirement: configurable target chunk size and overlap, not hardcoded.
+      target-chars: ${AURA_CHUNK_TARGET_CHARS:1000}
+      overlap-chars: ${AURA_CHUNK_OVERLAP_CHARS:150}
+  retrieval:
+    # How many raw hits each of vector/lexical search pulls before RRF fusion trims to result-limit.
+    candidate-limit: ${AURA_RETRIEVAL_CANDIDATE_LIMIT:20}
+    result-limit: ${AURA_RETRIEVAL_RESULT_LIMIT:8}
+    # Reciprocal Rank Fusion constant — the standard default (Cormack et al.); not tuned for this
+    # corpus yet.
+    rrf-k: ${AURA_RETRIEVAL_RRF_K:60}
+    evidence:
+      # PROVISIONAL — not measured against real usage yet (frozen requirement: don't invent final
+      # production thresholds without measurement). Scored 0..1 against the maximum possible RRF
+      # score for the number of signals actually searched; tune once real query/evidence quality
+      # data exists (see the acceptance report's Tamil/Tanglish baseline and A3 recommendation).
+      strong-threshold: ${AURA_RETRIEVAL_EVIDENCE_STRONG_THRESHOLD:0.5}
+      weak-threshold: ${AURA_RETRIEVAL_EVIDENCE_WEAK_THRESHOLD:0.15}
 
 management:
   endpoints:
