@@ -176,23 +176,48 @@ The pipeline, in order — each stage its own class, no god service:
 - **Local-only surface.** `/api/v1/aura/**` and `/aura-test` exist only when
   `aura.chat.enabled=true` (default false) — the controllers are conditional, so the routes 404
   rather than being merely unadvertised. Diagnostics have their own separate switch.
+- **Operator corpus bootstrap (A3.1).** `PublicKnowledgeBootstrap` loads the approved public corpus
+  through the accepted pipeline, so preparing a local instance is an operator action rather than
+  something only a test fixture knows how to do. Three independent conditions decide eligibility —
+  `visibility: PUBLIC`, `knowledge_space: AROORAA_PUBLIC`, and a `review_status` other than
+  `NEEDS_OWNER_APPROVAL` — and it refuses to start at all when the embedding configuration could
+  not produce usable vectors, rather than filling a database with approved-but-unsearchable content.
 
 ## Running Aura locally for a manual session
 
-```bash
-# from aura-service/, with Postgres running (docker compose up -d)
-OPENAI_API_KEY=sk-...  \
-AURA_CHAT_ENABLED=true \
-AURA_CHAT_DIAGNOSTICS_ENABLED=true \
-AURA_CHAT_PROVIDER_ENABLED=true \
-AURA_EMBEDDING_PROVIDER_ENABLED=true \
-AURA_EMBEDDING_GENERATION=2 \
+Windows PowerShell, from `C:\MM\Arooraa\aura-service`. Both the chat surface and the bootstrap
+default to off, so a run without these variables exposes nothing and loads nothing.
+
+```powershell
+# 1. infrastructure
+docker compose up -d
+
+# 2. the API key, for this shell session only — never committed, never echoed
+$env:OPENAI_API_KEY = Read-Host -Prompt "OpenAI API key" -MaskInput
+
+# 3. load the approved public corpus (one-shot; idempotent, safe to rerun)
+$env:AURA_EMBEDDING_PROVIDER_ENABLED = "true"
+$env:AURA_EMBEDDING_GENERATION = "2"
+$env:AURA_BOOTSTRAP_PUBLIC_KNOWLEDGE = "true"
+$env:AURA_BOOTSTRAP_EXIT_AFTER = "true"
+mvn -o spring-boot:run
+
+# 4. start Aura for chatting
+$env:AURA_BOOTSTRAP_PUBLIC_KNOWLEDGE = "false"
+$env:AURA_BOOTSTRAP_EXIT_AFTER = "false"
+$env:AURA_CHAT_ENABLED = "true"
+$env:AURA_CHAT_DIAGNOSTICS_ENABLED = "true"
+$env:AURA_CHAT_PROVIDER_ENABLED = "true"
 mvn -o spring-boot:run
 ```
 
-Then open `http://localhost:8091/aura-test`. The knowledge base must be seeded first (the corpus is
-imported/approved/ingested by `KnowledgeCorpusFixture`; there is deliberately no HTTP endpoint that
-mutates knowledge). Both switches default to false, so a run without them exposes nothing.
+Then open `http://localhost:8091/aura-test`.
+
+Step 3 runs the ordinary import → approve → chunk → embed → activate pipeline over
+`knowledge-seed/`, indexing only documents that are `visibility: PUBLIC`, in the `AROORAA_PUBLIC`
+knowledge space, and not marked `review_status: NEEDS_OWNER_APPROVAL`. It reports every document it
+saw, indexed or skipped, by slug and reason. There is deliberately no HTTP endpoint that mutates
+knowledge — loading is an operator action or nothing.
 
 ## What deliberately does NOT exist yet
 
