@@ -18,8 +18,10 @@ package com.arooraa.aura.retrieval;
  *        top evidence text, 0..1 — the explainable absolute lexical signal ("the passage contains
  *        3 of the 4 meaningful words in the question")
  * @param signalsAgree true when vector and lexical search independently returned the same top
- *        chunk — corroboration, used only to strengthen a decision the absolute signals already
- *        support, never to create one on its own
+ *        chunk. Reported for diagnostics and for A3's future scope classifier, but A2.2 removed it
+ *        from the evidence decision itself: on a small corpus a single irrelevant candidate is
+ *        trivially agreed on by both searches simply for being the only thing there, so agreement
+ *        cannot distinguish a real match from the only available one
  */
 public record RelevanceSignals(
         Double topVectorSimilarity,
@@ -29,9 +31,5 @@ public record RelevanceSignals(
 
     public static RelevanceSignals none() {
         return new RelevanceSignals(null, null, 0.0, false);
-    }
-
-    public double vectorSimilarityOrZero() {
-        return topVectorSimilarity == null ? 0.0 : topVectorSimilarity;
     }
 }

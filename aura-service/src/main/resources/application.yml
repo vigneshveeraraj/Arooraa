@@ -62,18 +62,28 @@ aura:
     # corpus yet.
     rrf-k: ${AURA_RETRIEVAL_RRF_K:60}
     evidence:
-      # A2.1: ABSOLUTE relevance thresholds. These are compared against raw cosine similarity and
-      # query-term coverage — never against an RRF score, which only reflects rank and so rated
-      # every query on a small corpus as "best available" = confident (the A2 defect).
+      # ABSOLUTE relevance thresholds (A2.1), compared against raw cosine similarity and query-term
+      # coverage — never against an RRF score, which only reflects rank and so rated every query on
+      # a small corpus as "best available" = confident (the A2 defect).
       #
-      # Cosine-similarity values look low next to intuition: for question-vs-passage embeddings
-      # (text-embedding-3-small), a genuinely relevant passage typically lands well under 0.6,
-      # while unrelated text still scores meaningfully above 0. Calibrate with
-      # EmbeddingCalibrationIT (see its Javadoc), which prints the measured positive/negative
-      # distributions and the separation they imply, then set these from that output.
-      strong-vector-similarity: ${AURA_EVIDENCE_STRONG_VECTOR_SIMILARITY:0.42}
-      weak-vector-similarity: ${AURA_EVIDENCE_WEAK_VECTOR_SIMILARITY:0.28}
-      # Fraction of the question's meaningful words present in the evidence text.
+      # A2.2 replaced A2.1's provisional guesses with values measured against the real provider
+      # (text-embedding-3-small, generation 2) over the approved corpus, via EmbeddingCalibrationIT:
+      #
+      #   positive set (n=10):  min 0.583  median 0.679  mean 0.661  max 0.740
+      #   unrelated set (n=6):  min 0.042  median 0.136  mean 0.139  max 0.275
+      #
+      # strong = 0.58 sits just under the lowest true positive (0.583, "What is MESA?") so every
+      # measured positive clears it, and more than twice the highest unrelated score.
+      # weak = 0.30 sits just above the highest unrelated score (0.275, "What is today's weather?"),
+      # which is the case A2.2 had to fix: below this floor the result is NO_EVIDENCE regardless of
+      # lexical coverage. The 0.275..0.583 gap is empty in both measured sets — thresholds placed at
+      # its edges, not in the middle, because the two errors are not symmetric: a false STRONG
+      # invents an AROORAA fact, a false NO_EVIDENCE only declines to answer.
+      strong-vector-similarity: ${AURA_EVIDENCE_STRONG_VECTOR_SIMILARITY:0.58}
+      weak-vector-similarity: ${AURA_EVIDENCE_WEAK_VECTOR_SIMILARITY:0.30}
+      # Fraction of the question's meaningful words present in the evidence text. Corroborating
+      # only: a near-exact lexical match can lift a medium-similarity result to STRONG, but no
+      # coverage value can lift a result below weak-vector-similarity.
       strong-query-term-coverage: ${AURA_EVIDENCE_STRONG_QUERY_TERM_COVERAGE:0.75}
       weak-query-term-coverage: ${AURA_EVIDENCE_WEAK_QUERY_TERM_COVERAGE:0.40}
 
