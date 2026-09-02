@@ -11,15 +11,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -88,6 +92,25 @@ class ChatSurfaceDisabledByDefaultIT {
     @Test
     void nothingElseIsReachableEither() {
         assertEquals(403, http.get("/actuator/env").status());
+    }
+
+    @Test
+    void noOriginIsAllowedToCallThisServiceCrossOrigin() {
+        // A4 added an opt-in CORS allowance for local frontend development. With nothing configured
+        // — which is what any deployment gets — no origin may call this service cross-origin.
+        // Asserted on the response rather than on the bean graph: Spring MVC contributes a
+        // CorsConfigurationSource of its own, so counting beans would measure the wrong thing, and
+        // what actually matters is that no Access-Control-Allow-Origin header comes back.
+        for (String origin : List.of("http://localhost:3000", "https://arooraa.com", "null")) {
+            HttpHeaders headers = RestClient.create()
+                    .options()
+                    .uri("http://localhost:" + port + "/api/v1/aura/conversations")
+                    .header(HttpHeaders.ORIGIN, origin)
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                    .exchange((request, response) -> response.getHeaders(), false);
+
+            assertNull(headers.getFirst("Access-Control-Allow-Origin"), origin);
+        }
     }
 
     @Test

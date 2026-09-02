@@ -28,6 +28,13 @@ aura:
     # Shut down once loading finishes, so the bootstrap can be a one-shot command rather than a
     # server that happens to have indexed something.
     exit-after-bootstrap: ${AURA_BOOTSTRAP_EXIT_AFTER:false}
+  # Cross-origin access to the chat API. Empty by default, which registers no CORS
+  # configuration at all — a deployment that never sets this stays closed to every other origin.
+  # Only for local frontend development, and only ever an exact list; there is no wildcard branch.
+  # The preferred local answer needs nothing here: frontend-v2's dev rewrite proxies /api/aura/*
+  # to this service server-side, so the browser only ever makes a same-origin request.
+  cors:
+    allowed-origins: ${AURA_CORS_ALLOWED_ORIGINS:}
   chat:
     # The local chat API (/api/v1/aura/**) and manual test page (/aura-test) only exist when this
     # is true — the controllers are conditional, so with it off the routes 404 rather than being

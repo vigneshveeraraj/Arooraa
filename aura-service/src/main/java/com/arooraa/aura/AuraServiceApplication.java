@@ -1,6 +1,7 @@
 package com.arooraa.aura;
 
 import com.arooraa.aura.bootstrap.BootstrapProperties;
+import com.arooraa.aura.config.AuraCorsProperties;
 import com.arooraa.aura.config.AuraSafetyProperties;
 import com.arooraa.aura.conversation.config.ChatProperties;
 import com.arooraa.aura.ingestion.config.ChunkingProperties;
@@ -21,8 +22,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  * service still starts, stays healthy, and exposes nothing but its health endpoint.
  */
 @SpringBootApplication
-@EnableConfigurationProperties({AuraSafetyProperties.class, BootstrapProperties.class, ChatProperties.class,
-        ChunkingProperties.class, RetrievalProperties.class})
+@EnableConfigurationProperties({AuraCorsProperties.class, AuraSafetyProperties.class, BootstrapProperties.class,
+        ChatProperties.class, ChunkingProperties.class, RetrievalProperties.class})
 public class AuraServiceApplication {
 
     public static void main(String[] args) {
