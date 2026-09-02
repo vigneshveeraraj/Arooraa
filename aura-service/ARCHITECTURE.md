@@ -274,6 +274,55 @@ four were places where a turn was routed or sourced wrongly.
   message with "feel free to ask". Deliberately *not* enforced by the output guardrail — deleting
   a natural closing sentence would damage more answers than it saved.
 
+## A4 — Aura on the website (local only)
+
+Aura now runs inside the real `frontend-v2` site rather than the `/aura-test` page. Nothing is
+deployed and nothing is publicly exposed: this is a local integration the owner drives from the
+actual AROORAA UI.
+
+- **Where it lives.** `frontend-v2/src/lib/aura/` (API client, session, rich-text parser, state
+  model, conversation hook) and `frontend-v2/src/components/aura/` (mark, launcher, panel,
+  composer, sources). Mounted once in the `(public)` layout, so it is present on every public page
+  and survives navigation — a conversation started on the home page is still going at
+  `/products/mesa`. The admin app has its own layout and deliberately does not get it.
+- **No component knows a URL.** `AuraApiClient` is the only thing that speaks HTTP, and it asks its
+  own origin: `/api/aura/conversations`. Failures come back as typed values rather than exceptions,
+  matching the Contact/Start-a-Project adapters already in that codebase.
+- **Same-origin locally, via the existing dev-proxy convention.** `next.config.ts` already rewrites
+  `/api/admin/*` to lead-service; A4 adds `/api/aura/*` → `http://localhost:8091/api/v1/aura/*`. The
+  browser therefore never makes a cross-origin request and **no CORS is needed at all** for the
+  normal local setup. Production would do the same thing with the real Nginx proxy at the same
+  relative path — out of scope here, and untouched.
+- **CORS exists but is closed.** `aura.cors.allowed-origins` is empty by default, which registers no
+  `CorsConfigurationSource` bean, so this service emits no CORS headers and has no wildcard branch
+  to fall through to. It is there only for a developer who would rather point
+  `NEXT_PUBLIC_AURA_API_BASE_URL` straight at `:8091`. `ChatSurfaceDisabledByDefaultIT` asserts the
+  closed default; `AuraCorsIT` asserts that a configured origin works, that any other origin does
+  not, that the allowance covers the chat API and nothing else, and that credentials are never
+  allowed.
+- **Page awareness, and only that.** The pathname from `usePathname()` travels with every message,
+  so "tell me more about this" works on `/products/mesa`. No DOM, no page HTML, no query string —
+  and the backend has always treated `currentPath` as a hint rather than as authorization.
+- **Nothing renders as HTML.** Model output is parsed into a small closed document model
+  (paragraphs, bullets, bold/italic/code) and rendered as React elements. There is no
+  `dangerouslySetInnerHTML` anywhere in the Aura UI, so a response containing `<script>` renders as
+  those characters. Citation links are filtered to `http(s)` only.
+- **Secrets.** The browser talks to aura-service, and aura-service talks to the model provider —
+  never the browser directly. No `NEXT_PUBLIC_*` variable carries a secret; the static export was
+  checked for a key and for a hard-coded backend host, and contains neither.
+- **Static export preserved.** No server actions, no route handlers, no SSR dependency. The panel is
+  loaded through `next/dynamic` on first open, so a visitor who never opens Aura downloads the
+  launcher and nothing more.
+
+### Reviewing it visually
+
+`/design-system/aura` renders every state from the real components — launcher, first open, grounded
+answer, sources collapsed and expanded, thinking, error, internal boundary, diagnostics. `?only=<id>`
+shows one state filling the viewport, and `?device=mobile` frames each state in its own 390×844
+iframe, which is how the mobile sheet can be seen at its true size without resizing the window.
+Captures live in `frontend-v2/design-assets/aura-review/`. Like `/design-system`, the page is
+`noindex` and carries a banner: it is an internal review surface to remove before public launch.
+
 ### Running the real-provider gates
 
 `failsafe:integration-test` records results to disk and returns successfully by design; only

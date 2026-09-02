@@ -1,0 +1,163 @@
+/*
+ * Review-page scaffolding only. Nothing here overrides an Aura style — the stage's `transform` is
+ * what lets a position: fixed panel be laid out inside a box instead of the viewport, which is a
+ * property of CSS containing blocks rather than a hack against the component.
+ */
+
+.page {
+  max-inline-size: var(--container-wide);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+  padding-block: var(--space-6) var(--space-9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lead {
+  margin: 0;
+  max-inline-size: 70ch;
+  color: var(--color-text-muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block-start: var(--space-5);
+  border-block-start: var(--border-width) solid var(--color-border);
+}
+
+.note {
+  margin: 0;
+  max-inline-size: 60ch;
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+}
+
+.pair {
+  display: grid;
+  gap: var(--space-7);
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+}
+
+.marks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding-block: var(--space-4);
+}
+
+.marks li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+/*
+ * `transform` makes this element the containing block for its fixed-position descendants, so the
+ * panel lays out against this box. `isolation` keeps its z-index local to the stage.
+ */
+.stage {
+  position: relative;
+  transform: translateZ(0);
+  isolation: isolate;
+  inline-size: 100%;
+  max-inline-size: 480px;
+  block-size: 660px;
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.stage[data-frame="launcher"] {
+  block-size: 200px;
+}
+
+/* ?device=mobile: each state in its own 390×844 viewport. */
+.phones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  background: var(--color-bg-subtle);
+}
+
+.phones > div:first-child {
+  flex-basis: 100%;
+}
+
+.phone {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.phone figcaption {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.phone iframe {
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+/* ?only=<id>: one state, filling the viewport, so a screenshot needs no scrolling. */
+.page[data-mode="solo"] {
+  padding: 0;
+  gap: 0;
+  max-inline-size: none;
+  block-size: 100dvh;
+}
+
+.page[data-mode="solo"] .section {
+  padding: 0;
+  border: none;
+  block-size: 100%;
+}
+
+.page[data-mode="solo"] .stage {
+  max-inline-size: none;
+  inline-size: 100%;
+  block-size: 100dvh;
+  border: none;
+  border-radius: 0;
+}
+
+/*
+ * At mobile widths the panel becomes a sheet sized in dvh, so a fixed-height stage would clip it.
+ * Matching the stage to the same proportion of the viewport shows the sheet at its true size —
+ * scroll one section at a time here rather than expecting the whole page to fit.
+ */
+@media (max-width: 600px) {
+  .stage {
+    max-inline-size: none;
+    block-size: 92dvh;
+  }
+
+  .stage[data-frame="launcher"] {
+    block-size: 40dvh;
+  }
+
+  .pair {
+    grid-template-columns: 1fr;
+  }
+}
