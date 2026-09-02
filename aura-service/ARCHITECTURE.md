@@ -339,6 +339,36 @@ A run counts as acceptance only with `Tests run: 1, Failures: 0, Errors: 0, Skip
 `BUILD SUCCESS`. `Skipped: 1` means `OPENAI_API_KEY` was not visible to that shell, not that the
 gate passed. (A plain `mvn -o verify` is already safe: the POM binds both failsafe goals.)
 
+## What A4.1 fixed (page awareness)
+
+The owner tested Aura on `/products/mesa` and asked "Tell me more about this." It came back
+`GENERAL_CONSULTING` / `NO_EVIDENCE` — generic platform talk with no MESA evidence at all.
+
+The cause is plain once the classifier is read in order: "tell me more about this" names no
+organisation subject, matches no other rule, and lands on the `GENERAL_CONSULTING` catch-all, which
+`RetrievalPlanner` deliberately does not search for. `currentPath` reached the prompt as a hint
+(A3) but nothing ever resolved the pronoun, so retrieval was never given a subject to look for.
+
+`PageAwareScopeResolver` (pipeline stage 3.5) closes exactly that gap, and nothing wider:
+
+- **The subject can only come from a fixed registry.** `PageContextRegistry` maps known public
+  routes to canonical subjects; anything else resolves to nothing. A client-supplied path can never
+  name a subject the registry does not already know, never selects a knowledge space, and never
+  widens what a turn may see — `currentPath` stays context, not authorization.
+- **It only ever narrows a fallback.** It fires when the classifier's own verdict was one of the
+  two "nothing to look up" outcomes — `GENERAL_CONSULTING`, or `PROJECT_DISCOVERY` without
+  `mentionsOrganisationSubject()` — *and* the message is a contextual reference *and* the path
+  resolves. `INTERNAL_BOUNDARY` is decided before either eligible mode can be reached, so a
+  confidentiality probe is untouched by construction rather than by a special case.
+  The `PROJECT_DISCOVERY` branch is not theoretical: "How could this help my existing application?"
+  contains "existing application", one of `ScopeClassifier`'s own weak discovery markers, and is
+  already `PROJECT_DISCOVERY` before this stage runs.
+- **The visitor's words are never rewritten.** The transcript and the model's user turn stay
+  exactly what was typed. Only the internal retrieval query changes, and it is *replaced* rather
+  than appended to — measured under the stub embedder, "Tell me more about this. MESA" still scored
+  0.085 (the pronoun and filler dominate a bag-of-words query), while "Tell me about MESA" scored
+  0.180 against the same corpus. Appending the subject looks like the safer edit and fixes nothing.
+
 ## Running Aura locally for a manual session
 
 Windows PowerShell, from `C:\MM\Arooraa\aura-service`. Both the chat surface and the bootstrap

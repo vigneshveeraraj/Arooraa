@@ -111,7 +111,7 @@ const STATES: ReviewState[] = [
   {
     id: "launcher",
     title: "Closed — the launcher",
-    note: "Lower-right, safe-area aware, one line of type. Reads as a presence you can address rather than a support widget.",
+    note: "The Aura Spark, lower-right, safe-area aware, one line of type. Reads as a presence you can address rather than a support widget.",
     frame: (
       <div className={styles.stage} data-frame="launcher">
         <AuraLauncher onOpen={() => {}} state="IDLE" panelId="review-1" buttonRef={{ current: null }} />
@@ -120,11 +120,49 @@ const STATES: ReviewState[] = [
   },
   {
     id: "first-open",
-    title: "First open",
-    note: "Identity, a conversational welcome, and four openings that send real messages rather than navigating anywhere.",
+    title: "First open — guided entry",
+    note: "A deliberate opening rather than an empty composer: Products, Services, a project idea, or About — with two quieter escape hatches below.",
     frame: panel(
       "first-open",
-      <AuraPanel id="review-2" onClose={() => {}} controller={stubController([])} diagnosticsEnabled={false} />,
+      <AuraPanel
+        id="review-2"
+        onClose={() => {}}
+        controller={stubController([])}
+        diagnosticsEnabled={false}
+        onNavigate={() => {}}
+      />,
+    ),
+  },
+  {
+    id: "products",
+    title: "Guided entry — Products",
+    note: "Every destination here comes from the same route data the site's own Products page uses — public names only, short approved taglines.",
+    frame: panel(
+      "products",
+      <AuraPanel
+        id="review-products"
+        onClose={() => {}}
+        controller={stubController([])}
+        diagnosticsEnabled={false}
+        onNavigate={() => {}}
+        initialGuidedSection="products"
+      />,
+    ),
+  },
+  {
+    id: "services",
+    title: "Guided entry — Services",
+    note: "The six approved service groups, and none besides.",
+    frame: panel(
+      "services",
+      <AuraPanel
+        id="review-services"
+        onClose={() => {}}
+        controller={stubController([])}
+        diagnosticsEnabled={false}
+        onNavigate={() => {}}
+        initialGuidedSection="services"
+      />,
     ),
   },
   {
@@ -138,6 +176,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         diagnosticsEnabled={false}
+        onNavigate={() => {}}
       />,
     ),
   },
@@ -152,6 +191,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         diagnosticsEnabled={false}
+        onNavigate={() => {}}
         expandSources
       />,
     ),
@@ -170,6 +210,7 @@ const STATES: ReviewState[] = [
           state: "THINKING",
         })}
         diagnosticsEnabled={false}
+        onNavigate={() => {}}
       />,
     ),
   },
@@ -192,6 +233,7 @@ const STATES: ReviewState[] = [
           },
         })}
         diagnosticsEnabled={false}
+        onNavigate={() => {}}
       />,
     ),
   },
@@ -206,6 +248,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(BOUNDARY)}
         diagnosticsEnabled={false}
+        onNavigate={() => {}}
       />,
     ),
   },
@@ -232,6 +275,7 @@ const STATES: ReviewState[] = [
           },
         ])}
         diagnosticsEnabled
+        onNavigate={() => {}}
       />,
     ),
   },
@@ -246,6 +290,12 @@ export function AuraReviewStates({ bannerClassName }: { bannerClassName?: string
   useEffect(() => {
     // Read from the URL rather than a router hook: this is a static page, and useSearchParams
     // would drag a Suspense boundary into a review harness for no benefit.
+    //
+    // This state genuinely has to be set after mount. The page is statically exported, so `window`
+    // does not exist when it is prerendered; a lazy useState initializer would therefore produce
+    // one tree on the server and a different one on the client — a hydration mismatch, not a saved
+    // render. Hence the suppression rather than a rewrite.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     setQuery(new URLSearchParams(window.location.search));
   }, []);
 
