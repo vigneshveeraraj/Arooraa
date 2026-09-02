@@ -114,19 +114,16 @@ const MARK_STATES: AuraState[] = [
  */
 function stubVoice(overrides: Partial<AuraVoiceController> = {}): AuraVoiceController {
   return {
-    supported: true,
     available: true,
     speechAvailable: true,
     status: "IDLE",
     error: null,
     transcript: null,
     speakAnswers: false,
-    maxRecordingSeconds: 60,
     startListening: () => {},
     stopListening: () => {},
     cancelListening: () => {},
     setSpeakAnswers: () => {},
-    replay: () => {},
     announceAnswer: () => {},
     stopSpeaking: () => {},
     dismissError: () => {},

@@ -47,25 +47,24 @@ export interface AuraVoiceTranscript {
 }
 
 export interface AuraVoiceController {
-  /** The browser can record at all — false on http:// origins and in older browsers. */
-  supported: boolean;
-  /** The browser can record and the backend will transcribe. Gates the microphone control. */
+  /**
+   * The browser can record <em>and</em> the backend will transcribe. One flag rather than two,
+   * because nothing downstream has a different thing to say about the two reasons: on an
+   * http:// origin, an old browser, or a backend with voice off, the microphone is simply absent.
+   */
   available: boolean;
-  /** The backend will speak. Gates the speaker control. */
+  /** The backend will speak. Gates the speaker control, separately — they are separate costs. */
   speechAvailable: boolean;
   status: AuraVoiceStatus;
   /** Visitor-facing, already safe to render. Never a provider message or a browser error name. */
   error: string | null;
   transcript: AuraVoiceTranscript | null;
   speakAnswers: boolean;
-  maxRecordingSeconds: number;
 
   startListening(): void;
   stopListening(): void;
   cancelListening(): void;
   setSpeakAnswers(speak: boolean): void;
-  /** Explicit "say that again" — always speaks, whatever the preference says. */
-  replay(conversationId: string, sequence?: number | null): void;
   /** Called when an answer arrives; speaks it only if the visitor has asked to be spoken to. */
   announceAnswer(conversationId: string, spokenTurn: boolean): void;
   stopSpeaking(): void;
@@ -224,15 +223,6 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     [stopSpeaking],
   );
 
-  const replay = useCallback(
-    (conversationId: string, sequence?: number | null) => {
-      void play(conversationId, sequence).then((message) => {
-        if (message) setError(message);
-      });
-    },
-    [play],
-  );
-
   /**
    * Aura speaks an answer when the visitor has asked to be spoken to — either by turning speech on
    * or, for this one turn, by having asked the question out loud. Someone who typed and never
@@ -249,19 +239,16 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
   );
 
   return {
-    supported,
     available: supported && probed?.transcription === true,
     speechAvailable: probed?.synthesis === true,
     status,
     error,
     transcript,
     speakAnswers,
-    maxRecordingSeconds: probed?.maxRecordingSeconds ?? 60,
     startListening,
     stopListening,
     cancelListening,
     setSpeakAnswers,
-    replay,
     announceAnswer,
     stopSpeaking,
     dismissError: useCallback(() => setError(null), []),

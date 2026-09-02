@@ -231,19 +231,16 @@ describe("the public Aura conversation", () => {
         controller={controller(LOADED_TURN)}
         onNavigate={() => {}}
         voice={{
-          supported: true,
           available: true,
           speechAvailable: true,
           status: "IDLE",
           error: null,
           transcript: null,
           speakAnswers: false,
-          maxRecordingSeconds: 60,
           startListening: () => {},
           stopListening: () => {},
           cancelListening: () => {},
           setSpeakAnswers: () => {},
-          replay: () => {},
           announceAnswer: () => {},
           stopSpeaking: () => {},
           dismissError: () => {},
