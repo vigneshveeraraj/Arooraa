@@ -38,10 +38,15 @@ export function AuraWidget({ client }: AuraWidgetProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Read here rather than at module scope so it is a plain build-time substitution with no
-  // module-initialisation order to reason about. Off unless the flag is exactly "true"; a
-  // visitor-facing build never sets it, and the backend has its own separate switch besides.
-  const diagnosticsEnabled = process.env.NEXT_PUBLIC_AURA_DIAGNOSTICS === "true";
+  // The developer inspector's gate, and deliberately two conditions rather than one (A4.2).
+  //
+  // Both halves are build-time substitutions, so in any production build this is the literal
+  // `false` — `next build` never sets NODE_ENV to "development" — and the branch, along with the
+  // inspector it would have rendered, is dropped before the bundle is written. A flag alone would
+  // have left a switch that a stray environment variable could flip on a deployed site; this
+  // cannot be turned on by configuration, only by running `next dev`.
+  const devDiagnostics =
+    process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_AURA_DIAGNOSTICS === "true";
 
   const controller = useAuraConversation({ client, currentPath: pathname ?? null });
 
@@ -79,7 +84,7 @@ export function AuraWidget({ client }: AuraWidgetProps) {
           id={PANEL_ID}
           onClose={close}
           controller={controller}
-          diagnosticsEnabled={diagnosticsEnabled}
+          devDiagnostics={devDiagnostics}
           onNavigate={router.push}
         />
       )}

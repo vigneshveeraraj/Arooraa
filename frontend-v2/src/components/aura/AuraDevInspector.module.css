@@ -1,0 +1,106 @@
+/*
+ * A developer surface, styled to look like one: monospace, muted, and visually subordinate to the
+ * conversation above it. It should never be mistaken for something Aura is telling the visitor —
+ * which is also why it never ships in a public build (see AuraWidget).
+ */
+
+.inspector {
+  flex: none;
+  border-block-end: var(--border-width) solid var(--color-border);
+  background: var(--color-bg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--color-text-muted);
+}
+
+.summary {
+  padding-inline: var(--space-4);
+  padding-block: var(--space-2);
+  cursor: pointer;
+  list-style: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The default disclosure triangle sits oddly against a monospace label; a caret we control does not. */
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary::before {
+  content: "›";
+  display: inline-block;
+  inline-size: 1em;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.inspector[open] .summary::before {
+  transform: rotate(90deg);
+}
+
+.summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-3);
+  /* A long transcript's metadata must not push the conversation out of the panel. */
+  max-block-size: 40vh;
+  overflow-y: auto;
+}
+
+.rows {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.label {
+  opacity: 0.7;
+}
+
+.value {
+  margin: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.source {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.source a {
+  color: inherit;
+}
+
+.section {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .summary::before {
+    transition: none;
+  }
+}

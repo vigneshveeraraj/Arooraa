@@ -4,30 +4,58 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AuraGuidedProduct, AuraGuidedService } from "@/lib/aura/guided-entry";
 import { describeAuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
+import dynamic from "next/dynamic";
 import { AuraComposer } from "./AuraComposer";
 import { AuraGuidedEntry, type AuraGuidedSection } from "./AuraGuidedEntry";
 import { AuraMark } from "./AuraMark";
 import { AuraRichText } from "./AuraRichText";
-import { AuraSources } from "./AuraSources";
 import styles from "./AuraPanel.module.css";
 
 interface AuraPanelProps {
   id: string;
   onClose: () => void;
   controller: AuraConversationController;
-  diagnosticsEnabled: boolean;
+  /**
+   * Shows the developer inspector above the conversation. Off everywhere a visitor can reach:
+   * {@code AuraWidget} passes a gate that is false in any production build, and the design-system
+   * review page passes it explicitly because that page exists to demonstrate it.
+   */
+  devDiagnostics?: boolean;
+  /** Only the design-system review page sets this — opens the inspector so a capture shows it. */
+  devDiagnosticsOpen?: boolean;
   /** Client-side navigation for guided-entry destinations. Never authorization, never DOM/page
    * content — a plain route the visitor chose from a fixed menu. */
   onNavigate: (href: string) => void;
-  /** Only the design-system review page sets this. */
-  expandSources?: boolean;
   /** Only the design-system review page sets this — seeds the guided menu's nested level so the
    * Products/Services submenus can be captured directly instead of requiring a click first. */
   initialGuidedSection?: AuraGuidedSection;
 }
 
+/**
+ * Imported on demand rather than statically, so the inspector's code is not merely unrendered on a
+ * public page — it is in a chunk that page never asks for. Without this it would ride along inside
+ * the panel bundle every visitor downloads when they open Aura, which is a weaker guarantee than
+ * the one A4.2 is meant to give.
+ */
+const AuraDevInspector = dynamic(
+  () => import("./AuraDevInspector").then((module) => module.AuraDevInspector),
+  { ssr: false },
+);
+
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea, input, [tabindex]:not([tabindex="-1"])';
+
+/** How close to the bottom still counts as "following along", in px. */
+const STICK_TO_BOTTOM_PX = 48;
+
+/** The turn the developer inspector describes: the most recent thing Aura said. */
+function latestAuraTurn(transcript: AuraConversationController["transcript"]) {
+  for (let index = transcript.length - 1; index >= 0; index -= 1) {
+    const message = transcript[index];
+    if (message?.role === "aura") return message;
+  }
+  return null;
+}
 
 /**
  * The open conversation. A dialog on both desktop and mobile, but a different shape on each: a
@@ -37,14 +65,19 @@ const FOCUSABLE_SELECTOR =
  * <p>Holds no conversation state of its own — the controller lives in {@code AuraWidget}, above
  * the lazy boundary, so closing and reopening does not lose a conversation and this file stays
  * about presentation.
+ *
+ * <p>What a visitor sees is exactly their message, Aura's answer, and the composer (A4.2). No
+ * citations, no routing metadata, no evidence vocabulary — that material is still tracked and
+ * still returned by the backend, but the only surface that renders it is
+ * {@link AuraDevInspector}, which no public build contains.
  */
 export function AuraPanel({
   id,
   onClose,
   controller,
-  diagnosticsEnabled,
+  devDiagnostics = false,
+  devDiagnosticsOpen = false,
   onNavigate,
-  expandSources = false,
   initialGuidedSection,
 }: AuraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -147,10 +180,22 @@ export function AuraPanel({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // Follows the conversation as it grows. Layout effect so the jump happens before paint.
+  // Follows the conversation as it grows, but only while the visitor is already at the bottom.
+  // Scrolling back to re-read an earlier answer and being yanked back down when the next one
+  // lands is the behaviour this guard exists to prevent; a long grounded answer makes that easy
+  // to hit. Layout effect so the jump, when it does happen, lands before paint.
+  const stickToBottom = useRef(true);
+
+  function trackScrollPosition() {
+    const log = logRef.current;
+    if (!log) return;
+    const distanceFromBottom = log.scrollHeight - log.scrollTop - log.clientHeight;
+    stickToBottom.current = distanceFromBottom < STICK_TO_BOTTOM_PX;
+  }
+
   useLayoutEffect(() => {
     const log = logRef.current;
-    if (log) log.scrollTop = log.scrollHeight;
+    if (log && stickToBottom.current) log.scrollTop = log.scrollHeight;
   }, [transcript.length, busy]);
 
   return (
@@ -194,8 +239,19 @@ export function AuraPanel({
         </button>
       </header>
 
+      {devDiagnostics ? (
+        <AuraDevInspector turn={latestAuraTurn(transcript)} defaultOpen={devDiagnosticsOpen} />
+      ) : null}
+
       {/* Announced politely so a screen reader hears each answer without losing the visitor's place. */}
-      <div className={styles.log} ref={logRef} role="log" aria-live="polite" aria-label="Conversation">
+      <div
+        className={styles.log}
+        ref={logRef}
+        onScroll={trackScrollPosition}
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation"
+      >
         {transcript.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className={styles.userRow}>
@@ -203,23 +259,9 @@ export function AuraPanel({
             </div>
           ) : (
             <div key={message.id} className={styles.auraRow} data-failed={message.failed ? "true" : undefined}>
+              {/* Aura's turn is the answer and nothing else. Its sources and diagnostics travel on
+                  the message object and are read by the developer inspector above, never here. */}
               <AuraRichText text={message.text} />
-              {message.sources && message.sources.length > 0 ? (
-                <AuraSources sources={message.sources} defaultExpanded={expandSources} />
-              ) : null}
-              {diagnosticsEnabled && message.diagnostics ? (
-                <p className={styles.diagnostics}>
-                  {[
-                    message.diagnostics.mode,
-                    message.diagnostics.evidenceLevel,
-                    message.diagnostics.language,
-                    message.diagnostics.tone,
-                    message.diagnostics.latencyMs != null ? `${message.diagnostics.latencyMs}ms` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              ) : null}
             </div>
           ),
         )}
