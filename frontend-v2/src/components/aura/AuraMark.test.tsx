@@ -28,4 +28,28 @@ describe("AuraMark", () => {
       expect(text).toMatch(/^Aura /);
     }
   });
+
+  // --- A4.1: the orb is rejected; this is the Aura Spark ------------------------------------
+
+  it("renders as the Aura Spark — real SVG geometry, not a circular orb", () => {
+    const { container } = render(<AuraMark state="IDLE" />);
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg).toHaveAttribute("viewBox", "0 0 32 32");
+    // A core plus four rays: five shapes, none of them a <circle>.
+    expect(container.querySelectorAll("rect").length).toBe(5);
+    expect(container.querySelectorAll("circle").length).toBe(0);
+  });
+
+  it("shapes the four rays asymmetrically rather than as a symmetric pinwheel", () => {
+    const { container } = render(<AuraMark state="IDLE" />);
+
+    const rects = Array.from(container.querySelectorAll("rect"));
+    // The core is the square rotated 45deg; the other four are the rays, each a distinct length.
+    const rayLengths = rects
+      .filter((rect) => rect.getAttribute("transform") !== "rotate(45 16 16)")
+      .map((rect) => rect.getAttribute("height"));
+    expect(new Set(rayLengths).size).toBe(4);
+  });
 });
