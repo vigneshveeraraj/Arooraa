@@ -251,7 +251,11 @@ export function AuraPanel({
       </header>
 
       {devDiagnostics ? (
-        <AuraDevInspector turn={latestAuraTurn(transcript)} defaultOpen={devDiagnosticsOpen} />
+        <AuraDevInspector
+          turn={latestAuraTurn(transcript)}
+          defaultOpen={devDiagnosticsOpen}
+          voiceTimings={voice?.timings ?? null}
+        />
       ) : null}
 
       {/* Announced politely so a screen reader hears each answer without losing the visitor's place. */}

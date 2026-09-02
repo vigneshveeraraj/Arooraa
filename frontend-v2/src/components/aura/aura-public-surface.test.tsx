@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
+import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
 import { AuraPanel } from "./AuraPanel";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: vi.fn() }) }));
@@ -230,21 +231,7 @@ describe("the public Aura conversation", () => {
         onClose={() => {}}
         controller={controller(LOADED_TURN)}
         onNavigate={() => {}}
-        voice={{
-          available: true,
-          speechAvailable: true,
-          status: "IDLE",
-          error: null,
-          transcript: null,
-          speakAnswers: false,
-          startListening: () => {},
-          stopListening: () => {},
-          cancelListening: () => {},
-          setSpeakAnswers: () => {},
-          announceAnswer: () => {},
-          stopSpeaking: () => {},
-          dismissError: () => {},
-        }}
+        voice={stubAuraVoice()}
       />,
     );
 

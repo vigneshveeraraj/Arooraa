@@ -9,6 +9,7 @@ import com.arooraa.aura.provider.SynthesisResult;
 import com.arooraa.aura.provider.TranscriptionRequest;
 import com.arooraa.aura.provider.TranscriptionResult;
 import com.arooraa.aura.voice.config.VoiceProperties;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -45,6 +46,9 @@ public class VoiceService {
     private final VoiceProperties properties;
     private final Timer transcriptionLatency;
     private final Timer synthesisLatency;
+    private final DistributionSummary recordingDuration;
+    private final DistributionSummary recordingBytes;
+    private final MeterRegistry meterRegistry;
 
     public VoiceService(SpeechTranscriptionProvider transcriptionProvider,
                          SpeechSynthesisProvider synthesisProvider,
@@ -57,8 +61,16 @@ public class VoiceService {
         this.validator = validator;
         this.speechTextPreparer = speechTextPreparer;
         this.properties = properties;
+        this.meterRegistry = meterRegistry;
         this.transcriptionLatency = meterRegistry.timer("aura.voice.transcription.latency");
         this.synthesisLatency = meterRegistry.timer("aura.voice.synthesis.latency");
+        // How long people actually speak for, and how much that costs to upload. Both are needed
+        // to tell "transcription is slow" from "people are recording thirty-second questions", and
+        // neither can be inferred from a latency number alone.
+        this.recordingDuration = DistributionSummary.builder("aura.voice.recording.duration")
+                .baseUnit("milliseconds").register(meterRegistry);
+        this.recordingBytes = DistributionSummary.builder("aura.voice.recording.size")
+                .baseUnit("bytes").register(meterRegistry);
     }
 
     /**
@@ -71,6 +83,10 @@ public class VoiceService {
                     "I can't listen right now — type it to me instead?");
         }
         ValidatedAudio audio = validator.validate(file, declaredDurationMillis);
+        recordingBytes.record(audio.bytes().length);
+        if (declaredDurationMillis != null) {
+            recordingDuration.record(declaredDurationMillis);
+        }
 
         long startedAt = System.nanoTime();
         TranscriptionResult result;
@@ -81,6 +97,7 @@ public class VoiceService {
             // The code is safe to log — the adapter puts nothing vendor-internal in it. The
             // visitor gets a sentence Aura would say, and never the provider's own words.
             log.warn("Transcription failed ({}).", e.getMessage());
+            countFailure("transcription", e);
             throw new VoiceUnavailableException("TRANSCRIPTION_FAILED",
                     "I couldn't quite make that out. Try saying it again?");
         }
@@ -116,6 +133,7 @@ public class VoiceService {
                     spoken, synthesis.voice(), synthesis.format(), languageHint));
         } catch (ProviderTransientException | ProviderPermanentException e) {
             log.warn("Speech synthesis failed ({}).", e.getMessage());
+            countFailure("synthesis", e);
             throw new VoiceUnavailableException("SYNTHESIS_FAILED", "I couldn't find my voice just then.");
         }
         long latencyMs = (System.nanoTime() - startedAt) / 1_000_000;
@@ -123,6 +141,20 @@ public class VoiceService {
 
         log.info("Aura voice: spoke {} characters in {}ms.", spoken.length(), latencyMs);
         return new Speech(result.audio(), result.mimeType(), latencyMs);
+    }
+
+    /**
+     * Counts a provider failure by which half of voice it was and whether it might have succeeded
+     * on a retry — the difference between "our key is wrong" and "the provider is having a bad
+     * afternoon", which is the first thing anyone looking at a spike needs to know.
+     *
+     * <p>Tagged with the shape of the failure, never with its message: a provider's own error text
+     * is not something to put in a metric label, where it would multiply the time series and could
+     * carry detail we have been careful not to log.
+     */
+    private void countFailure(String stage, RuntimeException failure) {
+        String kind = failure instanceof ProviderTransientException ? "transient" : "permanent";
+        meterRegistry.counter("aura.voice.provider.failures", "stage", stage, "kind", kind).increment();
     }
 
     private String languageHint() {

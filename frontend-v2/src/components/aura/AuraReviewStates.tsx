@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
-import type { AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
+import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
 import { AuraLauncher } from "./AuraLauncher";
 import { AuraMark } from "./AuraMark";
 import { AuraPanel } from "./AuraPanel";
@@ -106,30 +106,6 @@ const MARK_STATES: AuraState[] = [
   "RESPONSE_READY",
   "ERROR",
 ];
-
-/**
- * A voice channel that is available but does nothing, so the microphone, the speaker toggle and
- * the language cue can be photographed without a browser that can record or a backend that can
- * transcribe. `status` is the only thing a caller varies.
- */
-function stubVoice(overrides: Partial<AuraVoiceController> = {}): AuraVoiceController {
-  return {
-    available: true,
-    speechAvailable: true,
-    status: "IDLE",
-    error: null,
-    transcript: null,
-    speakAnswers: false,
-    startListening: () => {},
-    stopListening: () => {},
-    cancelListening: () => {},
-    setSpeakAnswers: () => {},
-    announceAnswer: () => {},
-    stopSpeaking: () => {},
-    dismissError: () => {},
-    ...overrides,
-  };
-}
 
 function panel(key: string, node: ReactNode) {
   return (
@@ -257,7 +233,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController([])}
         onNavigate={() => {}}
-        voice={stubVoice()}
+        voice={stubAuraVoice()}
       />,
     ),
   },
@@ -272,7 +248,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         onNavigate={() => {}}
-        voice={stubVoice({ status: "LISTENING" })}
+        voice={stubAuraVoice({ status: "LISTENING" })}
       />,
     ),
   },
@@ -287,7 +263,37 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         onNavigate={() => {}}
-        voice={stubVoice({ status: "SPEAKING", speakAnswers: true })}
+        voice={stubAuraVoice({ status: "SPEAKING", speakAnswers: true })}
+      />,
+    ),
+  },
+  {
+    id: "voice-countdown",
+    title: "Recording, near the ceiling",
+    note: "The countdown appears only in the last few seconds, so an ordinary question never feels timed — and stopping is never a surprise. The ring around the microphone follows what it is actually hearing, which is what Aura does instead of guessing when someone has finished.",
+    frame: panel(
+      "voice-countdown",
+      <AuraPanel
+        id="review-voice-5"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubAuraVoice({ status: "LISTENING", secondsLeft: 8 })}
+      />,
+    ),
+  },
+  {
+    id: "voice-replay",
+    title: "Just after Aura finished speaking",
+    note: "One offer, for the turn it just read, gone the moment anything else happens — so “say that again” is there when it is wanted and never a permanent control.",
+    frame: panel(
+      "voice-replay",
+      <AuraPanel
+        id="review-voice-6"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubAuraVoice({ replayable: true, speakAnswers: true })}
       />,
     ),
   },
@@ -302,7 +308,7 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         onNavigate={() => {}}
-        voice={stubVoice({
+        voice={stubAuraVoice({
           error:
             "I'll need microphone permission to hear you. You can allow it in your browser, or just type.",
         })}
@@ -389,8 +395,20 @@ export function AuraReviewStates({ bannerClassName }: { bannerClassName?: string
     setQuery(new URLSearchParams(window.location.search));
   }, []);
 
-  const only = query?.get("only") ?? null;
-  const device = query?.get("device") ?? null;
+  // Nothing at all until the URL has been read.
+  //
+  // Rendering the full list first and narrowing to one state a moment later is what put a ghost in
+  // every `?only=` screenshot: a panel from the wide layout was painted, the page then narrowed,
+  // and the compositor never repainted the now-blank region it had been in, so a stale close
+  // button sat in the margin of captures from A4.1 onwards. The DOM was always correct — only the
+  // picture was wrong, which is the worst kind of thing to leave in owner-facing evidence.
+  //
+  // An empty first paint costs nothing here (this page is internal, and it is JavaScript that
+  // decides what it shows) and it means there is no earlier layout for a tile to go stale from.
+  if (query === null) return null;
+
+  const only = query.get("only");
+  const device = query.get("device");
 
   /*
    * Mobile is reviewed through an iframe, not by resizing the window. An iframe is its own

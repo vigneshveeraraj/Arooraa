@@ -140,6 +140,71 @@ export function removeMicrophoneSupport(): () => void {
   };
 }
 
+/**
+ * A Web Audio graph that reports a fixed loudness, which jsdom has no equivalent of. Only the
+ * three pieces the level meter touches are implemented — a source, an analyser, and a close() that
+ * a test can check actually happened.
+ */
+export class FakeAudioContext {
+  static instances: FakeAudioContext[] = [];
+  /** The time-domain byte value every sample reads as. 128 is silence. */
+  static sampleValue = 128;
+
+  closed = false;
+  connected = false;
+
+  constructor() {
+    FakeAudioContext.instances.push(this);
+  }
+
+  createAnalyser() {
+    return {
+      fftSize: 2048,
+      getByteTimeDomainData: (target: Uint8Array) => {
+        target.fill(FakeAudioContext.sampleValue);
+      },
+      // Present so the graph can be wired; nothing reads it back.
+      connect: () => {
+        this.connected = true;
+      },
+    };
+  }
+
+  createMediaStreamSource() {
+    return {
+      connect: () => {
+        this.connected = true;
+      },
+    };
+  }
+
+  close(): Promise<void> {
+    this.closed = true;
+    return Promise.resolve();
+  }
+
+  static reset() {
+    FakeAudioContext.instances = [];
+    FakeAudioContext.sampleValue = 128;
+  }
+
+  static latest(): FakeAudioContext {
+    const instance = FakeAudioContext.instances[FakeAudioContext.instances.length - 1];
+    if (!instance) throw new Error("no AudioContext was created");
+    return instance;
+  }
+}
+
+export function installAudioContext(): () => void {
+  const original = (window as { AudioContext?: unknown }).AudioContext;
+  FakeAudioContext.reset();
+  (window as { AudioContext?: unknown }).AudioContext = FakeAudioContext;
+  return () => {
+    (window as { AudioContext?: unknown }).AudioContext = original;
+    FakeAudioContext.reset();
+  };
+}
+
 /** A named DOMException-shaped error, which is how getUserMedia reports every refusal. */
 export function permissionError(name: string): Error {
   const error = new Error(name);

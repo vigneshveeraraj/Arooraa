@@ -79,6 +79,7 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
   const recording = voice?.status === "LISTENING" || voice?.status === "REQUESTING";
   const speaking = voice?.status === "SPEAKING";
   const notice = voice?.error ?? null;
+  const secondsLeft = voice?.secondsLeft ?? null;
 
   return (
     <div className={styles.dock}>
@@ -96,13 +97,28 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
         </p>
       ) : recording ? (
         <p className={styles.notice}>
-          <span>Listening — tap the microphone when you&rsquo;re done.</span>
+          {/* The countdown appears only near the ceiling. A stopwatch running from the first word
+              would make an ordinary question feel timed. */}
+          <span>
+            {secondsLeft === null
+              ? "Listening — tap the microphone when you’re done."
+              : `Listening — ${secondsLeft}s left.`}
+          </span>
         </p>
       ) : speaking ? (
         <p className={styles.notice}>
           <span>Aura is speaking.</span>
           <button type="button" className={styles.noticeAction} onClick={() => voice?.stopSpeaking()}>
             Stop
+          </button>
+        </p>
+      ) : voice?.replayable ? (
+        // Only for the turn Aura just read out, and gone the moment anything else happens — so
+        // "say that again" is there when it is wanted and never a permanent control.
+        <p className={styles.notice}>
+          <span>Aura read that aloud.</span>
+          <button type="button" className={styles.noticeAction} onClick={() => voice.replay()}>
+            Play again
           </button>
         </p>
       ) : null}
@@ -127,7 +143,10 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
           className={styles.input}
           rows={1}
           value={value}
-          placeholder="Ask Aura something…"
+          // Shortened in A5.1. With the speaker and microphone in the row, "Ask Aura something…"
+          // wrapped to two lines inside the box at 320px and made the resting composer taller on
+          // the narrowest phone. The label above is what assistive technology reads either way.
+          placeholder="Ask Aura…"
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => onActiveChange(true)}
@@ -140,6 +159,7 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
             onStart={voice.startListening}
             onStop={voice.stopListening}
             busy={busy}
+            subscribeToLevel={voice.subscribeToLevel}
           />
         ) : null}
 

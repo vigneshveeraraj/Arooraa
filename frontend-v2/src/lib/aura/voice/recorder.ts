@@ -36,6 +36,17 @@ export interface StartRecordingOptions {
   onError(error: AuraRecordingError): void;
   /** Fired once permission is granted and audio is actually being captured. */
   onListening?(): void;
+  /**
+   * How loud the microphone is hearing things right now, 0 to 1, roughly ten times a second.
+   *
+   * <p>This is what A5.1 does <em>instead</em> of voice activity detection. An automatic stop has
+   * to decide when a person has finished, and Tamil and Tanglish both carry pauses that an
+   * aggressively tuned detector reads as the end of a sentence — cutting a visitor off mid-thought
+   * is a far worse failure than one extra tap. Showing the level answers the question a visitor
+   * actually has ("is it hearing me?") without ever guessing the answer to a question only they
+   * can answer ("am I finished?").
+   */
+  onLevel?(level: number): void;
 }
 
 /**
@@ -61,6 +72,61 @@ export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 /** Below this there is nothing to transcribe — an accidental tap, or a stream that never opened. */
 const MIN_RECORDING_BYTES = 1024;
+
+interface LevelMeter {
+  stop(): void;
+}
+
+/** How often the level is sampled. Ten a second is smooth to the eye and cheap to compute. */
+const LEVEL_INTERVAL_MS = 100;
+
+/**
+ * Reads the microphone's loudness off a Web Audio analyser.
+ *
+ * <p>An interval rather than requestAnimationFrame: a backgrounded tab throttles rAF to nothing,
+ * and the meter should keep working when a visitor glances at another window mid-sentence. Every
+ * part of it is optional — a browser without AudioContext, or one that refuses to build the graph,
+ * simply gets a microphone with no level on it rather than no microphone.
+ */
+function startLevelMeter(stream: MediaStream, onLevel: (level: number) => void): LevelMeter | null {
+  const AudioContextClass =
+    typeof window === "undefined"
+      ? undefined
+      : window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  try {
+    const context = new AudioContextClass();
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 512;
+    context.createMediaStreamSource(stream).connect(analyser);
+
+    const samples = new Uint8Array(analyser.fftSize);
+    const timer = setInterval(() => {
+      analyser.getByteTimeDomainData(samples);
+      // Root mean square around the 128 midpoint, which is what silence reads as in time-domain
+      // byte data. Scaled so ordinary speech lands near the top without clipping the display.
+      let sum = 0;
+      for (const sample of samples) {
+        const deviation = (sample - 128) / 128;
+        sum += deviation * deviation;
+      }
+      const rms = Math.sqrt(sum / samples.length);
+      onLevel(Math.min(1, rms * 4));
+    }, LEVEL_INTERVAL_MS);
+
+    return {
+      stop() {
+        clearInterval(timer);
+        void context.close().catch(() => {});
+      },
+    };
+  } catch {
+    // A browser that will record but will not analyse. The recording is what matters.
+    return null;
+  }
+}
 
 export function isRecordingSupported(): boolean {
   return (
@@ -112,6 +178,7 @@ export function startRecording(options: StartRecordingOptions): AuraRecorderHand
   let abandoned = false;
   let finished = false;
   let autoStop: ReturnType<typeof setTimeout> | null = null;
+  let meter: LevelMeter | null = null;
   const chunks: Blob[] = [];
   const startedAt = Date.now();
 
@@ -123,6 +190,8 @@ export function startRecording(options: StartRecordingOptions): AuraRecorderHand
   function release() {
     if (autoStop) clearTimeout(autoStop);
     autoStop = null;
+    meter?.stop();
+    meter = null;
     stream?.getTracks().forEach((track) => track.stop());
     stream = null;
   }
@@ -176,6 +245,7 @@ export function startRecording(options: StartRecordingOptions): AuraRecorderHand
       };
 
       recorder.start();
+      if (options.onLevel) meter = startLevelMeter(granted, options.onLevel);
       options.onListening?.();
 
       // The safety net. A visitor who taps record and walks away should cost one bounded upload,

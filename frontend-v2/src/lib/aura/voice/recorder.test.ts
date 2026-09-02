@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { isRecordingSupported, startRecording } from "./recorder";
 import type { AuraRecording, AuraRecordingError } from "./recorder";
 import {
+  FakeAudioContext,
   FakeMediaRecorder,
+  installAudioContext,
   installMicrophone,
   permissionError,
   removeMicrophoneSupport,
@@ -212,6 +214,109 @@ describe("the Aura recorder", () => {
 
     expect(harness.getUserMedia).toHaveBeenCalledWith({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+  });
+
+  // --- the level meter (A5.1) -----------------------------------------------------------------
+
+  describe("the level meter", () => {
+    let restoreAudioContext: (() => void) | null = null;
+
+    afterEach(() => {
+      restoreAudioContext?.();
+      restoreAudioContext = null;
+    });
+
+    it("reports how loud the microphone is hearing things", async () => {
+      // The level exists so a visitor can see they are being heard. It deliberately does not
+      // decide when they have finished — see the recorder's own note on why Aura has no VAD.
+      restoreAudioContext = installAudioContext();
+      harness = installMicrophone();
+      FakeAudioContext.sampleValue = 200;
+      const levels: number[] = [];
+
+      const handle = startRecording({
+        maxSeconds: 60,
+        onComplete: vi.fn(),
+        onError: vi.fn(),
+        onLevel: (level) => levels.push(level),
+      });
+
+      await vi.waitFor(() => expect(levels.length).toBeGreaterThan(0), { timeout: 2_000 });
+      expect(levels[0]).toBeGreaterThan(0);
+      expect(levels[0]).toBeLessThanOrEqual(1);
+      handle.cancel();
+    });
+
+    it("reads silence as silence", async () => {
+      restoreAudioContext = installAudioContext();
+      harness = installMicrophone();
+      FakeAudioContext.sampleValue = 128;
+      const levels: number[] = [];
+
+      const handle = startRecording({
+        maxSeconds: 60,
+        onComplete: vi.fn(),
+        onError: vi.fn(),
+        onLevel: (level) => levels.push(level),
+      });
+
+      await vi.waitFor(() => expect(levels.length).toBeGreaterThan(0), { timeout: 2_000 });
+      expect(levels[0]).toBe(0);
+      handle.cancel();
+    });
+
+    it("closes the audio graph when the recording ends", async () => {
+      // An AudioContext left open holds a real audio device on some platforms, which is the same
+      // class of problem as a stream whose tracks were never stopped.
+      restoreAudioContext = installAudioContext();
+      harness = installMicrophone();
+
+      const handle = startRecording({
+        maxSeconds: 60,
+        onComplete: vi.fn(),
+        onError: vi.fn(),
+        onLevel: vi.fn(),
+      });
+
+      await vi.waitFor(() => expect(FakeAudioContext.instances.length).toBe(1));
+      handle.cancel();
+
+      expect(FakeAudioContext.latest().closed).toBe(true);
+    });
+
+    it("records perfectly well on a browser that will not analyse", async () => {
+      // No AudioContext installed: the meter is optional, the recording is not.
+      harness = installMicrophone();
+      const onLevel = vi.fn();
+      let recording: AuraRecording | null = null;
+
+      const handle = startRecording({
+        maxSeconds: 60,
+        onComplete: (result) => {
+          recording = result;
+        },
+        onError: vi.fn(),
+        onLevel,
+      });
+
+      await vi.waitFor(() => expect(FakeMediaRecorder.instances.length).toBe(1));
+      FakeMediaRecorder.latest().emit(50_000);
+      handle.stop();
+
+      await vi.waitFor(() => expect(recording).not.toBeNull());
+      expect(onLevel).not.toHaveBeenCalled();
+    });
+
+    it("measures nothing when nobody is watching the level", async () => {
+      restoreAudioContext = installAudioContext();
+      harness = installMicrophone();
+
+      const handle = startRecording({ maxSeconds: 60, onComplete: vi.fn(), onError: vi.fn() });
+
+      await vi.waitFor(() => expect(FakeMediaRecorder.instances.length).toBe(1));
+      expect(FakeAudioContext.instances).toHaveLength(0);
+      handle.cancel();
     });
   });
 });

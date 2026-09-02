@@ -128,11 +128,19 @@ describe("Aura layout contract", () => {
       expect(MARK, `the mark should have a ${state} rule`).toContain(`data-state="${state}"`);
     }
     const reduced = MARK.slice(MARK.indexOf("@media (prefers-reduced-motion: reduce)"));
-    // With everything still, each of the three still looks different: listening changes colour,
-    // and the other two change the core's scale in opposite directions.
-    expect(MARK).toMatch(/\[data-state="LISTENING"\] \{\s*--aura-mark-color/);
-    expect(reduced).toMatch(/\[data-state="PROCESSING_AUDIO"\] \.core/);
-    expect(reduced).toMatch(/\[data-state="SPEAKING"\] \.core/);
+    // With everything still, each of the three takes a distinct static core size.
+    for (const state of ["LISTENING", "PROCESSING_AUDIO", "SPEAKING"]) {
+      expect(reduced, `${state} needs a static form too`).toContain(`[data-state="${state}"] .core`);
+    }
+  });
+
+  it("keeps the error colour to errors alone", () => {
+    // Red on the microphone button is the record convention, sitting next to a label that says so.
+    // On the identity mark it is ERROR's signal — a Spark that turned red the moment someone spoke
+    // would be telling them something had gone wrong.
+    const errorColoured = MARK.match(/\.mark\[data-state="(\w+)"\] \{\s*--aura-mark-color: var\(--color-error\)/g) ?? [];
+    expect(errorColoured).toHaveLength(1);
+    expect(errorColoured[0]).toContain("ERROR");
   });
 
   it("keeps the voice surfaces on the design tokens too", () => {
@@ -148,5 +156,27 @@ describe("Aura layout contract", () => {
         /@media \(prefers-reduced-motion: reduce\)/,
       );
     }
+  });
+
+  it("keeps the composer row from overflowing the narrowest phone with voice on", () => {
+    // At 320px the row is speaker + textarea + microphone + send. The textarea has to be the thing
+    // that gives, which it can only do with an explicit zero minimum — flex items default to
+    // min-width:auto and would otherwise push the send button off the edge.
+    expect(COMPOSER).toMatch(/min-inline-size: 0/);
+    expect(COMPOSER).toMatch(/flex: 1/);
+  });
+
+  it("shows the recording level rather than guessing when the visitor has finished", () => {
+    // Aura has no voice activity detection on purpose: Tamil and Tanglish both carry pauses that
+    // an aggressively tuned detector reads as the end of a sentence. The ring answers "is it
+    // hearing me?" without answering "am I finished?", which is not ours to answer.
+    expect(MIC).toMatch(/--aura-mic-level/);
+    expect(MIC).toMatch(/box-shadow: 0 0 0 calc\(/);
+  });
+
+  it("keeps the voice strip out of the way until it has something to say", () => {
+    // The strip is conditional in the component; what the stylesheet must not do is reserve space
+    // for it, so the resting composer is exactly the one A4.2 shipped.
+    expect(COMPOSER).not.toMatch(/\.notice \{[^}]*min-block-size/);
   });
 });

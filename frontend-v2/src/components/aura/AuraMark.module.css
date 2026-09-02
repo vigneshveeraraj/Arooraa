@@ -94,9 +94,12 @@
  * breathes outward at the core and holds the rays still, SPEAKING moves the rays and holds the
  * core, and PROCESSING_AUDIO turns slowly with the core drawn in.
  */
-.mark[data-state="LISTENING"] {
-  --aura-mark-color: var(--color-error);
-}
+/*
+ * LISTENING deliberately keeps the accent colour. The error colour is the record convention on the
+ * microphone button, where it sits next to a label saying so — but on the identity mark it is
+ * already ERROR's signal, and a Spark that turns red the moment someone speaks would tell them
+ * something had gone wrong. The state reads instead as the core breathing outward: taking in.
+ */
 .mark[data-state="LISTENING"] .core {
   animation: auraListen 1.9s var(--ease-standard) infinite;
 }
@@ -183,8 +186,11 @@
   .mark[data-state="THINKING"] .rayMedium {
     opacity: 0.65;
   }
-  /* LISTENING keeps its own colour, which is the state's real signal; the other two need a
-     static difference of their own once nothing is moving. */
+  /* With nothing moving, the three voice states still have to look unlike each other and unlike
+     idle, so each takes a distinct static core size. */
+  .mark[data-state="LISTENING"] .core {
+    transform: scale(1.22);
+  }
   .mark[data-state="PROCESSING_AUDIO"] .core {
     transform: scale(0.8);
   }

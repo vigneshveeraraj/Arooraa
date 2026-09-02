@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { AuraVoiceStatus } from "@/lib/aura/voice/useAuraVoice";
 import styles from "./AuraMicButton.module.css";
 
@@ -9,6 +10,8 @@ interface AuraMicButtonProps {
   onStop: () => void;
   /** True while a message is being answered — one thing at a time. */
   busy: boolean;
+  /** Microphone loudness, about ten times a second. Absent when nothing is measuring it. */
+  subscribeToLevel?: (listener: (level: number) => void) => () => void;
 }
 
 const RECORDING_STATES: AuraVoiceStatus[] = ["REQUESTING", "LISTENING"];
@@ -22,12 +25,40 @@ const RECORDING_STATES: AuraVoiceStatus[] = ["REQUESTING", "LISTENING"];
  * task. Tap to start, tap to stop — the same control, in two states, reachable by Tab and Enter
  * like everything else in the panel.
  */
-export function AuraMicButton({ status, onStart, onStop, busy }: AuraMicButtonProps) {
+export function AuraMicButton({
+  status,
+  onStart,
+  onStop,
+  busy,
+  subscribeToLevel,
+}: AuraMicButtonProps) {
   const recording = RECORDING_STATES.includes(status);
   const processing = status === "PROCESSING";
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  /*
+   * The level is written straight onto this element as a custom property rather than held in
+   * state. It changes ten times a second; as state it would re-render the panel — and with it the
+   * whole conversation — ten times a second to animate one ring. Nothing else on the page needs to
+   * know how loud the room is, so nothing else is told.
+   */
+  useEffect(() => {
+    if (!subscribeToLevel || !recording) return;
+    const button = buttonRef.current;
+    if (!button) return;
+
+    const unsubscribe = subscribeToLevel((level) => {
+      button.style.setProperty("--aura-mic-level", level.toFixed(2));
+    });
+    return () => {
+      unsubscribe();
+      button.style.removeProperty("--aura-mic-level");
+    };
+  }, [recording, subscribeToLevel]);
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       className={styles.mic}
       data-recording={recording ? "true" : undefined}

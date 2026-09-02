@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
+import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
 import { AuraDevInspector } from "./AuraDevInspector";
 import { AuraPanel } from "./AuraPanel";
 
@@ -153,5 +154,55 @@ describe("the developer inspector", () => {
     expect(screen.getAllByText("Dev")).toHaveLength(1);
     expect(screen.getByText("SOCIAL")).toBeInTheDocument();
     expect(screen.queryByText("GROUNDED_QA")).not.toBeInTheDocument();
+  });
+
+  it("times each stage of a voice turn separately", async () => {
+    // "Voice feels slow" has four possible causes, and one total number tells you which of them it
+    // was in none of the cases. Measured in the browser because the number that matters —
+    // microphone released to first audible word — spans three requests.
+    render(
+      <AuraPanel
+        id="aura-panel"
+        onClose={() => {}}
+        controller={controller([{ id: "a1", role: "aura", text: "MESA connects the floor." }])}
+        onNavigate={() => {}}
+        devDiagnostics
+        devDiagnosticsOpen
+        voice={stubAuraVoice({
+          timings: { recordingMs: 3142, transcriptionMs: 880, synthesisMs: 640, turnMs: 2100 },
+        })}
+      />,
+    );
+
+    await screen.findByText("Dev", {}, { timeout: 10_000 });
+    expect(screen.getByText("3142ms")).toBeInTheDocument();
+    expect(screen.getByText("880ms")).toBeInTheDocument();
+    expect(screen.getByText("640ms")).toBeInTheDocument();
+    expect(screen.getByText("2100ms")).toBeInTheDocument();
+  });
+
+  it("shows no timings for a conversation nobody spoke in", async () => {
+    render(
+      <AuraPanel
+        id="aura-panel"
+        onClose={() => {}}
+        controller={controller([
+          {
+            id: "a1",
+            role: "aura",
+            text: "MESA connects the floor.",
+            diagnostics: { mode: "GROUNDED_QA" },
+          },
+        ])}
+        onNavigate={() => {}}
+        devDiagnostics
+        devDiagnosticsOpen
+        voice={stubAuraVoice()}
+      />,
+    );
+
+    await screen.findByText("Dev", {}, { timeout: 10_000 });
+    expect(screen.queryByText("transcribe")).not.toBeInTheDocument();
+    expect(screen.queryByText("voice turn")).not.toBeInTheDocument();
   });
 });

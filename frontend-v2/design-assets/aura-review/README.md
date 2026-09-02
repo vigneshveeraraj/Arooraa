@@ -4,9 +4,10 @@ Captures of every Aura state from the real components and the real stylesheets, 
 can be judged by looking at it rather than by reading a test report.
 
 A4.1 replaced the orb with the Aura Spark and the empty composer with the guided entry. A4.2 then
-took the citations and the routing metadata out of the conversation entirely, so `04` is the
+took the citations and the routing metadata out of the conversation entirely, so `04` is that
 milestone's real before/after: a grounded answer carrying two citations and full diagnostics, with
-none of it on screen.
+none of it on screen. A5/A5.1 add voice — `12` through `16` — which is the first time the composer
+has gained a control since it was designed, so every capture below was retaken.
 
 | File | What it shows |
 | --- | --- |
@@ -16,13 +17,18 @@ none of it on screen.
 | `03b-desktop-products.png` | Guided entry, Products level — public names and short taglines |
 | `03c-desktop-services.png` | Guided entry, Services level — the six approved groups |
 | `04-desktop-grounded.png` | **What a visitor sees**: message, answer, composer. Nothing else |
-| `05-desktop-dev-inspector.png` | The same turn with the developer inspector open — the only surface that shows citations or routing metadata, and no public build contains it |
+| `05-desktop-dev-inspector.png` | The same turn with the developer inspector open — the only surface that shows citations, routing metadata or voice timings, and no public build contains it |
 | `06-desktop-thinking.png` | Thinking state |
 | `07-desktop-error.png` | Network failure, with a retry |
 | `08-desktop-internal-boundary.png` | Boundary turn — answered warmly, with no mode label |
 | `09-mobile-states-390x844.png` | Every state at a true 390×844 mobile viewport, guided entry included |
 | `10-launcher-on-mesa-page-live.png` | Launcher on `/products/mesa`, from a running `next dev` |
 | `11-mobile-widths-320-375-390-430.png` | The grounded answer at all four review widths |
+| `12-desktop-voice-first-open.png` | **A5**: guided entry with voice available — one quiet line, and a microphone and speaker in the composer |
+| `13-desktop-voice-listening.png` | Recording. The Spark keeps its own colour; red belongs to the microphone, where it is the record convention |
+| `14-desktop-voice-speaking.png` | Aura reading an answer aloud, with Stop |
+| `15-desktop-voice-replay.png` | **A5.1**: the moment after it finishes — one offer to hear it again, for that turn only |
+| `16-mobile-voice-widths.png` | Recording at 320, 375, 390 and 430 — the composer now carries four controls and still fits |
 
 ## Regenerating
 
@@ -47,7 +53,7 @@ npx serve out -l 4173
   "http://localhost:4173/design-system/aura?only=grounded"
 ```
 
-Two things worth knowing before regenerating these, both learned the hard way:
+Three things worth knowing before regenerating these, all learned the hard way:
 
 - **Capture one shot per command and read the output.** Run in a tight loop, several of the Edge
   invocations silently fail to write while still exiting 0 — and because the target files already
@@ -56,7 +62,14 @@ Two things worth knowing before regenerating these, both learned the hard way:
 - **`?only=products` / `?only=services`** render the nested guided levels directly, via the
   review-only `initialGuidedSection` prop on `AuraPanel`, so no click is needed to capture them.
   `?only=inspector` does the same for the developer inspector, which the review page also opens
-  via `devDiagnosticsOpen` — otherwise a capture would show a closed bar and nothing in it.
+  via `devDiagnosticsOpen` — otherwise a capture would show a closed bar and nothing in it. The
+  four voice states use a stub voice controller (`stubAuraVoice`) for the same reason: no
+  microphone, no backend, and every state reachable by URL.
+- **A small ✕ appears in the left margin of every `?only=` capture, and is not in the page.** The
+  DOM contains exactly one close button (checked with `--dump-dom`), it survives a fresh browser
+  profile, and it is absent from the live capture in `10`. It is an artefact of headless Edge's
+  compositor, has been in these captures since A4.1, and can be ignored — it is not something a
+  visitor can ever see.
 
 `10-…-live.png` is the exception: it comes from `npm run dev` on `:3000`, so it shows Aura mounted
 on the real site rather than on the review page. aura-service does not need to be running for it —

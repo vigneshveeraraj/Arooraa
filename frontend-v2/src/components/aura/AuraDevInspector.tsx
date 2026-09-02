@@ -2,6 +2,7 @@
 
 import { safeSourceUrl } from "@/lib/aura/client";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
+import type { AuraVoiceTimings } from "@/lib/aura/voice/useAuraVoice";
 import styles from "./AuraDevInspector.module.css";
 
 interface AuraDevInspectorProps {
@@ -10,6 +11,13 @@ interface AuraDevInspectorProps {
   /** Only the design-system review page sets this, so a capture shows the contents rather than a
    * closed bar. In use it stays open once opened, because the element is never remounted. */
   defaultOpen?: boolean;
+  /**
+   * How long each stage of the last voice turn took (A5.1). Measured in the browser, because the
+   * number that matters — microphone released to first audible word — spans three requests and no
+   * single service can see it. Internal only: this component is the only thing that renders it,
+   * and no public build contains this component.
+   */
+  voiceTimings?: AuraVoiceTimings | null;
 }
 
 /**
@@ -29,10 +37,16 @@ interface AuraDevInspectorProps {
  * <p>This component never renders on a public build — see {@code AuraWidget} for the gate, which
  * is two build-time constants and therefore resolves to {@code false} before the bundler runs.
  */
-export function AuraDevInspector({ turn, defaultOpen = false }: AuraDevInspectorProps) {
+export function AuraDevInspector({
+  turn,
+  defaultOpen = false,
+  voiceTimings = null,
+}: AuraDevInspectorProps) {
   const diagnostics = turn?.diagnostics ?? null;
   const sources = turn?.sources ?? [];
-  if (!diagnostics && sources.length === 0) return null;
+  const hasVoiceTimings =
+    voiceTimings != null && Object.values(voiceTimings).some((value) => value != null);
+  if (!diagnostics && sources.length === 0 && !hasVoiceTimings) return null;
 
   const rows: { label: string; value: string }[] = [];
   if (diagnostics?.mode) rows.push({ label: "mode", value: diagnostics.mode });
@@ -41,6 +55,21 @@ export function AuraDevInspector({ turn, defaultOpen = false }: AuraDevInspector
   if (diagnostics?.tone) rows.push({ label: "tone", value: diagnostics.tone });
   if (diagnostics?.latencyMs != null) rows.push({ label: "latency", value: `${diagnostics.latencyMs}ms` });
   if (diagnostics?.guardrail) rows.push({ label: "guardrail", value: diagnostics.guardrail });
+
+  // Each stage of the voice turn separately, because "voice feels slow" has four possible causes
+  // and one total tells you which of them it was in none of the cases.
+  if (voiceTimings?.recordingMs != null) {
+    rows.push({ label: "recorded", value: `${voiceTimings.recordingMs}ms` });
+  }
+  if (voiceTimings?.transcriptionMs != null) {
+    rows.push({ label: "transcribe", value: `${voiceTimings.transcriptionMs}ms` });
+  }
+  if (voiceTimings?.synthesisMs != null) {
+    rows.push({ label: "synthesize", value: `${voiceTimings.synthesisMs}ms` });
+  }
+  if (voiceTimings?.turnMs != null) {
+    rows.push({ label: "voice turn", value: `${voiceTimings.turnMs}ms` });
+  }
 
   return (
     <details className={styles.inspector} open={defaultOpen || undefined}>
