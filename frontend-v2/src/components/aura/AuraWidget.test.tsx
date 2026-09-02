@@ -3,10 +3,15 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuraApiClient } from "@/lib/aura/client";
 import type { AuraAnswer, AuraResult } from "@/lib/aura/types";
+import { AURA_GUIDED_PRODUCTS, AURA_GUIDED_SERVICES } from "@/lib/aura/guided-entry";
 import { AuraWidget } from "./AuraWidget";
 
 const pathname = vi.fn(() => "/");
-vi.mock("next/navigation", () => ({ usePathname: () => pathname() }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  usePathname: () => pathname(),
+  useRouter: () => ({ push }),
+}));
 
 /**
  * A scripted stand-in for aura-service. Every test here drives the real components through the
@@ -96,6 +101,7 @@ function composer() {
 
 beforeEach(() => {
   pathname.mockReturnValue("/");
+  push.mockClear();
   window.sessionStorage.clear();
 });
 
@@ -172,16 +178,109 @@ describe("Aura on the website", () => {
     await waitFor(() => expect(screen.queryByText("Thinking…")).not.toBeInTheDocument());
   });
 
-  it("offers starter prompts that send real messages", async () => {
-    const client = new FakeAuraClient().answerWith(answer("MESA connects a restaurant."));
+  // --- guided entry (A4.1) ----------------------------------------------------------------------
+
+  it("shows the guided first-open menu rather than an empty composer", async () => {
+    await openAura(new FakeAuraClient());
+
+    expect(screen.getByText("Hi — what would you like to explore?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Products" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Services" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I have a product idea" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "About AROORAA" })).toBeInTheDocument();
+  });
+
+  it("opens the product choices, each carrying its own public name and tagline", async () => {
+    const user = await openAura(new FakeAuraClient());
+
+    await user.click(screen.getByRole("button", { name: "Products" }));
+
+    for (const product of AURA_GUIDED_PRODUCTS) {
+      expect(screen.getByText(product.name)).toBeInTheDocument();
+      expect(screen.getByText(product.tagline)).toBeInTheDocument();
+    }
+  });
+
+  it("opens the service choices — the six approved groups and none besides", async () => {
+    const user = await openAura(new FakeAuraClient());
+
+    await user.click(screen.getByRole("button", { name: "Services" }));
+
+    expect(AURA_GUIDED_SERVICES).toHaveLength(6);
+    for (const service of AURA_GUIDED_SERVICES) {
+      expect(screen.getByText(service.name)).toBeInTheDocument();
+    }
+  });
+
+  it.each(AURA_GUIDED_PRODUCTS)(
+    "selecting $name navigates to its real route and keeps Aura open",
+    async (product) => {
+      const client = new FakeAuraClient().answerWith(answer(`${product.name} connects a restaurant.`));
+      const user = await openAura(client);
+
+      await user.click(screen.getByRole("button", { name: "Products" }));
+      await user.click(screen.getByRole("button", { name: new RegExp(`^${product.name}`) }));
+
+      expect(push).toHaveBeenCalledWith(product.href);
+      // Aura's experience — the dialog, the conversation — survives the navigation.
+      expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+      await waitFor(() => expect(client.sent[0]?.message).toBe(`Tell me about ${product.name}`));
+    },
+  );
+
+  it.each(AURA_GUIDED_SERVICES)("selecting $name navigates to its real route", async (service) => {
+    const client = new FakeAuraClient().answerWith(answer("Happy to help."));
     const user = await openAura(client);
 
-    await user.click(screen.getByRole("button", { name: "Explore MESA" }));
+    await user.click(screen.getByRole("button", { name: "Services" }));
+    await user.click(screen.getByRole("button", { name: service.name }));
 
-    await waitFor(() => expect(client.sent[0]?.message).toBe("Explore MESA"));
-    expect(await screen.findByText("MESA connects a restaurant.")).toBeInTheDocument();
-    // They are an opening, not a permanent menu.
-    expect(screen.queryByRole("button", { name: "Explore MESA" })).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith(service.href);
+    await waitFor(() => expect(client.sent[0]?.message).toBe(`Tell me about ${service.name}`));
+  });
+
+  it('starts PROJECT_DISCOVERY directly for "I have a product idea", with no navigation', async () => {
+    const client = new FakeAuraClient().answerWith(answer("What problem are you trying to solve?"));
+    const user = await openAura(client);
+
+    await user.click(screen.getByRole("button", { name: "I have a product idea" }));
+
+    await waitFor(() => expect(client.sent[0]?.message).toBe("I have a product idea."));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("navigates for About/Careers/Contact without sending a message", async () => {
+    const client = new FakeAuraClient();
+    const user = await openAura(client);
+
+    await user.click(screen.getByRole("button", { name: "About AROORAA" }));
+
+    expect(push).toHaveBeenCalledWith("/about");
+    expect(client.sent).toHaveLength(0);
+  });
+
+  it('dismisses the guided menu on "Ask something else", focusing the composer', async () => {
+    const user = await openAura(new FakeAuraClient());
+
+    await user.click(screen.getByRole("button", { name: "Ask something else" }));
+
+    expect(screen.queryByRole("button", { name: "Products" })).not.toBeInTheDocument();
+    expect(composer()).toHaveFocus();
+  });
+
+  it("collapses the guided menu after the first message, and reopens it from Explore", async () => {
+    const client = new FakeAuraClient().answerWith(answer("Happy to help."));
+    const user = await openAura(client);
+
+    await user.type(composer(), "Hi Aura{Enter}");
+    await screen.findByText("Happy to help.");
+    expect(screen.queryByRole("button", { name: "Products" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Explore" }));
+
+    expect(screen.getByRole("button", { name: "Products" })).toBeInTheDocument();
+    // The prior turns are still there — reopening the menu does not clear the conversation.
+    expect(screen.getByText("Hi Aura")).toBeInTheDocument();
   });
 
   // --- page awareness --------------------------------------------------------------------------
@@ -393,8 +492,9 @@ describe("Aura on the website", () => {
     expect(screen.queryByText("Hi Aura")).not.toBeInTheDocument();
     expect(screen.queryByText("Happy to help.")).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem("arooraa.aura.conversationId")).toBeNull();
-    // The starter prompts are back, because this really is an empty conversation.
-    expect(screen.getByRole("button", { name: "Explore MESA" })).toBeInTheDocument();
+    // The guided menu is back, because this really is an empty conversation.
+    expect(screen.getByText("Hi — what would you like to explore?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Products" })).toBeInTheDocument();
 
     await user.type(composer(), "Hello again{Enter}");
     await waitFor(() => expect(client.createCalls).toBe(2));

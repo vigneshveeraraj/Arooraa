@@ -44,6 +44,17 @@ describe("Aura API client", () => {
     expect(JSON.parse(String(init.body))).toEqual({ message: "What is MESA?", currentPath: "/products/mesa" });
   });
 
+  it("sends exactly message and currentPath — never page HTML or DOM content", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { answer: "Hello.", sources: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createAuraApiClient().sendMessage("c-1", "Tell me more about this.", "/products/mesa");
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual(["currentPath", "message"]);
+  });
+
   it("keeps only the three fields a citation may have", async () => {
     vi.stubGlobal(
       "fetch",

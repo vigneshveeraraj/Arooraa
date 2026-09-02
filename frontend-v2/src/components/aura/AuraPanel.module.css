@@ -113,7 +113,6 @@
 
 .headerAction:focus-visible,
 .close:focus-visible,
-.starter:focus-visible,
 .retry:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
@@ -130,50 +129,6 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-4);
-}
-
-.intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.introText {
-  margin: 0;
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-relaxed);
-  color: var(--color-text);
-}
-
-.starters {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.starter {
-  min-block-size: 36px;
-  padding-inline: var(--space-3);
-  font-family: var(--font-sans);
-  font-size: var(--text-label);
-  color: var(--color-text);
-  background: var(--color-bg-subtle);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard);
-}
-
-.starter:hover:not(:disabled) {
-  border-color: var(--color-border-interactive);
-}
-
-.starter:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .userRow {
@@ -273,7 +228,6 @@
   /* Comfortably over the 44px minimum on touch, where the desktop sizes are tight. */
   .headerAction,
   .close,
-  .starter,
   .retry {
     min-block-size: 44px;
   }
@@ -286,8 +240,5 @@
 @media (prefers-reduced-motion: reduce) {
   .panel {
     animation: none;
-  }
-  .starter {
-    transition: none;
   }
 }

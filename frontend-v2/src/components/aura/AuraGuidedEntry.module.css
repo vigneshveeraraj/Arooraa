@@ -1,0 +1,171 @@
+/*
+ * The guided first-open menu (A4.1, owner finding 2 + 4). A short list of quiet rows, not a support
+ * FAQ grid: one column, generous row height, a hover fill instead of a bordered card, and a visibly
+ * lighter secondary row underneath. Premium here means restraint — no icons, no colour beyond the
+ * site's own tokens, no card shadows.
+ */
+
+.guided {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.welcome {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+}
+
+.primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.primaryChoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: 44px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  text-align: start;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.primaryChoice::after {
+  content: "›";
+  color: var(--color-text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.primaryChoice:hover {
+  background: var(--color-bg-subtle);
+}
+
+.secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding-block-start: var(--space-2);
+  border-block-start: var(--border-width) solid var(--color-border);
+}
+
+.secondaryChoice {
+  min-block-size: 32px;
+  padding-inline: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    text-decoration-color var(--duration-fast) var(--ease-standard);
+}
+
+.secondaryChoice:hover {
+  color: var(--color-text);
+  text-decoration-color: var(--color-border-interactive);
+}
+
+.subList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: 32px;
+  padding-inline: var(--space-2);
+  margin-inline-start: calc(-1 * var(--space-2));
+  margin-block-end: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+}
+
+.subChoice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-block-size: 44px;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  text-align: start;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.subChoice:hover {
+  background: var(--color-bg-subtle);
+}
+
+.subName {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.subTagline {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.primaryChoice:focus-visible,
+.secondaryChoice:focus-visible,
+.back:focus-visible,
+.subChoice:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 600px) {
+  .primaryChoice,
+  .subChoice,
+  .back {
+    min-block-size: 44px;
+  }
+  .secondaryChoice {
+    min-block-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryChoice,
+  .secondaryChoice,
+  .subChoice {
+    transition: none;
+  }
+}

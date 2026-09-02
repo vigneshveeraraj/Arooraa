@@ -23,6 +23,7 @@ const LAUNCHER = css("AuraLauncher.module.css");
 const COMPOSER = css("AuraComposer.module.css");
 const MARK = css("AuraMark.module.css");
 const SOURCES = css("AuraSources.module.css");
+const GUIDED = css("AuraGuidedEntry.module.css");
 
 describe("Aura layout contract", () => {
   it("gives mobile its own layout rather than a scaled-down panel", () => {
@@ -67,7 +68,7 @@ describe("Aura layout contract", () => {
   });
 
   it("switches every Aura animation off under prefers-reduced-motion", () => {
-    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, MARK, SOURCES })) {
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, MARK, SOURCES, GUIDED })) {
       expect(sheet, `${name} should honour prefers-reduced-motion`).toMatch(
         /@media \(prefers-reduced-motion: reduce\)/,
       );
@@ -78,9 +79,15 @@ describe("Aura layout contract", () => {
 
   it("builds on the site's design tokens rather than its own palette", () => {
     // Aura should look like part of AROORAA, which means it must not introduce colours.
-    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, SOURCES })) {
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, SOURCES, GUIDED })) {
       const hexes = sheet.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
       expect(hexes, `${name} should use design tokens, found ${hexes.join(", ")}`).toHaveLength(0);
     }
+  });
+
+  it("keeps guided-menu rows at a real touch target on mobile", () => {
+    expect(GUIDED).toMatch(/@media \(max-width: 600px\)/);
+    const mobileBlock = GUIDED.slice(GUIDED.indexOf("@media (max-width: 600px)"));
+    expect(mobileBlock).toMatch(/min-block-size: 44px/);
   });
 });

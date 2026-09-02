@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { AuraApiClient } from "@/lib/aura/client";
 import { useAuraConversation } from "@/lib/aura/useAuraConversation";
 import { AuraLauncher } from "./AuraLauncher";
@@ -36,6 +36,7 @@ export function AuraWidget({ client }: AuraWidgetProps) {
   const [open, setOpen] = useState(false);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Read here rather than at module scope so it is a plain build-time substitution with no
   // module-initialisation order to reason about. Off unless the flag is exactly "true"; a
@@ -79,6 +80,7 @@ export function AuraWidget({ client }: AuraWidgetProps) {
           onClose={close}
           controller={controller}
           diagnosticsEnabled={diagnosticsEnabled}
+          onNavigate={router.push}
         />
       )}
     </>
