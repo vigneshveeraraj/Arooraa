@@ -31,6 +31,20 @@ const nextConfig: NextConfig = isDev
             source: "/api/admin/:path*",
             destination: "http://localhost:8090/api/v1/admin/:path*",
           },
+          // A4: the same trick for Aura, and for a simpler reason than the admin one above — the
+          // chat API has no cookies or CSRF to protect, it is just on a different port (8091) in
+          // local development. Proxying it server-side keeps every browser request same-origin, so
+          // `next dev` needs no CORS at all and no component contains a localhost URL. Production
+          // will do the same thing with the real Nginx proxy at the same relative path, which is
+          // out of scope for A4 (nothing is deployed).
+          //
+          // aura-service also ships an opt-in CORS allowance for anyone who would rather point
+          // NEXT_PUBLIC_AURA_API_BASE_URL straight at :8091 — see aura.cors.allowed-origins. It is
+          // empty by default, so this rewrite is the path that works out of the box.
+          {
+            source: "/api/aura/:path*",
+            destination: "http://localhost:8091/api/v1/aura/:path*",
+          },
         ];
       },
     }
