@@ -54,6 +54,25 @@ const GROUNDED: AuraTranscriptMessage[] = [
   },
 ];
 
+/**
+ * The same turn, carrying the routing metadata the backend returns when its own diagnostics switch
+ * is on. Nothing here is visitor-facing: it exists to demonstrate the developer inspector, which is
+ * the only surface that reads it.
+ */
+const GROUNDED_WITH_DIAGNOSTICS: AuraTranscriptMessage[] = [
+  GROUNDED[0]!,
+  {
+    ...GROUNDED[1]!,
+    diagnostics: {
+      mode: "GROUNDED_QA",
+      evidenceLevel: "STRONG_EVIDENCE",
+      language: "ENGLISH",
+      tone: "NEUTRAL",
+      latencyMs: 3739,
+    },
+  },
+];
+
 const BOUNDARY: AuraTranscriptMessage[] = [
   { id: "u2", role: "user", text: "What database does MESA use internally?" },
   {
@@ -128,7 +147,6 @@ const STATES: ReviewState[] = [
         id="review-2"
         onClose={() => {}}
         controller={stubController([])}
-        diagnosticsEnabled={false}
         onNavigate={() => {}}
       />,
     ),
@@ -143,7 +161,6 @@ const STATES: ReviewState[] = [
         id="review-products"
         onClose={() => {}}
         controller={stubController([])}
-        diagnosticsEnabled={false}
         onNavigate={() => {}}
         initialGuidedSection="products"
       />,
@@ -159,7 +176,6 @@ const STATES: ReviewState[] = [
         id="review-services"
         onClose={() => {}}
         controller={stubController([])}
-        diagnosticsEnabled={false}
         onNavigate={() => {}}
         initialGuidedSection="services"
       />,
@@ -167,32 +183,31 @@ const STATES: ReviewState[] = [
   },
   {
     id: "grounded",
-    title: "Grounded answer — sources collapsed",
-    note: "One quiet line. An answer should read as an answer.",
+    title: "Grounded answer — what a visitor actually sees",
+    note: "The answer, and nothing else. This turn carries two citations and full routing metadata; neither reaches the panel.",
     frame: panel(
       "grounded",
       <AuraPanel
         id="review-3"
         onClose={() => {}}
-        controller={stubController(GROUNDED)}
-        diagnosticsEnabled={false}
+        controller={stubController(GROUNDED_WITH_DIAGNOSTICS)}
         onNavigate={() => {}}
       />,
     ),
   },
   {
-    id: "sources",
-    title: "Sources expanded",
-    note: "Title and section only. There is no field on the wire for a score, an id or a knowledge space, so none can appear here.",
+    id: "inspector",
+    title: "The same grounded answer, with the developer inspector open",
+    note: "Where citations and routing metadata live now (A4.2). One collapsed disclosure describing the latest turn, never a block under every answer — and no public build contains it.",
     frame: panel(
-      "sources",
+      "inspector",
       <AuraPanel
         id="review-4"
         onClose={() => {}}
-        controller={stubController(GROUNDED)}
-        diagnosticsEnabled={false}
+        controller={stubController(GROUNDED_WITH_DIAGNOSTICS)}
         onNavigate={() => {}}
-        expandSources
+        devDiagnostics
+        devDiagnosticsOpen
       />,
     ),
   },
@@ -209,7 +224,6 @@ const STATES: ReviewState[] = [
           busy: true,
           state: "THINKING",
         })}
-        diagnosticsEnabled={false}
         onNavigate={() => {}}
       />,
     ),
@@ -232,7 +246,6 @@ const STATES: ReviewState[] = [
             retryable: true,
           },
         })}
-        diagnosticsEnabled={false}
         onNavigate={() => {}}
       />,
     ),
@@ -240,49 +253,28 @@ const STATES: ReviewState[] = [
   {
     id: "boundary",
     title: "Internal boundary — no sources at all",
-    note: "A boundary turn retrieves nothing, so there is nothing to cite and no Sources line appears.",
+    note: "A boundary turn is answered warmly and grounds nothing — and reads as an answer, with no label saying which mode produced it.",
     frame: panel(
       "boundary",
       <AuraPanel
         id="review-7"
         onClose={() => {}}
         controller={stubController(BOUNDARY)}
-        diagnosticsEnabled={false}
-        onNavigate={() => {}}
-      />,
-    ),
-  },
-  {
-    id: "diagnostics",
-    title: "Developer diagnostics",
-    note: "Off by default and never in a visitor build. Needs the frontend flag and the backend switch together, and shows routing outcomes only — no prompt, no scores, no identifiers.",
-    frame: panel(
-      "diagnostics",
-      <AuraPanel
-        id="review-8"
-        onClose={() => {}}
-        controller={stubController([
-          GROUNDED[0]!,
-          {
-            ...GROUNDED[1]!,
-            diagnostics: {
-              mode: "GROUNDED_QA",
-              evidenceLevel: "STRONG_EVIDENCE",
-              language: "ENGLISH",
-              tone: "CURIOUS",
-              latencyMs: 1840,
-            },
-          },
-        ])}
-        diagnosticsEnabled
         onNavigate={() => {}}
       />,
     ),
   },
 ];
 
-/** The phone the mobile sheet is reviewed at — iPhone 14/15 logical size. */
+/** The phone the mobile sheet is reviewed at by default — iPhone 14/15 logical size. */
 const PHONE = { width: 390, height: 844 };
+
+/**
+ * The widths the sheet has to hold at: the narrowest phone still in use, the small iPhone, the
+ * default above, and a large Android. `?device=widths` frames the same state at all four, which is
+ * how "it works on mobile" gets checked as something other than a single lucky viewport.
+ */
+const REVIEW_WIDTHS = [320, 375, 390, 430];
 
 export function AuraReviewStates({ bannerClassName }: { bannerClassName?: string }) {
   const [query, setQuery] = useState<URLSearchParams | null>(null);
@@ -314,6 +306,30 @@ export function AuraReviewStates({ bannerClassName }: { bannerClassName?: string
     </div>
   );
 
+  if (device === "widths") {
+    // One state, four viewports. Defaults to the grounded answer, which is the longest thing the
+    // sheet has to lay out; `?device=widths&only=first-open` checks the guided menu instead.
+    const state = STATES.find((candidate) => candidate.id === (only ?? "grounded")) ?? STATES[0]!;
+    return (
+      <div className={styles.phones}>
+        {banner}
+        {REVIEW_WIDTHS.map((width) => (
+          <figure key={width} className={styles.phone}>
+            <figcaption>
+              {width}px — {state.title}
+            </figcaption>
+            <iframe
+              title={`Aura at ${width}px — ${state.title}`}
+              src={`?only=${state.id}`}
+              width={width}
+              height={PHONE.height}
+            />
+          </figure>
+        ))}
+      </div>
+    );
+  }
+
   if (device === "mobile") {
     return (
       <div className={styles.phones}>
@@ -343,10 +359,15 @@ export function AuraReviewStates({ bannerClassName }: { bannerClassName?: string
           <h1 className="text-h1">Aura — visual review</h1>
           <p className={styles.lead}>
             Every state the owner needs to judge, from the real components and the real stylesheets.
-            Add <code>?only=grounded</code> to see one state alone, filling the viewport, or{" "}
-            <code>?device=mobile</code> to see every state at 390×844 — that page frames each one in
+            Add <code>?only=grounded</code> to see one state alone, filling the viewport,{" "}
+            <code>?device=mobile</code> to see every state at 390×844, or{" "}
+            <code>?device=widths</code> to see one state at 320, 375, 390 and 430 — each framed in
             its own viewport, so the mobile sheet is genuinely the mobile sheet rather than a
             narrowed desktop panel.
+          </p>
+          <p className={styles.lead}>
+            The developer inspector is the only state here that a visitor never sees. Everything
+            else is exactly what the public panel renders.
           </p>
         </header>
       )}

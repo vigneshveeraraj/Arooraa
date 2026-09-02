@@ -22,8 +22,9 @@ const PANEL = css("AuraPanel.module.css");
 const LAUNCHER = css("AuraLauncher.module.css");
 const COMPOSER = css("AuraComposer.module.css");
 const MARK = css("AuraMark.module.css");
-const SOURCES = css("AuraSources.module.css");
 const GUIDED = css("AuraGuidedEntry.module.css");
+const INSPECTOR = css("AuraDevInspector.module.css");
+const RICH_TEXT = css("AuraRichText.module.css");
 
 describe("Aura layout contract", () => {
   it("gives mobile its own layout rather than a scaled-down panel", () => {
@@ -63,12 +64,20 @@ describe("Aura layout contract", () => {
   });
 
   it("lets long unbroken text wrap instead of widening the panel", () => {
-    expect(SOURCES).toMatch(/overflow-wrap: anywhere/);
+    expect(RICH_TEXT).toMatch(/overflow-wrap: anywhere/);
     expect(PANEL).toMatch(/overflow-wrap: anywhere/);
   });
 
+  it("keeps the composer free of scrollbar chrome until the message outgrows it", () => {
+    // A textarea reserves the scrollbar the moment overflow is `auto`, which put native scroll
+    // arrows next to a one-line message on Windows. The stylesheet starts it hidden; the component
+    // switches it on only past max-block-size.
+    expect(COMPOSER).toMatch(/overflow-y: hidden/);
+    expect(COMPOSER).not.toMatch(/overflow-y: auto/);
+  });
+
   it("switches every Aura animation off under prefers-reduced-motion", () => {
-    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, MARK, SOURCES, GUIDED })) {
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, MARK, GUIDED, INSPECTOR })) {
       expect(sheet, `${name} should honour prefers-reduced-motion`).toMatch(
         /@media \(prefers-reduced-motion: reduce\)/,
       );
@@ -79,7 +88,7 @@ describe("Aura layout contract", () => {
 
   it("builds on the site's design tokens rather than its own palette", () => {
     // Aura should look like part of AROORAA, which means it must not introduce colours.
-    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, SOURCES, GUIDED })) {
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, GUIDED, INSPECTOR })) {
       const hexes = sheet.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
       expect(hexes, `${name} should use design tokens, found ${hexes.join(", ")}`).toHaveLength(0);
     }

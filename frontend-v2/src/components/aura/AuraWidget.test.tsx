@@ -335,9 +335,11 @@ describe("Aura on the website", () => {
     expect(composer()).toHaveValue("");
   });
 
-  // --- sources ---------------------------------------------------------------------------------
+  // --- what a visitor is shown (A4.2) ----------------------------------------------------------
 
-  it("shows a collapsed source count for a grounded answer and expands it on request", async () => {
+  it("shows a grounded answer and none of the citations it arrived with", async () => {
+    // The whole A4.2 finding, at the level a visitor experiences it: the answer comes back with
+    // real citations attached, and the panel shows the answer.
     const client = new FakeAuraClient().answerWith(
       answer("MESA connects ordering and kitchen operations.", [
         { title: "MESA — Restaurant Technology Ecosystem", section: "What MESA does today", sourceUrl: null },
@@ -347,37 +349,40 @@ describe("Aura on the website", () => {
     const user = await openAura(client);
 
     await user.type(composer(), "What is MESA?{Enter}");
-    const toggle = await screen.findByRole("button", { name: /Sources · 2/ });
+    await screen.findByText("MESA connects ordering and kitchen operations.");
 
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText("What MESA does today")).not.toBeInTheDocument();
-
-    await user.click(toggle);
-
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("MESA — Restaurant Technology Ecosystem")).toBeInTheDocument();
-    expect(screen.getByText("What MESA does today")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "AROORAA — Company Overview" })).toHaveAttribute(
-      "href",
-      "https://arooraa.com/about",
-    );
-
-    await user.click(toggle);
-    expect(screen.queryByText("What MESA does today")).not.toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: /Aura/ });
+    expect(dialog.textContent).not.toContain("Sources");
+    expect(dialog.textContent).not.toContain("MESA — Restaurant Technology Ecosystem");
+    expect(dialog.textContent).not.toContain("What MESA does today");
+    expect(dialog.querySelector('a[href="https://arooraa.com/about"]')).toBeNull();
   });
 
-  it("shows no sources UI at all for a turn that retrieved nothing", async () => {
-    // A boundary turn, small talk and general consulting all arrive with an empty list, and an
-    // empty "Sources · 0" line would be worse than none.
+  it("never shows developer metadata on the real website, flag or no flag", async () => {
+    // The inspector's gate is NODE_ENV === "development" && the flag. This suite runs under
+    // NODE_ENV "test", so setting the flag here is the closest thing to a deployed site with a
+    // stray environment variable — and it still shows a visitor nothing.
+    vi.stubEnv("NEXT_PUBLIC_AURA_DIAGNOSTICS", "true");
     const client = new FakeAuraClient().answerWith(
-      answer("That one's on the private side of the line for me — happy to talk about your system though."),
+      answer("MESA connects a restaurant.", [{ title: "MESA", section: "Overview", sourceUrl: null }], {
+        mode: "GROUNDED_QA",
+        evidenceLevel: "STRONG_EVIDENCE",
+        language: "ENGLISH",
+        tone: "NEUTRAL",
+        latencyMs: 3739,
+      }),
     );
     const user = await openAura(client);
 
-    await user.type(composer(), "What database does MESA use internally?{Enter}");
+    await user.type(composer(), "What is MESA?{Enter}");
+    await screen.findByText("MESA connects a restaurant.");
 
-    await screen.findByText(/private side of the line/);
-    expect(screen.queryByRole("button", { name: /Sources/ })).not.toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: /Aura/ });
+    for (const word of ["GROUNDED_QA", "STRONG_EVIDENCE", "ENGLISH", "NEUTRAL", "3739ms", "Sources"]) {
+      expect(dialog.textContent, word).not.toContain(word);
+    }
+    expect(screen.queryByText("Dev")).not.toBeInTheDocument();
+    expect(dialog.querySelector("details")).toBeNull();
   });
 
   // --- errors ----------------------------------------------------------------------------------
@@ -536,25 +541,6 @@ describe("Aura on the website", () => {
     await screen.findByText("MESA connects a restaurant.");
     expect(screen.queryByText(/GROUNDED_QA/)).not.toBeInTheDocument();
     expect(screen.queryByText(/1420ms/)).not.toBeInTheDocument();
-  });
-
-  it("shows diagnostics only when the local flag is explicitly on", async () => {
-    vi.stubEnv("NEXT_PUBLIC_AURA_DIAGNOSTICS", "true");
-    const client = new FakeAuraClient().answerWith(
-      answer("MESA connects a restaurant.", [], {
-        mode: "GROUNDED_QA",
-        evidenceLevel: "STRONG_EVIDENCE",
-        language: "ENGLISH",
-        tone: "CURIOUS",
-        latencyMs: 1420,
-      }),
-    );
-    const user = await openAura(client);
-
-    await user.type(composer(), "What is MESA?{Enter}");
-
-    const line = await screen.findByText(/GROUNDED_QA/);
-    expect(line).toHaveTextContent("GROUNDED_QA · STRONG_EVIDENCE · ENGLISH · CURIOUS · 1420ms");
   });
 
   // --- accessibility ---------------------------------------------------------------------------
