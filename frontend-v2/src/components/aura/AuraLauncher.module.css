@@ -1,0 +1,74 @@
+/*
+ * The closed state. A quiet pill in the lower-right that reads as a presence you can address, not
+ * as a support widget: white surface, real border, one line of type, no gradient and no bounce.
+ */
+
+.launcher {
+  position: fixed;
+  inset-block-end: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: calc(var(--space-5) + env(safe-area-inset-right, 0px));
+  z-index: 60;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 48px;
+  padding-inline: var(--space-4) var(--space-5);
+  padding-block: var(--space-3);
+
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+  letter-spacing: 0.01em;
+
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.launcher:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border-strong));
+  box-shadow: 0 12px 30px rgba(20, 21, 26, 0.14);
+}
+
+.launcher:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.label {
+  white-space: nowrap;
+}
+
+/*
+ * Below the mobile breakpoint the pill sits tighter to the edge and drops a little padding, but
+ * keeps its label and stays well over the 44px target. A bare icon would be smaller and less
+ * clear about what it is, which is the opposite of the point.
+ */
+@media (max-width: 600px) {
+  .launcher {
+    inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    inset-inline-end: calc(var(--space-4) + env(safe-area-inset-right, 0px));
+    padding-inline: var(--space-3) var(--space-4);
+    min-block-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher {
+    transition: none;
+  }
+  .launcher:hover {
+    transform: none;
+  }
+}

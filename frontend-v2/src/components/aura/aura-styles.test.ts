@@ -1,0 +1,86 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+/**
+ * The layout guarantees jsdom cannot check.
+ *
+ * <p>A component test renders at one notional size and never evaluates a media query, so nothing
+ * in the rest of this suite would notice if the mobile sheet, the safe-area padding or the
+ * reduced-motion blocks were deleted. These read the stylesheets and assert the rules are present.
+ *
+ * <p>Worth being clear about what this is: a regression guard, not a rendering test. It proves the
+ * rule exists, not that it looks right — that judgement is the owner's, from the screenshots.
+ */
+const DIR = path.resolve(__dirname);
+
+function css(file: string): string {
+  return readFileSync(path.join(DIR, file), "utf8");
+}
+
+const PANEL = css("AuraPanel.module.css");
+const LAUNCHER = css("AuraLauncher.module.css");
+const COMPOSER = css("AuraComposer.module.css");
+const MARK = css("AuraMark.module.css");
+const SOURCES = css("AuraSources.module.css");
+
+describe("Aura layout contract", () => {
+  it("gives mobile its own layout rather than a scaled-down panel", () => {
+    expect(PANEL).toMatch(/@media \(max-width: 600px\)/);
+    // A sheet pinned to the bottom edge across the full width, not a floating box.
+    expect(PANEL).toMatch(/inset: auto 0 0 0/);
+    expect(PANEL).toMatch(/inline-size: 100%/);
+  });
+
+  it("sizes the panel so it cannot overflow the narrowest phone", () => {
+    // 320px is the narrowest viewport in the brief; min() with a viewport-relative fallback means
+    // the desktop width can never win on a screen smaller than it.
+    expect(PANEL).toMatch(/inline-size: min\(408px, calc\(100vw - 2 \* var\(--space-5\)\)\)/);
+    expect(PANEL).toMatch(/overflow-x: hidden/);
+  });
+
+  it("uses dvh on mobile so the keyboard shortens the sheet instead of hiding the composer", () => {
+    expect(PANEL).toMatch(/block-size: min\(88dvh/);
+  });
+
+  it("respects the safe area on both the launcher and the sheet", () => {
+    expect(LAUNCHER).toMatch(/env\(safe-area-inset-bottom, 0px\)/);
+    expect(LAUNCHER).toMatch(/env\(safe-area-inset-right, 0px\)/);
+    expect(PANEL).toMatch(/env\(safe-area-inset-bottom, 0px\)/);
+  });
+
+  it("keeps every touch target at 44px or more", () => {
+    expect(LAUNCHER).toMatch(/min-block-size: 44px/);
+    expect(COMPOSER).toMatch(/block-size: 44px/);
+    // The desktop header controls are compact; the mobile block raises them.
+    const mobileBlock = PANEL.slice(PANEL.indexOf("@media (max-width: 600px)"));
+    expect(mobileBlock).toMatch(/min-block-size: 44px/);
+  });
+
+  it("keeps the composer at 16px so iOS does not zoom the page on focus", () => {
+    expect(COMPOSER).toMatch(/font-size: 16px/);
+  });
+
+  it("lets long unbroken text wrap instead of widening the panel", () => {
+    expect(SOURCES).toMatch(/overflow-wrap: anywhere/);
+    expect(PANEL).toMatch(/overflow-wrap: anywhere/);
+  });
+
+  it("switches every Aura animation off under prefers-reduced-motion", () => {
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, MARK, SOURCES })) {
+      expect(sheet, `${name} should honour prefers-reduced-motion`).toMatch(
+        /@media \(prefers-reduced-motion: reduce\)/,
+      );
+    }
+    // The mark is the only thing that animates continuously, so it is the one that must stop dead.
+    expect(MARK).toMatch(/animation: none !important/);
+  });
+
+  it("builds on the site's design tokens rather than its own palette", () => {
+    // Aura should look like part of AROORAA, which means it must not introduce colours.
+    for (const [name, sheet] of Object.entries({ PANEL, LAUNCHER, COMPOSER, SOURCES })) {
+      const hexes = sheet.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
+      expect(hexes, `${name} should use design tokens, found ${hexes.join(", ")}`).toHaveLength(0);
+    }
+  });
+});

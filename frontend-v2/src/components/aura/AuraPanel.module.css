@@ -1,0 +1,293 @@
+/*
+ * Desktop: a bounded panel in the lower-right, sized so it never covers the page it is discussing.
+ * Mobile: a sheet that owns the viewport, because a 400px panel on a 375px screen is a worse
+ * version of both. The two are genuinely different layouts rather than one scaled down.
+ */
+
+.panel {
+  position: fixed;
+  inset-block-end: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: calc(var(--space-5) + env(safe-area-inset-right, 0px));
+  z-index: 70;
+
+  display: flex;
+  flex-direction: column;
+  inline-size: min(408px, calc(100vw - 2 * var(--space-5)));
+  block-size: min(620px, calc(100vh - 2 * var(--space-6)));
+
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(20, 21, 26, 0.18);
+  overflow: hidden;
+
+  animation: panelIn var(--duration-base) var(--ease-standard);
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* --- header --------------------------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-4);
+  padding-block: var(--space-3);
+  border-block-end: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.identity {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+}
+
+.role {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.headerAction {
+  flex: none;
+  min-block-size: 32px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  background: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.headerAction:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-border-interactive);
+}
+
+.headerAction:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.close svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.close:hover {
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+}
+
+.headerAction:focus-visible,
+.close:focus-visible,
+.starter:focus-visible,
+.retry:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* --- conversation --------------------------------------------------------------------------- */
+
+.log {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.introText {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+}
+
+.starters {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.starter {
+  min-block-size: 36px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.starter:hover:not(:disabled) {
+  border-color: var(--color-border-interactive);
+}
+
+.starter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userMessage {
+  margin: 0;
+  max-inline-size: 85%;
+  padding-inline: var(--space-4);
+  padding-block: var(--space-3);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-cta-fg);
+  background: var(--color-cta-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/*
+ * Aura's own turns are not bubbles. A representative speaking on the page reads better as plain
+ * type in the panel's own surface than as a second colour of chat bubble facing the other way.
+ */
+.auraRow {
+  color: var(--color-text);
+}
+
+.auraRow[data-failed="true"] {
+  color: var(--color-text-muted);
+}
+
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.retry {
+  align-self: flex-start;
+  min-block-size: 32px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-interactive);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.diagnostics {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  color: var(--color-text-muted);
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- mobile --------------------------------------------------------------------------------- */
+
+/*
+ * A sheet, not a shrunken panel. It leaves the top of the page visible so the site is obviously
+ * still there and one tap away, uses dvh so the mobile keyboard shortens the sheet rather than
+ * pushing the composer off-screen, and keeps its own safe-area padding.
+ */
+@media (max-width: 600px) {
+  .panel {
+    inset: auto 0 0 0;
+    inline-size: 100%;
+    block-size: min(88dvh, calc(100dvh - var(--space-6)));
+    border-inline: none;
+    border-block-end: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-block-end: env(safe-area-inset-bottom, 0px);
+  }
+
+  .header {
+    padding-block: var(--space-4);
+  }
+
+  /* Comfortably over the 44px minimum on touch, where the desktop sizes are tight. */
+  .headerAction,
+  .close,
+  .starter,
+  .retry {
+    min-block-size: 44px;
+  }
+
+  .close {
+    inline-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+  .starter {
+    transition: none;
+  }
+}
