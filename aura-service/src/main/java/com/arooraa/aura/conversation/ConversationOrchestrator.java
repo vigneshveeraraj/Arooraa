@@ -17,6 +17,7 @@ import com.arooraa.aura.conversation.pipeline.GenerationPolicy;
 import com.arooraa.aura.conversation.pipeline.GuardrailResult;
 import com.arooraa.aura.conversation.pipeline.InputValidator;
 import com.arooraa.aura.conversation.pipeline.OutputGuardrail;
+import com.arooraa.aura.conversation.pipeline.PageAwareScopeResolver;
 import com.arooraa.aura.conversation.pipeline.PromptComposer;
 import com.arooraa.aura.conversation.pipeline.ResponseAssembler;
 import com.arooraa.aura.conversation.pipeline.RetrievalDecision;
@@ -73,6 +74,7 @@ public class ConversationOrchestrator {
     private final InputValidator inputValidator;
     private final AssistantProfileResolver profileResolver;
     private final ScopeClassifier scopeClassifier;
+    private final PageAwareScopeResolver pageAwareScopeResolver;
     private final LanguageDetector languageDetector;
     private final ToneDetector toneDetector;
     private final ConversationContextLoader contextLoader;
@@ -91,6 +93,7 @@ public class ConversationOrchestrator {
     public ConversationOrchestrator(InputValidator inputValidator,
                                      AssistantProfileResolver profileResolver,
                                      ScopeClassifier scopeClassifier,
+                                     PageAwareScopeResolver pageAwareScopeResolver,
                                      LanguageDetector languageDetector,
                                      ToneDetector toneDetector,
                                      ConversationContextLoader contextLoader,
@@ -108,6 +111,7 @@ public class ConversationOrchestrator {
         this.inputValidator = inputValidator;
         this.profileResolver = profileResolver;
         this.scopeClassifier = scopeClassifier;
+        this.pageAwareScopeResolver = pageAwareScopeResolver;
         this.languageDetector = languageDetector;
         this.toneDetector = toneDetector;
         this.contextLoader = contextLoader;
@@ -162,6 +166,11 @@ public class ConversationOrchestrator {
 
         // 3 + 4. Scope and confidentiality classification, both deterministic.
         ScopeDecision scope = scopeClassifier.classify(message);
+        // 3.5 (A4.1). "Tell me more about this." names nothing on its own — only page context can
+        // resolve it. Only ever narrows the GENERAL_CONSULTING fallback; see the resolver's own
+        // doc for exactly which three conditions all have to hold before it changes anything.
+        PageAwareScopeResolver.Resolution pageContext = pageAwareScopeResolver.resolve(scope, message, currentPath);
+        scope = pageContext.scope();
         ConversationMode mode = scope.mode();
         Language language = languageDetector.detect(message);
         ConversationTone tone = toneDetector.detect(message);
@@ -173,9 +182,11 @@ public class ConversationOrchestrator {
         sequence++;
 
         // 6 + 7 + 8. Retrieval decision, hybrid retrieval, and the A2.2 evidence gate.
+        // The retrieval query is contextualized when 3.5 fired above; the visitor's own message
+        // (stored, and what the model sees as the user's turn) is never touched.
         RetrievalDecision retrievalDecision = retrievalPlanner.decide(scope);
         RetrievalResult retrieval = retrievalDecision.retrieve()
-                ? retrievalService.retrieve(new RetrievalRequest(message, profile.profile(), profile.channel()))
+                ? retrievalService.retrieve(new RetrievalRequest(pageContext.retrievalQuery(), profile.profile(), profile.channel()))
                 : RetrievalResult.noEvidence(message);
 
         // 9. Generation policy: what this turn may claim.
