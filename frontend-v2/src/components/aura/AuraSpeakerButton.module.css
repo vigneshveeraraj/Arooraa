@@ -1,0 +1,49 @@
+/*
+ * The quietest control in the composer: a preference, not an action. Borderless until it is on,
+ * so a visitor who never wants sound never sees a button competing for attention.
+ */
+
+.speaker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 36px;
+  block-size: 44px;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.speaker svg {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.speaker:hover {
+  color: var(--color-text);
+}
+
+.speaker[data-on="true"] {
+  color: var(--color-accent);
+}
+
+.speaker:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 600px) {
+  .speaker {
+    inline-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speaker {
+    transition: none;
+  }
+}

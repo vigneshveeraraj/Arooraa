@@ -2,8 +2,9 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AuraGuidedProduct, AuraGuidedService } from "@/lib/aura/guided-entry";
-import { describeAuraState } from "@/lib/aura/state";
+import { describeAuraState, mergeAuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
+import { voicePresence, type AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
 import dynamic from "next/dynamic";
 import { AuraComposer } from "./AuraComposer";
 import { AuraGuidedEntry, type AuraGuidedSection } from "./AuraGuidedEntry";
@@ -29,6 +30,12 @@ interface AuraPanelProps {
   /** Only the design-system review page sets this — seeds the guided menu's nested level so the
    * Products/Services submenus can be captured directly instead of requiring a click first. */
   initialGuidedSection?: AuraGuidedSection;
+  /**
+   * The voice channel, or null when it is not configured — which is the default. Everything voice
+   * adds to this panel is conditional on it, so a deployment with voice off renders exactly the
+   * panel A4.2 shipped.
+   */
+  voice?: AuraVoiceController | null;
 }
 
 /**
@@ -79,11 +86,15 @@ export function AuraPanel({
   devDiagnosticsOpen = false,
   onNavigate,
   initialGuidedSection,
+  voice = null,
 }: AuraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const { transcript, state, failure, busy } = controller;
   const empty = transcript.length === 0;
+
+  // One presence for the visitor to read, out of two sources — see mergeAuraState.
+  const presence = mergeAuraState(state, voice ? voicePresence(voice.status) : null);
 
   // The guided menu owns two small pieces of presentation state: whether it is showing at all, and
   // which level. It reopens on a genuinely empty conversation (including after "New") and collapses
@@ -208,7 +219,7 @@ export function AuraPanel({
       aria-label="Aura, AROORAA's digital assistant"
     >
       <header className={styles.header}>
-        <AuraMark state={state} size={26} />
+        <AuraMark state={presence} size={26} />
         <div className={styles.identity}>
           <p className={styles.name}>Aura</p>
           <p className={styles.role}>AROORAA digital assistant</p>
@@ -277,6 +288,7 @@ export function AuraPanel({
             onStartIdea={startIdea}
             onNavigateOnly={navigateOnly}
             onDismiss={dismissGuidedMenu}
+            voiceAvailable={voice?.available ?? false}
           />
         ) : null}
 
@@ -295,10 +307,15 @@ export function AuraPanel({
       </div>
 
       <p className={styles.srOnly} role="status">
-        {describeAuraState(state)}
+        {describeAuraState(presence)}
       </p>
 
-      <AuraComposer onSend={controller.send} onActiveChange={controller.markInputActive} busy={busy} />
+      <AuraComposer
+        onSend={controller.send}
+        onActiveChange={controller.markInputActive}
+        busy={busy}
+        voice={voice}
+      />
     </div>
   );
 }

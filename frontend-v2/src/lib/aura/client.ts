@@ -41,6 +41,13 @@ export function auraConversationsUrl(): string {
   return API_BASE_URL ? `${API_BASE_URL}/api/v1/aura/conversations` : `${API_BASE_PATH}/conversations`;
 }
 
+/** The voice channel's routes, resolved the same way and through the same proxy (A5). */
+export function auraVoiceUrl(resource: string): string {
+  return API_BASE_URL
+    ? `${API_BASE_URL}/api/v1/aura/voice/${resource}`
+    : `${API_BASE_PATH}/voice/${resource}`;
+}
+
 /** A generous ceiling: real answers land around 1–4s, and a slow one is better than a false failure. */
 const REQUEST_TIMEOUT_MS = 30_000;
 

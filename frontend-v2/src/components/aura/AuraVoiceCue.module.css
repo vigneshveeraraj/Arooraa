@@ -1,0 +1,45 @@
+/*
+ * One quiet line. It sits inside the guided entry, where a first-time visitor is deciding how to
+ * begin, and it has to read as reassurance rather than as a feature announcement — so it is muted
+ * label type, no border, no background, no badge.
+ */
+
+.cue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.mark {
+  flex: none;
+  display: inline-flex;
+  inline-size: 24px;
+  block-size: 16px;
+  color: var(--color-accent);
+}
+
+.mark svg {
+  display: block;
+}
+
+.core,
+.barSmall,
+.barMedium,
+.barTall {
+  fill: currentColor;
+}
+
+/* The same descending opacities as the Spark's four rays, so the two marks are visibly related. */
+.barTall {
+  opacity: 1;
+}
+.barMedium {
+  opacity: 0.72;
+}
+.barSmall {
+  opacity: 0.48;
+}

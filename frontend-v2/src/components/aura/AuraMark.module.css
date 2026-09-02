@@ -88,6 +88,58 @@
   --aura-mark-color: var(--color-error);
 }
 
+/*
+ * The three voice states (A5). Each has to be distinguishable from THINKING at a glance and from
+ * each other, which is why they differ in what moves rather than only in how fast: LISTENING
+ * breathes outward at the core and holds the rays still, SPEAKING moves the rays and holds the
+ * core, and PROCESSING_AUDIO turns slowly with the core drawn in.
+ */
+.mark[data-state="LISTENING"] {
+  --aura-mark-color: var(--color-error);
+}
+.mark[data-state="LISTENING"] .core {
+  animation: auraListen 1.9s var(--ease-standard) infinite;
+}
+
+.mark[data-state="PROCESSING_AUDIO"] .rays {
+  animation: auraThink 4s linear infinite;
+}
+.mark[data-state="PROCESSING_AUDIO"] .core {
+  transform: scale(0.86);
+}
+
+.mark[data-state="SPEAKING"] .rayLong,
+.mark[data-state="SPEAKING"] .rayMedium,
+.mark[data-state="SPEAKING"] .raySmall {
+  animation: auraSpeak 1.1s var(--ease-standard) infinite;
+}
+.mark[data-state="SPEAKING"] .rayMedium {
+  animation-delay: 140ms;
+}
+.mark[data-state="SPEAKING"] .raySmall {
+  animation-delay: 280ms;
+}
+
+@keyframes auraListen {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.22);
+  }
+}
+
+@keyframes auraSpeak {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  45% {
+    opacity: 1;
+  }
+}
+
 @keyframes auraThink {
   to {
     transform: rotate(360deg);
@@ -130,5 +182,13 @@
   .mark[data-state="THINKING"] .rayLong,
   .mark[data-state="THINKING"] .rayMedium {
     opacity: 0.65;
+  }
+  /* LISTENING keeps its own colour, which is the state's real signal; the other two need a
+     static difference of their own once nothing is moving. */
+  .mark[data-state="PROCESSING_AUDIO"] .core {
+    transform: scale(0.8);
+  }
+  .mark[data-state="SPEAKING"] .core {
+    transform: scale(1.18);
   }
 }

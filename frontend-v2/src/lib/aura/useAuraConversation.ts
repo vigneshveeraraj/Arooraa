@@ -13,10 +13,24 @@ function nextId(prefix: string): string {
   return `${prefix}-${messageCounter}`;
 }
 
+/**
+ * How a message got here. Only ever used to decide whether Aura should read its answer out loud —
+ * it changes nothing about how the message is classified, retrieved for, or answered, because a
+ * spoken question and a typed one are the same question.
+ */
+export type AuraMessageSource = "TYPED" | "VOICE";
+
 export interface UseAuraConversationOptions {
   client?: AuraApiClient;
   /** The pathname sent with every message. Context only — never authorization. */
   currentPath: string | null;
+  /**
+   * Fired once per answer, with the conversation it belongs to and how the question was asked.
+   * A callback rather than something the caller observes with an effect, so voice playback starts
+   * at the moment the answer lands instead of a render later, and without anyone comparing
+   * transcript lengths to work out that something new arrived.
+   */
+  onAnswer?(conversationId: string, source: AuraMessageSource): void;
 }
 
 export interface AuraConversationController {
@@ -24,7 +38,9 @@ export interface AuraConversationController {
   state: AuraState;
   failure: AuraFailure | null;
   busy: boolean;
-  send(message: string): void;
+  /** Null until the first message opens one. Voice playback needs it to name what to speak. */
+  conversationId: string | null;
+  send(message: string, source?: AuraMessageSource): void;
   retryLast(): void;
   startNewConversation(): void;
   markInputActive(active: boolean): void;
@@ -44,17 +60,20 @@ export interface AuraConversationController {
 export function useAuraConversation({
   client,
   currentPath,
+  onAnswer,
 }: UseAuraConversationOptions): AuraConversationController {
   const api = useMemo(() => client ?? createAuraApiClient(), [client]);
 
   const [transcript, setTranscript] = useState<AuraTranscriptMessage[]>([]);
   const [state, setState] = useState<AuraState>("IDLE");
   const [failure, setFailure] = useState<AuraFailure | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   /** Guards against a double submit: a ref, because two clicks in one tick share a render. */
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const lastMessage = useRef<string | null>(null);
+  const lastSource = useRef<AuraMessageSource>("TYPED");
 
   // The acknowledgement state is a moment, not a mode: it settles back to idle on its own.
   useEffect(() => {
@@ -69,7 +88,10 @@ export function useAuraConversation({
 
   const ensureConversation = useCallback(async (): Promise<string | null> => {
     const existing = readStoredConversationId();
-    if (existing) return existing;
+    if (existing) {
+      setConversationId(existing);
+      return existing;
+    }
 
     const created = await api.createConversation();
     if (!created.ok) {
@@ -77,6 +99,7 @@ export function useAuraConversation({
       return null;
     }
     storeConversationId(created.value.conversationId);
+    setConversationId(created.value.conversationId);
     return created.value.conversationId;
   }, [api]);
 
@@ -117,10 +140,11 @@ export function useAuraConversation({
         diagnostics: result.value.diagnostics ?? null,
       });
       setState("RESPONSE_READY");
+      onAnswer?.(id, lastSource.current);
     },
     // currentPath is a dependency rather than a ref: navigation is rare, and a request that is
     // already in flight keeps the path it was sent with, which is the correct context for it.
-    [api, appendAura, currentPath, ensureConversation],
+    [api, appendAura, currentPath, ensureConversation, onAnswer],
   );
 
   const run = useCallback(
@@ -139,10 +163,11 @@ export function useAuraConversation({
   );
 
   const send = useCallback(
-    (message: string) => {
+    (message: string, source: AuraMessageSource = "TYPED") => {
       const text = message.trim();
       if (text.length === 0 || inFlight.current) return;
       lastMessage.current = text;
+      lastSource.current = source;
       // Rendered immediately: the visitor's own words should never wait on a network call.
       setTranscript((current) => [...current, { id: nextId("user"), role: "user", text }]);
       run(text);
@@ -166,7 +191,9 @@ export function useAuraConversation({
     clearStoredConversationId();
     setTranscript([]);
     setFailure(null);
+    setConversationId(null);
     lastMessage.current = null;
+    lastSource.current = "TYPED";
     setState("IDLE");
   }, []);
 
@@ -182,6 +209,7 @@ export function useAuraConversation({
     state,
     failure,
     busy,
+    conversationId,
     send,
     retryLast,
     startNewConversation,

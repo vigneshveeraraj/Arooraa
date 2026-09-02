@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
+import type { AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
 import { AuraLauncher } from "./AuraLauncher";
 import { AuraMark } from "./AuraMark";
 import { AuraPanel } from "./AuraPanel";
@@ -29,6 +30,7 @@ function stubController(
     state: "IDLE",
     failure: null,
     busy: false,
+    conversationId: "review-conversation",
     send: () => {},
     retryLast: () => {},
     startNewConversation: () => {},
@@ -94,7 +96,43 @@ const FAILED: AuraTranscriptMessage[] = [
   },
 ];
 
-const MARK_STATES: AuraState[] = ["IDLE", "INPUT_ACTIVE", "THINKING", "RESPONSE_READY", "ERROR"];
+const MARK_STATES: AuraState[] = [
+  "IDLE",
+  "INPUT_ACTIVE",
+  "LISTENING",
+  "PROCESSING_AUDIO",
+  "THINKING",
+  "SPEAKING",
+  "RESPONSE_READY",
+  "ERROR",
+];
+
+/**
+ * A voice channel that is available but does nothing, so the microphone, the speaker toggle and
+ * the language cue can be photographed without a browser that can record or a backend that can
+ * transcribe. `status` is the only thing a caller varies.
+ */
+function stubVoice(overrides: Partial<AuraVoiceController> = {}): AuraVoiceController {
+  return {
+    supported: true,
+    available: true,
+    speechAvailable: true,
+    status: "IDLE",
+    error: null,
+    transcript: null,
+    speakAnswers: false,
+    maxRecordingSeconds: 60,
+    startListening: () => {},
+    stopListening: () => {},
+    cancelListening: () => {},
+    setSpeakAnswers: () => {},
+    replay: () => {},
+    announceAnswer: () => {},
+    stopSpeaking: () => {},
+    dismissError: () => {},
+    ...overrides,
+  };
+}
 
 function panel(key: string, node: ReactNode) {
   return (
@@ -208,6 +246,69 @@ const STATES: ReviewState[] = [
         onNavigate={() => {}}
         devDiagnostics
         devDiagnosticsOpen
+      />,
+    ),
+  },
+  {
+    id: "voice-first-open",
+    title: "First open, with voice available",
+    note: "The guided entry gains one quiet line — Speak naturally, in the three languages Aura has actually been built for. No flag, no globe: the mark is the Spark's own geometry.",
+    frame: panel(
+      "voice-first-open",
+      <AuraPanel
+        id="review-voice-1"
+        onClose={() => {}}
+        controller={stubController([])}
+        onNavigate={() => {}}
+        voice={stubVoice()}
+      />,
+    ),
+  },
+  {
+    id: "voice-listening",
+    title: "Recording",
+    note: "The microphone is the loudest thing in the composer while it is recording, and the strip above says how to stop. Tap to start, tap to stop — reachable from a keyboard, unlike hold-to-talk.",
+    frame: panel(
+      "voice-listening",
+      <AuraPanel
+        id="review-voice-2"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubVoice({ status: "LISTENING" })}
+      />,
+    ),
+  },
+  {
+    id: "voice-speaking",
+    title: "Speaking, with a way to stop it",
+    note: "Aura reads an answer aloud only when asked — by turning speech on, or by having asked the question out loud. Stopping is always one tap away.",
+    frame: panel(
+      "voice-speaking",
+      <AuraPanel
+        id="review-voice-3"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubVoice({ status: "SPEAKING", speakAnswers: true })}
+      />,
+    ),
+  },
+  {
+    id: "voice-denied",
+    title: "Microphone permission refused",
+    note: "Aura's own words, no error name, and the composer still right there — voice is never the only way in.",
+    frame: panel(
+      "voice-denied",
+      <AuraPanel
+        id="review-voice-4"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubVoice({
+          error:
+            "I'll need microphone permission to hear you. You can allow it in your browser, or just type.",
+        })}
       />,
     ),
   },

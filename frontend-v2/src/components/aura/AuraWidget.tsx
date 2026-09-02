@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import type { AuraApiClient } from "@/lib/aura/client";
-import { useAuraConversation } from "@/lib/aura/useAuraConversation";
+import { useAuraConversation, type AuraMessageSource } from "@/lib/aura/useAuraConversation";
+import { mergeAuraState } from "@/lib/aura/state";
+import { useAuraVoice, voicePresence } from "@/lib/aura/voice/useAuraVoice";
+import type { AuraVoiceApiClient } from "@/lib/aura/voice/voice-client";
 import { AuraLauncher } from "./AuraLauncher";
 
 /**
@@ -21,6 +24,8 @@ const PANEL_ID = "aura-panel";
 interface AuraWidgetProps {
   /** Injected by tests; production always uses the real client. */
   client?: AuraApiClient;
+  /** Injected by tests; production always uses the real client. */
+  voiceClient?: AuraVoiceApiClient;
 }
 
 /**
@@ -32,7 +37,7 @@ interface AuraWidgetProps {
  * conversation controller. The controller lives here rather than inside the panel so closing Aura
  * does not throw away the conversation.
  */
-export function AuraWidget({ client }: AuraWidgetProps) {
+export function AuraWidget({ client, voiceClient }: AuraWidgetProps) {
   const [open, setOpen] = useState(false);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -48,9 +53,33 @@ export function AuraWidget({ client }: AuraWidgetProps) {
   const devDiagnostics =
     process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_AURA_DIAGNOSTICS === "true";
 
-  const controller = useAuraConversation({ client, currentPath: pathname ?? null });
+  const voice = useAuraVoice({ client: voiceClient });
 
-  const close = useCallback(() => setOpen(false), []);
+  // Speaking an answer is an event, fired the moment the answer lands, rather than something a
+  // component notices later by watching the transcript grow. That ordering is what makes a spoken
+  // reply follow a spoken question immediately, and it keeps the decision — should this be read
+  // aloud at all? — in the one place that knows both the preference and how the question was asked.
+  const announceAnswer = useCallback(
+    (conversationId: string, source: AuraMessageSource) => {
+      voice.announceAnswer(conversationId, source === "VOICE");
+    },
+    [voice],
+  );
+
+  const controller = useAuraConversation({
+    client,
+    currentPath: pathname ?? null,
+    onAnswer: announceAnswer,
+  });
+
+  const close = useCallback(() => {
+    // Closing the panel ends anything voice is doing. A conversation survives a close and is
+    // meant to; a microphone that stays open, or an answer that keeps talking to a page the
+    // visitor has moved on from, is a different thing entirely.
+    voice.cancelListening();
+    voice.stopSpeaking();
+    setOpen(false);
+  }, [voice]);
 
   // The browser's back button should dismiss an open panel rather than leaving the visitor on a
   // different page with a conversation still floating over it.
@@ -75,7 +104,7 @@ export function AuraWidget({ client }: AuraWidgetProps) {
       {!open ? (
         <AuraLauncher
           onOpen={() => setOpen(true)}
-          state={controller.state}
+          state={mergeAuraState(controller.state, voicePresence(voice.status))}
           panelId={PANEL_ID}
           buttonRef={launcherRef}
         />
@@ -86,6 +115,7 @@ export function AuraWidget({ client }: AuraWidgetProps) {
           controller={controller}
           devDiagnostics={devDiagnostics}
           onNavigate={router.push}
+          voice={voice}
         />
       )}
     </>

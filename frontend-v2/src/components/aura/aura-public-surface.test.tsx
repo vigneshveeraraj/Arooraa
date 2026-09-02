@@ -28,6 +28,7 @@ function controller(
     state: "IDLE",
     failure: null,
     busy: false,
+    conversationId: "review-conversation",
     send: () => {},
     retryLast: () => {},
     startNewConversation: () => {},
@@ -218,5 +219,41 @@ describe("the public Aura conversation", () => {
     expect(turn.sources).toHaveLength(3);
     expect(turn.diagnostics?.mode).toBe("GROUNDED_QA");
     expect(turn.diagnostics?.evidenceLevel).toBe("STRONG_EVIDENCE");
+  });
+
+  it("stays just as clean with voice switched on", () => {
+    // Voice adds two controls and a language cue. None of it may bring provider, model or
+    // routing vocabulary into the conversation with it.
+    render(
+      <AuraPanel
+        id="aura-panel-voice"
+        onClose={() => {}}
+        controller={controller(LOADED_TURN)}
+        onNavigate={() => {}}
+        voice={{
+          supported: true,
+          available: true,
+          speechAvailable: true,
+          status: "IDLE",
+          error: null,
+          transcript: null,
+          speakAnswers: false,
+          maxRecordingSeconds: 60,
+          startListening: () => {},
+          stopListening: () => {},
+          cancelListening: () => {},
+          setSpeakAnswers: () => {},
+          replay: () => {},
+          announceAnswer: () => {},
+          stopSpeaking: () => {},
+          dismissError: () => {},
+        }}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: /Aura/ });
+    for (const word of [...DEVELOPER_VOCABULARY, "whisper", "openai", "Whisper", "OpenAI", "tts", "mp3", "webm"]) {
+      expect(dialog.textContent, `voice must not surface ${word}`).not.toContain(word);
+    }
   });
 });

@@ -1,10 +1,71 @@
+/*
+ * The composer and the thin voice strip above it are one block: the strip has to sit against the
+ * top border rather than float in the conversation, and only one of them owns that border.
+ */
+.dock {
+  border-block-start: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
 .composer {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-block-start: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
+}
+
+/*
+ * Present only while something is actually happening — recording, speaking, or a problem worth a
+ * sentence. Nothing about voice occupies space in the resting state.
+ */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding-inline: var(--space-3);
+  padding-block: var(--space-2);
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+}
+
+.notice[data-tone="error"] {
+  color: var(--color-error);
+}
+
+.noticeAction {
+  flex: none;
+  min-block-size: 32px;
+  padding-inline: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: inherit;
+  background: none;
+  border: var(--border-width) solid currentColor;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.noticeAction:hover {
+  opacity: 1;
+}
+
+.noticeAction:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (max-width: 600px) {
+  .noticeAction {
+    min-block-size: 44px;
+    padding-inline: var(--space-3);
+  }
 }
 
 .input {

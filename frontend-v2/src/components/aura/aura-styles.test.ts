@@ -25,6 +25,9 @@ const MARK = css("AuraMark.module.css");
 const GUIDED = css("AuraGuidedEntry.module.css");
 const INSPECTOR = css("AuraDevInspector.module.css");
 const RICH_TEXT = css("AuraRichText.module.css");
+const MIC = css("AuraMicButton.module.css");
+const SPEAKER = css("AuraSpeakerButton.module.css");
+const CUE = css("AuraVoiceCue.module.css");
 
 describe("Aura layout contract", () => {
   it("gives mobile its own layout rather than a scaled-down panel", () => {
@@ -98,5 +101,52 @@ describe("Aura layout contract", () => {
     expect(GUIDED).toMatch(/@media \(max-width: 600px\)/);
     const mobileBlock = GUIDED.slice(GUIDED.indexOf("@media (max-width: 600px)"));
     expect(mobileBlock).toMatch(/min-block-size: 44px/);
+  });
+
+  it("gives every voice control a real touch target", () => {
+    expect(MIC).toMatch(/inline-size: 44px/);
+    expect(MIC).toMatch(/block-size: 44px/);
+    // The speaker is a narrower target on desktop, where it is a preference rather than an action,
+    // and widens to the full 44px on touch.
+    const speakerMobile = SPEAKER.slice(SPEAKER.indexOf("@media (max-width: 600px)"));
+    expect(speakerMobile).toMatch(/inline-size: 44px/);
+    const composerMobile = COMPOSER.slice(COMPOSER.indexOf("@media (max-width: 600px)"));
+    expect(composerMobile).toMatch(/min-block-size: 44px/);
+  });
+
+  it("keeps recording legible with motion switched off", () => {
+    // The pulse is decoration. Colour and fill carry the state on their own, which is what a
+    // visitor with prefers-reduced-motion has to rely on.
+    expect(MIC).toMatch(/data-recording="true"/);
+    expect(MIC).toMatch(/background: var\(--color-error\)/);
+    const reduced = MIC.slice(MIC.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toMatch(/animation: none/);
+  });
+
+  it("distinguishes the three voice states on the mark without relying on motion", () => {
+    for (const state of ["LISTENING", "PROCESSING_AUDIO", "SPEAKING"]) {
+      expect(MARK, `the mark should have a ${state} rule`).toContain(`data-state="${state}"`);
+    }
+    const reduced = MARK.slice(MARK.indexOf("@media (prefers-reduced-motion: reduce)"));
+    // With everything still, each of the three still looks different: listening changes colour,
+    // and the other two change the core's scale in opposite directions.
+    expect(MARK).toMatch(/\[data-state="LISTENING"\] \{\s*--aura-mark-color/);
+    expect(reduced).toMatch(/\[data-state="PROCESSING_AUDIO"\] \.core/);
+    expect(reduced).toMatch(/\[data-state="SPEAKING"\] \.core/);
+  });
+
+  it("keeps the voice surfaces on the design tokens too", () => {
+    for (const [name, sheet] of Object.entries({ MIC, SPEAKER, CUE })) {
+      const hexes = sheet.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
+      expect(hexes, `${name} should use design tokens, found ${hexes.join(", ")}`).toHaveLength(0);
+    }
+  });
+
+  it("switches the voice animations off under prefers-reduced-motion", () => {
+    for (const [name, sheet] of Object.entries({ MIC, SPEAKER })) {
+      expect(sheet, `${name} should honour prefers-reduced-motion`).toMatch(
+        /@media \(prefers-reduced-motion: reduce\)/,
+      );
+    }
   });
 });

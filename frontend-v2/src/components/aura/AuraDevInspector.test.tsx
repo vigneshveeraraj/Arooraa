@@ -35,6 +35,7 @@ function controller(transcript: AuraTranscriptMessage[]): AuraConversationContro
     state: "IDLE",
     failure: null,
     busy: false,
+    conversationId: "review-conversation",
     send: () => {},
     retryLast: () => {},
     startNewConversation: () => {},

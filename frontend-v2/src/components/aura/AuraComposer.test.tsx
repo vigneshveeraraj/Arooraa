@@ -52,6 +52,8 @@ describe("the Aura composer", () => {
     expect(onSend).not.toHaveBeenCalled();
 
     await user.keyboard("{Enter}");
-    expect(onSend).toHaveBeenCalledWith("line one\nline two");
+    // "TYPED" is how A5 marks where a message came from — it decides only whether Aura reads its
+    // answer aloud, never how the message is understood.
+    expect(onSend).toHaveBeenCalledWith("line one\nline two", "TYPED");
   });
 });
