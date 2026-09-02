@@ -13,6 +13,9 @@
   resize: none;
   min-block-size: 40px;
   max-block-size: 132px;
+  /* The state a one-line message is in; AuraComposer switches this to `auto` only once the
+     content genuinely exceeds max-block-size, so the first paint has no scrollbar chrome either. */
+  overflow-y: hidden;
   padding-block: var(--space-2);
   padding-inline: var(--space-3);
   font-family: var(--font-sans);

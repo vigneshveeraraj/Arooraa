@@ -33,10 +33,16 @@
 
 /* --- header --------------------------------------------------------------------------------- */
 
+/*
+ * Tightened in A4.2. Once a conversation is going the header carries the mark, the identity,
+ * Explore, New and close — enough that at the panel's 408px the role line wrapped onto a second
+ * line and pushed the header taller. The gaps and the button padding give back the ~30px that
+ * costs, and the identity truncates rather than wrapping if it is ever squeezed again.
+ */
 .header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding-inline: var(--space-4);
   padding-block: var(--space-3);
   border-block-end: var(--border-width) solid var(--color-border);
@@ -61,12 +67,15 @@
   font-size: var(--text-label);
   line-height: var(--leading-snug);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .headerAction {
   flex: none;
   min-block-size: 32px;
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-2);
   font-family: var(--font-sans);
   font-size: var(--text-label);
   font-weight: var(--weight-medium);
@@ -182,13 +191,6 @@
   border: var(--border-width) solid var(--color-border-interactive);
   border-radius: var(--radius-full);
   cursor: pointer;
-}
-
-.diagnostics {
-  margin: var(--space-2) 0 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-code);
-  color: var(--color-text-muted);
 }
 
 .srOnly {

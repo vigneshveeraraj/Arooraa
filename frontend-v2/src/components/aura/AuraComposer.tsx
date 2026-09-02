@@ -22,7 +22,13 @@ export function AuraComposer({ onSend, onActiveChange, busy }: AuraComposerProps
     const textarea = textareaRef.current;
     if (!textarea) return;
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_ROWS_PX)}px`;
+    const content = textarea.scrollHeight;
+    textarea.style.height = `${Math.min(content, MAX_ROWS_PX)}px`;
+    // A textarea reserves scrollbar chrome the moment overflow is `auto`, so on Windows a
+    // one-line message sat next to a pair of native scroll arrows. Overflow is switched on only
+    // once the message has genuinely outgrown the box — scoped to this element, so nothing else
+    // on the site loses a scrollbar.
+    textarea.style.overflowY = content > MAX_ROWS_PX ? "auto" : "hidden";
   }, [value]);
 
   function submit() {
