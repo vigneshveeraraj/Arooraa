@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation → A2 retrieval → A2.1/A2.2 calibration → A3 conversation)
+# Aura service architecture (A0/A1 foundation → A2 retrieval → A2.1/A2.2 calibration → A3 conversation → A5 voice)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -369,6 +369,91 @@ organisation subject, matches no other rule, and lands on the `GENERAL_CONSULTIN
   0.085 (the pronoun and filler dominate a bag-of-words query), while "Tell me about MESA" scored
   0.180 against the same corpus. Appending the subject looks like the safer edit and fixes nothing.
 
+## What A5 added (voice, as a channel)
+
+A visitor can speak to Aura and be answered out loud. Nothing about how Aura *thinks* changed, and
+that is the whole architecture of this milestone: voice is a channel into the existing conversation
+pipeline, not a second assistant with its own rules.
+
+```
+  browser ──record──► POST /api/v1/aura/voice/transcriptions ──► SpeechTranscriptionProvider
+     │                                                                      │
+     │◄──────────────────────── transcript ─────────────────────────────────┘
+     │
+     └─ visitor reads it, corrects it, presses send
+                │
+                ▼
+        POST /api/v1/aura/conversations/{id}/messages   ← the ordinary chat endpoint
+                │
+        validate → classify scope → confidentiality → retrieve → evidence gate
+        → generate → guardrail → assemble          (unchanged, all of it)
+                │
+                ▼
+        POST /api/v1/aura/voice/speech {conversationId} ──► SpeechSynthesisProvider
+```
+
+Four things follow from that shape, and each is the answer to a requirement that would otherwise
+have needed a special case:
+
+- **A spoken question cannot bypass anything.** `VoiceService` produces text and stops. There is no
+  path from audio to the model that does not go back through the browser and in again through the
+  chat endpoint, so a spoken confidentiality probe meets `ConfidentialityClassifier` exactly as a
+  typed one does. `AuraVoiceApiIT` asserts it: the same MESA-internals question, asked by voice,
+  still comes back `INTERNAL_BOUNDARY` with no corpus text in the prompt.
+- **A transcript is never auto-submitted.** It lands in the composer and waits for a person. That
+  costs one tap and buys three things: the visitor sees what Aura understood (the brief requires
+  it), a mishearing costs a glance rather than a wrong turn in the conversation's memory, and
+  nothing a microphone happens to pick up can reach the model unread — which matters more once A6
+  lets a conversation end in a project enquiry.
+- **The speech endpoint cannot be given text.** `POST /voice/speech` takes a conversation id and
+  optionally a turn; `SpokenAnswerService` reads the answer out of the transcript. So what is heard
+  is necessarily the row the visitor is reading, Aura cannot be used as a free text-to-speech
+  service by anyone who finds the URL, and the reply's language comes from the stored turn rather
+  than from a client we would otherwise have to trust.
+- **No recording is retained, and none can become knowledge.** Audio exists as a byte array for one
+  request. `spring.servlet.multipart.file-size-threshold` is pinned equal to `max-file-size`, so
+  Tomcat never spills a part to a temporary file — the guarantee is a property of the configuration
+  rather than a cleanup routine somebody has to remember to run. The voice package has no route
+  into ingestion at all, which `AuraVoiceApiIT` pins by asserting that uploading speech changes
+  neither the document count nor the chunk count.
+
+### Provider abstraction
+
+`SpeechTranscriptionProvider` and `SpeechSynthesisProvider` sit beside `ChatGenerationProvider` and
+`EmbeddingProvider`, on the same terms: no vendor type escapes `provider.openai`, selection is
+`aura.voice.*` configuration rather than a code branch, and a misconfiguration degrades to the
+disabled provider instead of failing startup.
+
+The transcription adapter calls `/audio/transcriptions` and deliberately never
+`/audio/translations`. The translation endpoint always returns English, which would silently turn a
+Tamil question into an English sentence — a failure that produces no error and would only ever be
+noticed by an owner asking something in Tamil. `aura.voice.transcription.language` is blank by
+default for the same reason: pinning a language is how code-mixed Tanglish gets flattened.
+
+### Switches
+
+Three, and all off by default: `aura.voice.enabled` above `aura.voice.transcription.enabled` and
+`aura.voice.synthesis.enabled`. With the master switch off the controller bean is not registered,
+so `/api/v1/aura/voice/**` returns 404 rather than refusing — the same "there is nothing there"
+guarantee `aura.chat.enabled` gives. Listening and speaking are separable because they are separate
+costs: a deployment can take spoken questions and answer only in text.
+
+The browser learns which of these are on from `GET /voice/capabilities`, which reports two booleans
+and a recording ceiling and nothing about how any of it works. A 404 — a backend with voice off —
+reads to the client as "there is no voice here", and the microphone simply never appears.
+
+### Bounds
+
+`AudioUploadValidator` enforces an allowlist of media types (parameters stripped, so
+`audio/webm;codecs=opus` is compared as `audio/webm` and cannot be defeated by appending one), a
+byte band, and a declared-duration band. The byte ceiling is the authoritative bound because it is
+the only one a client cannot lie about; the duration is enforced in the browser, where the recorder
+stops itself, and re-checked here as a courtesy.
+
+"Safe filename handling" is answered by not handling one: the browser's filename is discarded, and
+the name that travels onward is generated from the *validated* media type. There is consequently no
+path to traverse and no extension to smuggle.
+
 ## Running Aura locally for a manual session
 
 Windows PowerShell, from `C:\MM\Arooraa\aura-service`. Both the chat surface and the bootstrap
@@ -399,6 +484,21 @@ mvn -o spring-boot:run
 
 Then open `http://localhost:8091/aura-test`.
 
+To add voice to step 4, three more variables — all off by default, so leaving them out gives the
+text-only Aura exactly as before:
+
+```powershell
+$env:AURA_VOICE_ENABLED = "true"
+$env:AURA_VOICE_TRANSCRIPTION_ENABLED = "true"
+$env:AURA_VOICE_SYNTHESIS_ENABLED = "true"
+mvn -o spring-boot:run
+```
+
+Voice is exercised from the website rather than from `/aura-test`, which has no microphone: run
+`npm run dev` in `frontend-v2` and open `http://localhost:3000`. The panel probes
+`/voice/capabilities` on open and shows a microphone only if both this service and the browser
+agree it can record — an `http://` origin other than localhost has no `getUserMedia` at all.
+
 If emoji or Tamil appear as `?` in the console, that is the terminal, not Aura — the stored and
 returned text is correct (proved by `UnicodeRoundTripIT`). `chcp 65001` before running makes the
 console draw them, and the browser at `/aura-test` shows them correctly either way.
@@ -421,5 +521,5 @@ No ingestion HTTP surface (ingestion runs via services driven by tests/local too
 deliberately no knowledge-mutation endpoint at all), no feedback/knowledge-gap tracking, no
 project-brief generation, no lead creation, no reranking adapter (the RRF-fused order is the
 deterministic ranking baseline; `RerankingProvider` stays a disabled-by-default extension point),
-no tools/actions, no voice, no admin UI, no arooraa.com integration and no deployment. The public
+no tools/actions, no realtime speech-to-speech, no admin UI, no arooraa.com integration and no deployment. The public
 chat surface comes only after the owner has accepted these conversations.

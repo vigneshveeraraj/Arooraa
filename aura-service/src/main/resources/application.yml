@@ -14,6 +14,20 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      # Bounds a voice upload at the container, before a byte of it reaches application code.
+      # Kept in step with aura.voice.audio.max-bytes below; this one is what actually stops a
+      # large body, and AudioUploadValidator re-checks the same ceiling so the limit is enforced
+      # whichever way a request arrives.
+      max-file-size: ${AURA_VOICE_MAX_AUDIO_BYTES:4194304}
+      max-request-size: ${AURA_VOICE_MAX_REQUEST_BYTES:5242880}
+      # Deliberately equal to max-file-size, which means a part is never spilled to a temporary
+      # file: Tomcat writes a part to disk only once it exceeds this threshold, so pinning the two
+      # together keeps recorded audio in memory for the length of one request and nowhere else.
+      # That is what makes "no raw audio is retained" a property of the configuration rather than
+      # a cleanup routine somebody has to remember to run.
+      file-size-threshold: ${AURA_VOICE_MAX_AUDIO_BYTES:4194304}
 
 aura:
   bootstrap:
@@ -82,6 +96,47 @@ aura:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
       timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
+  # Voice (A5). Off by default, at three levels: this master switch, and one per direction below.
+  # With `enabled` false the voice controller bean is not registered at all, so /api/v1/aura/voice/**
+  # returns 404 rather than refusing — the same "there is nothing there" guarantee aura.chat.enabled
+  # already gives. Voice is a channel into the existing conversation pipeline, never a second brain:
+  # a transcript is sent back to the browser and re-submitted as an ordinary message, so it passes
+  # the same validation, classification, retrieval, evidence gate and output guardrail a typed
+  # message does.
+  voice:
+    enabled: ${AURA_VOICE_ENABLED:false}
+    transcription:
+      enabled: ${AURA_VOICE_TRANSCRIPTION_ENABLED:false}
+      # Config-driven adapter selection, exactly as for chat and embeddings — never a code branch.
+      provider: ${AURA_VOICE_TRANSCRIPTION_PROVIDER:openai}
+      model: ${AURA_VOICE_TRANSCRIPTION_MODEL:whisper-1}
+      timeout-seconds: ${AURA_VOICE_TRANSCRIPTION_TIMEOUT_SECONDS:45}
+      # Blank means "let the provider detect it", which is the intended value. Pinning a language
+      # is what turns a code-mixed Tanglish sentence into approximate English; Whisper detects
+      # Tamil and English well on its own, and Aura's own LanguageDetector still runs on the
+      # transcript afterwards to decide which register to reply in.
+      language: ${AURA_VOICE_TRANSCRIPTION_LANGUAGE:}
+    synthesis:
+      enabled: ${AURA_VOICE_SYNTHESIS_ENABLED:false}
+      provider: ${AURA_VOICE_SYNTHESIS_PROVIDER:openai}
+      model: ${AURA_VOICE_SYNTHESIS_MODEL:gpt-4o-mini-tts}
+      voice: ${AURA_VOICE_SYNTHESIS_VOICE:alloy}
+      format: ${AURA_VOICE_SYNTHESIS_FORMAT:mp3}
+      timeout-seconds: ${AURA_VOICE_SYNTHESIS_TIMEOUT_SECONDS:45}
+      # How much of an answer is ever spoken. A long grounded answer is read on screen; listening
+      # to 2000 characters is nobody's idea of a conversation, and every character costs money.
+      # The clamp is deterministic and lands on a sentence boundary — see SpeechTextPreparer, which
+      # never calls a model, so what is heard can only ever be a prefix of what is displayed.
+      max-characters: ${AURA_VOICE_SYNTHESIS_MAX_CHARACTERS:700}
+    audio:
+      # The authoritative bound: the only one a client cannot lie about. Opus from a browser runs
+      # roughly 24-48 kbps, so 4 MB is minutes of speech even before the duration limit applies.
+      max-bytes: ${AURA_VOICE_MAX_AUDIO_BYTES:4194304}
+      min-bytes: ${AURA_VOICE_MIN_AUDIO_BYTES:1024}
+      # Enforced in the browser (the recorder stops itself) and re-checked here against the
+      # duration the client declares. A client that under-reports still cannot beat max-bytes.
+      max-duration-seconds: ${AURA_VOICE_MAX_DURATION_SECONDS:60}
+      min-duration-millis: ${AURA_VOICE_MIN_DURATION_MILLIS:400}
   safety:
     # No chat endpoint exists yet — this is a represented, not-yet-consumed-by-a-controller
     # config surface so a future chat endpoint doesn't invent its own ad hoc limit. A2's

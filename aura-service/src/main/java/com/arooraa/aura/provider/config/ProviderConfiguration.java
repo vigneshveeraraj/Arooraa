@@ -3,11 +3,18 @@ package com.arooraa.aura.provider.config;
 import com.arooraa.aura.provider.ChatGenerationProvider;
 import com.arooraa.aura.provider.EmbeddingProvider;
 import com.arooraa.aura.provider.RerankingProvider;
+import com.arooraa.aura.provider.SpeechSynthesisProvider;
+import com.arooraa.aura.provider.SpeechTranscriptionProvider;
 import com.arooraa.aura.provider.disabled.DisabledChatGenerationProvider;
 import com.arooraa.aura.provider.disabled.DisabledEmbeddingProvider;
 import com.arooraa.aura.provider.disabled.DisabledRerankingProvider;
+import com.arooraa.aura.provider.disabled.DisabledSpeechSynthesisProvider;
+import com.arooraa.aura.provider.disabled.DisabledSpeechTranscriptionProvider;
 import com.arooraa.aura.provider.openai.OpenAiChatGenerationProvider;
 import com.arooraa.aura.provider.openai.OpenAiEmbeddingProvider;
+import com.arooraa.aura.provider.openai.OpenAiSpeechSynthesisProvider;
+import com.arooraa.aura.provider.openai.OpenAiSpeechTranscriptionProvider;
+import com.arooraa.aura.voice.config.VoiceProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +39,7 @@ import java.time.Duration;
  * healthy.
  */
 @Configuration
-@EnableConfigurationProperties(ProviderProperties.class)
+@EnableConfigurationProperties({ProviderProperties.class, VoiceProperties.class})
 public class ProviderConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderConfiguration.class);
@@ -122,6 +129,63 @@ public class ProviderConfiguration {
                 + "(unrecognized aura.provider.embedding.provider, or OPENAI_API_KEY missing) — "
                 + "falling back to the disabled provider so the application still starts.");
         return new DisabledEmbeddingProvider();
+    }
+
+    // --- voice (A5) -------------------------------------------------------------------------
+
+    /**
+     * The real speech-to-text adapter. Wired only when all four of the voice master switch, the
+     * transcription switch, a provider name with an adapter, and a key are present — see
+     * {@link OpenAiTranscriptionProviderCondition}. Declared before its fallback below, because
+     * bean-method order decides {@code @ConditionalOnMissingBean} evaluation inside one
+     * {@code @Configuration} class.
+     */
+    @Bean
+    @Conditional(OpenAiTranscriptionProviderCondition.class)
+    public SpeechTranscriptionProvider openAiSpeechTranscriptionProvider(RestClient.Builder builder,
+                                                                          VoiceProperties voice,
+                                                                          @Value("${OPENAI_API_KEY:}") String apiKey) {
+        VoiceProperties.Transcription transcription = voice.transcription();
+        return new OpenAiSpeechTranscriptionProvider(
+                withTimeout(builder, transcription.timeoutSeconds()), apiKey, transcription.model());
+    }
+
+    /**
+     * Covers every other case in one bean rather than the two the chat and embedding pairs use:
+     * voice off, transcription off, an unrecognized provider name, or no key. The warning fires
+     * only for the misconfiguration — an operator who simply has voice off should not be told
+     * anything, and one who asked for voice and did not get it should not have to guess why.
+     */
+    @Bean
+    @ConditionalOnMissingBean(SpeechTranscriptionProvider.class)
+    public SpeechTranscriptionProvider disabledSpeechTranscriptionProvider(VoiceProperties voice) {
+        if (voice.transcriptionEnabled()) {
+            log.warn("aura.voice.transcription is enabled but no real adapter could be wired "
+                    + "(unrecognized aura.voice.transcription.provider, or OPENAI_API_KEY missing) — "
+                    + "falling back to the disabled provider so the application still starts.");
+        }
+        return new DisabledSpeechTranscriptionProvider();
+    }
+
+    @Bean
+    @Conditional(OpenAiSynthesisProviderCondition.class)
+    public SpeechSynthesisProvider openAiSpeechSynthesisProvider(RestClient.Builder builder,
+                                                                   VoiceProperties voice,
+                                                                   @Value("${OPENAI_API_KEY:}") String apiKey) {
+        VoiceProperties.Synthesis synthesis = voice.synthesis();
+        return new OpenAiSpeechSynthesisProvider(
+                withTimeout(builder, synthesis.timeoutSeconds()), apiKey, synthesis.model());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(SpeechSynthesisProvider.class)
+    public SpeechSynthesisProvider disabledSpeechSynthesisProvider(VoiceProperties voice) {
+        if (voice.synthesisEnabled()) {
+            log.warn("aura.voice.synthesis is enabled but no real adapter could be wired "
+                    + "(unrecognized aura.voice.synthesis.provider, or OPENAI_API_KEY missing) — "
+                    + "falling back to the disabled provider so the application still starts.");
+        }
+        return new DisabledSpeechSynthesisProvider();
     }
 
     @Bean

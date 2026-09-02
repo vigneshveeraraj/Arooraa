@@ -1,6 +1,11 @@
 package com.arooraa.aura.support;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -60,6 +65,56 @@ public final class HttpTestClient {
         return restClient.get()
                 .uri(path)
                 .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+    }
+
+    /**
+     * A multipart upload, for the voice surface. Takes the media type and the filename separately
+     * from the bytes, because half of what the audio validator has to get right is what it does
+     * with each of them — including ignoring the filename entirely.
+     */
+    public Response postAudio(String path, byte[] audio, String contentType, String filename,
+                               Integer durationMillis) {
+        MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+        ByteArrayResource part = new ByteArrayResource(audio) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+        HttpHeaders partHeaders = new HttpHeaders();
+        if (contentType != null) {
+            partHeaders.set(HttpHeaders.CONTENT_TYPE, contentType);
+        }
+        form.add("audio", new HttpEntity<>(part, partHeaders));
+        if (durationMillis != null) {
+            form.add("durationMs", durationMillis.toString());
+        }
+
+        return restClient.post()
+                .uri(path)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(form)
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+    }
+
+    /** Status plus raw bytes — the speech endpoint returns audio, not JSON. */
+    public record BinaryResponse(int status, byte[] body, String contentType, String cacheControl) {
+    }
+
+    public BinaryResponse postForBytes(String path, Object body) {
+        return restClient.post()
+                .uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body == null ? Map.of() : body)
+                .exchange((request, response) -> {
+                    try (var stream = response.getBody()) {
+                        return new BinaryResponse(
+                                response.getStatusCode().value(),
+                                stream.readAllBytes(),
+                                response.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE),
+                                response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL));
+                    }
+                }, false);
     }
 
     private static String read(RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response) throws IOException {
