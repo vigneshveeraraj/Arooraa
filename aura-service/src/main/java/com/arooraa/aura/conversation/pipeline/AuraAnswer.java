@@ -18,6 +18,12 @@ import java.util.UUID;
  */
 public record AuraAnswer(
         UUID conversationId,
+        /**
+         * Which turn this is, within its conversation. Public because feedback has to name the
+         * answer it is about, and a client cannot be expected to infer that from the order things
+         * arrived in.
+         */
+        int sequence,
         String answer,
         ConversationMode mode,
         EvidenceLevel evidenceLevel,

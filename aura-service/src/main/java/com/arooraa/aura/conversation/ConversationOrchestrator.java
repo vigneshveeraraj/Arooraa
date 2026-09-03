@@ -30,6 +30,9 @@ import com.arooraa.aura.conversation.profile.AssistantProfileDefinition;
 import com.arooraa.aura.conversation.profile.AssistantProfileResolver;
 import com.arooraa.aura.conversation.repository.AuraConversationRepository;
 import com.arooraa.aura.conversation.repository.AuraMessageRepository;
+import com.arooraa.aura.insight.AuraInsightRecorder;
+import com.arooraa.aura.insight.KnowledgeGapDetector;
+import com.arooraa.aura.insight.domain.AuraEventType;
 import com.arooraa.aura.provider.ChatGenerationProvider;
 import com.arooraa.aura.provider.ChatGenerationRequest;
 import com.arooraa.aura.provider.ChatGenerationResult;
@@ -89,6 +92,8 @@ public class ConversationOrchestrator {
     private final ResponseAssembler responseAssembler;
     private final AuraConversationRepository conversationRepository;
     private final AuraMessageRepository messageRepository;
+    private final AuraInsightRecorder insightRecorder;
+    private final KnowledgeGapDetector knowledgeGapDetector;
     private final ChatProperties properties;
     private final Timer turnLatencyTimer;
 
@@ -109,6 +114,8 @@ public class ConversationOrchestrator {
                                      ResponseAssembler responseAssembler,
                                      AuraConversationRepository conversationRepository,
                                      AuraMessageRepository messageRepository,
+                                     AuraInsightRecorder insightRecorder,
+                                     KnowledgeGapDetector knowledgeGapDetector,
                                      ChatProperties properties,
                                      MeterRegistry meterRegistry) {
         this.inputValidator = inputValidator;
@@ -128,6 +135,8 @@ public class ConversationOrchestrator {
         this.responseAssembler = responseAssembler;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.insightRecorder = insightRecorder;
+        this.knowledgeGapDetector = knowledgeGapDetector;
         this.properties = properties;
         this.turnLatencyTimer = meterRegistry.timer("aura.conversation.turn.latency");
     }
@@ -240,6 +249,26 @@ public class ConversationOrchestrator {
         AuraAnswer answer = responseAssembler.assemble(conversation.getPublicId(), conversation.getId(), sequence,
                 guarded.text(), mode, effectiveEvidenceLevel(retrieval, guarded), language, tone,
                 retrieval.evidence(), includeSources, latencyMs, violation);
+
+        // 14 (A7). Counted, not logged in full: what kind of turn it was and how it went, never a
+        // word of what was asked or answered. Both calls swallow their own failures — analytics
+        // must never be the reason a visitor's turn fails, and this runs inside its transaction.
+        insightRecorder.messageAnswered(conversation.getId(), mode.name(), answer.evidenceLevel().name(),
+                language.name(), profile.channel().code(), pageContext.resolvedSubject(), latencyMs);
+        if (guarded.replaced()) {
+            insightRecorder.guardrailIntervened(conversation.getId(), guarded.violationCode());
+        }
+        if (failureCode != null) {
+            insightRecorder.providerFailed(conversation.getId(), failureCode);
+        }
+        if (mode == ConversationMode.PROJECT_DISCOVERY) {
+            insightRecorder.discovery(AuraEventType.PROJECT_DISCOVERY_STARTED, conversation.getId());
+        }
+        // A question about AROORAA that our own knowledge could not answer. Nothing recorded here
+        // ever becomes knowledge on its own — see KnowledgeGapDetector for what does and does not
+        // count, and in particular why a confidentiality boundary emphatically does not.
+        knowledgeGapDetector.observe(conversation.getId(), message, mode, answer.evidenceLevel(),
+                profile.profile().code(), pageContext.resolvedSubject());
 
         log.info("Aura turn: mode={} evidence={} language={} tone={} sources={} guardrail={} latencyMs={}",
                 mode, answer.evidenceLevel(), language, tone, answer.sources().size(),

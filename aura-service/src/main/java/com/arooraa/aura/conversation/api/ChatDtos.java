@@ -38,6 +38,8 @@ public final class ChatDtos {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record ChatResponse(
             UUID conversationId,
+            /** Which turn this is. The only thing a client needs in order to give feedback on it. */
+            int sequence,
             String answer,
             List<Source> sources,
             Diagnostics diagnostics) {
@@ -45,6 +47,7 @@ public final class ChatDtos {
         public static ChatResponse from(AuraAnswer answer, boolean includeDiagnostics) {
             return new ChatResponse(
                     answer.conversationId(),
+                    answer.sequence(),
                     answer.answer(),
                     answer.sources().stream().map(Source::from).toList(),
                     includeDiagnostics ? Diagnostics.from(answer) : null);

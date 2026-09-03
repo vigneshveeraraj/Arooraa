@@ -5,6 +5,7 @@ import com.arooraa.aura.config.AuraCorsProperties;
 import com.arooraa.aura.config.AuraSafetyProperties;
 import com.arooraa.aura.conversation.config.ChatProperties;
 import com.arooraa.aura.discovery.config.DiscoveryProperties;
+import com.arooraa.aura.insight.config.InsightProperties;
 import com.arooraa.aura.ingestion.config.ChunkingProperties;
 import com.arooraa.aura.retrieval.config.RetrievalProperties;
 import com.arooraa.aura.voice.config.VoiceProperties;
@@ -26,8 +27,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  */
 @SpringBootApplication
 @EnableConfigurationProperties({AuraCorsProperties.class, AuraSafetyProperties.class, BootstrapProperties.class,
-        ChatProperties.class, ChunkingProperties.class, DiscoveryProperties.class, RetrievalProperties.class,
-        VoiceProperties.class})
+        ChatProperties.class, ChunkingProperties.class, DiscoveryProperties.class, InsightProperties.class, RetrievalProperties.class, VoiceProperties.class})
 public class AuraServiceApplication {
 
     public static void main(String[] args) {

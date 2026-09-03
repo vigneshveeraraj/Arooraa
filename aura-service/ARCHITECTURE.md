@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A6 project discovery)
+# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A6 project discovery → A7 operational memory)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -565,6 +565,66 @@ aura-service keeps no copy — so a conversation database holds project descript
 attach a name to any of them. The brief itself carries the conversation's public id into the
 enquiry's `sourceContext`, so a person following up can find the conversation it came from.
 
+## What A7 added (operational memory, and nothing more)
+
+Aura could answer, speak and consult, and nobody could say how well. A7 is the smallest thing that
+answers that: counted events, the questions about us we could not answer, and whether an answer was
+any use. It is not visitor tracking, and the shape of the tables is the argument.
+
+```
+  every turn ──► AuraInsightRecorder ──► aura_events        (what kind of turn, how it went)
+                                          │                  no question, no answer, no visitor
+             ──► KnowledgeGapDetector ──► aura_knowledge_gaps (a question about us we could not
+                                          │                   answer, fingerprinted and counted)
+  the visitor ──► /feedback ───────────► aura_feedback       (one vote, naming the turn)
+```
+
+### What is not recorded, and why the table cannot hold it
+
+`aura_events` has no free-text column. Not "we avoid writing prompts into it" — there is nowhere to
+put one. What it stores is the mode, the evidence level, the language, the channel, the resolved
+page subject and a latency: enough to see that Tanglish questions on `/products/mesa` answer weakly,
+and not enough to reconstruct anything anybody said. There is no IP address, no user agent, no
+device fingerprint and no identifier that outlives a conversation.
+
+`AuraInsightRecorder` swallows every failure it meets. It runs inside the conversation's own
+transaction, and a visitor's answer must never fail because a counter did not increment. The
+recorder is the one place in this service where a caught exception is discarded rather than
+degraded into something the visitor is told about, and that is deliberate.
+
+### Gaps are the point, and the exclusions are the design
+
+A gap is recorded only when the pipeline itself answered `GROUNDED_QA` — a question about AROORAA —
+and the evidence was `NO_EVIDENCE` or `WEAK_EVIDENCE`. Everything else is excluded, and one
+exclusion matters more than the rest: `INTERNAL_BOUNDARY` never becomes a gap. A confidentiality
+probe got exactly the right answer, and recording it would turn this table into a list of
+suggestions to publish precisely what we decided not to say.
+
+The question is normalised and fingerprinted with the profile, so "Do you build hardware?" asked
+forty ways is one line saying forty, and one profile's gaps are never another's count. A gap that
+was marked resolved and then recurs is reopened rather than left resolved: somebody wrote an answer
+and it is still not being found, which is a different problem that "resolved" would hide.
+
+Nothing here becomes knowledge. There is no path from a recorded gap to the corpus; ingestion
+remains an operator action, and a human writing the answer remains the only way one is written.
+
+### Feedback, asked once
+
+Two marks under the latest answer, replaced by a thank-you once tapped. Under every message it
+would be a survey; asked once about the thing just said, it is a question. There is no follow-up
+box — a visitor who taps "not helpful" has already given us the fact worth having, and asking them
+to justify it is a toll on the person we just let down. A vote names its turn, which is why
+`AuraAnswer` and the chat response now carry a `sequence`; one vote per turn is a database
+constraint, not a UI convention.
+
+### Reading it back
+
+`/api/v1/aura/insights` returns counts and open gaps, never conversations. It is off by default
+(`aura.insights.api-enabled`), needs `AURA_INSIGHTS_TOKEN`, compares the token in constant time,
+and answers **404** rather than 401 when it is wrong or missing — an unauthorised caller learns
+nothing, not even that there is something there. Recording defaults on and reading defaults off,
+because exposing is a different decision from collecting.
+
 ## Running Aura locally for a manual session
 
 Windows PowerShell, from `C:\MM\Arooraa\aura-service`. Both the chat surface and the bootstrap
@@ -642,8 +702,9 @@ knowledge — loading is an operator action or nothing.
 ## What deliberately does NOT exist yet
 
 No ingestion HTTP surface (ingestion runs via services driven by tests/local tooling — there is
-deliberately no knowledge-mutation endpoint at all), no feedback or knowledge-gap tracking, no
-analytics, no reranking adapter (the RRF-fused order is the deterministic ranking baseline;
-`RerankingProvider` stays a disabled-by-default extension point), no tools or actions the model can
-call, no realtime speech-to-speech, no admin UI, no arooraa.com integration and no deployment. The
-public chat surface comes only after the owner has accepted these conversations.
+deliberately no knowledge-mutation endpoint at all), no automatic learning of any kind (a recorded
+gap is a note for a person, and never a route into the corpus), no long-term memory of a visitor
+between conversations, no reranking adapter (the RRF-fused order is the deterministic ranking
+baseline; `RerankingProvider` stays a disabled-by-default extension point), no tools or actions the
+model can call, no realtime speech-to-speech, no admin UI, no arooraa.com integration and no
+deployment. The public chat surface comes only after the owner has accepted these conversations.

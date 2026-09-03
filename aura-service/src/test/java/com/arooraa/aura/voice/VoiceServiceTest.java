@@ -5,6 +5,8 @@ import com.arooraa.aura.provider.ProviderTransientException;
 import com.arooraa.aura.provider.stub.StubSpeechSynthesisProvider;
 import com.arooraa.aura.provider.stub.StubSpeechTranscriptionProvider;
 import com.arooraa.aura.voice.config.VoiceProperties;
+import com.arooraa.aura.insight.AuraInsightRecorder;
+import com.arooraa.aura.insight.config.InsightProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,16 @@ class VoiceServiceTest {
     void setUp() {
         voiceService = new VoiceService(transcription, synthesis,
                 new AudioUploadValidator(PROPERTIES), new SpeechTextPreparer(), PROPERTIES,
-                new SimpleMeterRegistry());
+                new SimpleMeterRegistry(), silentRecorder());
+    }
+
+    /**
+     * Analytics is not what these tests are about, and a recorder that swallows its own failures
+     * would swallow a null repository too — so it is given one that does nothing rather than a
+     * mock nobody asserts on.
+     */
+    private static AuraInsightRecorder silentRecorder() {
+        return new AuraInsightRecorder(null, new InsightProperties(false, false, 50));
     }
 
     private static MockMultipartFile recording() {
@@ -64,7 +75,8 @@ class VoiceServiceTest {
                 new VoiceProperties.Transcription(true, "openai", "whisper-1", 45, "ta"),
                 PROPERTIES.synthesis(), PROPERTIES.audio());
         VoiceService service = new VoiceService(transcription, synthesis,
-                new AudioUploadValidator(pinned), new SpeechTextPreparer(), pinned, new SimpleMeterRegistry());
+                new AudioUploadValidator(pinned), new SpeechTextPreparer(), pinned,
+                new SimpleMeterRegistry(), silentRecorder());
 
         transcription.hears("...");
         service.transcribe(recording(), 3_000);

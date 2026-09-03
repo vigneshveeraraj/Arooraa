@@ -4,6 +4,7 @@ import com.arooraa.aura.conversation.domain.AuraConversation;
 import com.arooraa.aura.conversation.profile.AssistantProfileDefinition;
 import com.arooraa.aura.conversation.profile.AssistantProfileResolver;
 import com.arooraa.aura.conversation.repository.AuraConversationRepository;
+import com.arooraa.aura.insight.AuraInsightRecorder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,14 @@ public class ConversationService {
 
     private final AuraConversationRepository conversationRepository;
     private final AssistantProfileResolver profileResolver;
+    private final AuraInsightRecorder insightRecorder;
 
     public ConversationService(AuraConversationRepository conversationRepository,
-                                AssistantProfileResolver profileResolver) {
+                                AssistantProfileResolver profileResolver,
+                                AuraInsightRecorder insightRecorder) {
         this.conversationRepository = conversationRepository;
         this.profileResolver = profileResolver;
+        this.insightRecorder = insightRecorder;
     }
 
     @Transactional
@@ -39,7 +43,11 @@ public class ConversationService {
                 ? profileResolver.defaultProfile()
                 : profileResolver.resolve(requestedProfileCode)
                         .orElseThrow(() -> new UnknownAssistantProfileException(requestedProfileCode));
-        return conversationRepository.save(
+        AuraConversation conversation = conversationRepository.save(
                 new AuraConversation(profile.profile().code(), profile.channel().code()));
+        // Counted so the funnel has a denominator: everything else here is a fraction of "somebody
+        // opened a conversation", and without it those numbers mean nothing.
+        insightRecorder.conversationStarted(conversation.getId(), profile.channel().code());
+        return conversation;
     }
 }

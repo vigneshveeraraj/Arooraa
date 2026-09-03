@@ -67,6 +67,14 @@ public final class HttpTestClient {
                 .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
     }
 
+    /** For the internal insights surface, which is addressed by a header rather than a session. */
+    public Response getWithHeader(String path, String header, String value) {
+        return restClient.get()
+                .uri(path)
+                .header(header, value)
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+    }
+
     /**
      * A multipart upload, for the voice surface. Takes the media type and the filename separately
      * from the bytes, because half of what the audio validator has to get right is what it does

@@ -17,6 +17,8 @@ import com.arooraa.aura.discovery.handoff.HandoffUnavailableException;
 import com.arooraa.aura.discovery.handoff.ProjectEnquiryClient;
 import com.arooraa.aura.discovery.handoff.ProjectEnquiryMapper;
 import com.arooraa.aura.discovery.handoff.ProjectEnquirySubmission;
+import com.arooraa.aura.insight.AuraInsightRecorder;
+import com.arooraa.aura.insight.domain.AuraEventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -69,6 +71,7 @@ public class ProjectDiscoveryService {
     private final ProjectBriefExtractor extractor;
     private final ProjectEnquiryMapper enquiryMapper;
     private final ProjectEnquiryClient enquiryClient;
+    private final AuraInsightRecorder insightRecorder;
     private final DiscoveryProperties properties;
 
     public ProjectDiscoveryService(AuraConversationRepository conversationRepository,
@@ -77,6 +80,7 @@ public class ProjectDiscoveryService {
                                     ProjectBriefExtractor extractor,
                                     ProjectEnquiryMapper enquiryMapper,
                                     ProjectEnquiryClient enquiryClient,
+                                    AuraInsightRecorder insightRecorder,
                                     DiscoveryProperties properties) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -84,6 +88,7 @@ public class ProjectDiscoveryService {
         this.extractor = extractor;
         this.enquiryMapper = enquiryMapper;
         this.enquiryClient = enquiryClient;
+        this.insightRecorder = insightRecorder;
         this.properties = properties;
     }
 
@@ -129,6 +134,13 @@ public class ProjectDiscoveryService {
             // Marked seen only because it is about to be returned to the visitor. This is the one
             // place that may set SUMMARISED, and it is the gate the handoff checks.
             brief.markSummarised();
+            insightRecorder.discovery(AuraEventType.PROJECT_BRIEF_SUMMARISED, conversation.getId());
+            if (enquiryClient.isEnabled()) {
+                // "Offered" means Aura was in a position to offer, which is the number worth having
+                // next to how many were actually sent — and it is distinguishable from the line
+                // above precisely when the handoff is switched off.
+                insightRecorder.discovery(AuraEventType.PROJECT_HANDOFF_OFFERED, conversation.getId());
+            }
         }
         return view(brief, fields, fields.worthSummarising());
     }
@@ -159,6 +171,7 @@ public class ProjectDiscoveryService {
     @Transactional
     public EnquiryReceipt handOff(UUID conversationPublicId, boolean consent, HandoffContact contact) {
         if (!consent) {
+            insightRecorder.discovery(AuraEventType.PROJECT_HANDOFF_REFUSED, null);
             throw new HandoffRefusedException("CONSENT_REQUIRED",
                     "I'll only send this if you'd like me to.");
         }
@@ -191,6 +204,7 @@ public class ProjectDiscoveryService {
         EnquiryReceipt receipt = enquiryClient.submit(submission, "aura-" + conversationPublicId);
 
         brief.markSubmitted(receipt.reference(), Instant.now());
+        insightRecorder.discovery(AuraEventType.PROJECT_HANDOFF_CREATED, conversation.getId());
         log.info("Aura handoff created a Start Project enquiry.");
         return receipt;
     }

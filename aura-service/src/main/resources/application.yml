@@ -96,6 +96,21 @@ aura:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
       timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
+  # Operational memory (A7). Two switches, defaulting differently on purpose.
+  #
+  # `enabled` — recording — defaults to TRUE, which is the opposite of every other switch here.
+  # Everything else that defaults off can spend money, reach outside this service, or expose a
+  # surface. Recording does none of those: it writes rows to our own database containing no
+  # prompts, no answers, no secrets and nothing identifying a person, and a service that only
+  # measures itself when somebody remembers to turn the measurement on will not improve.
+  #
+  # `api-enabled` — reading — defaults to FALSE, because exposing is a different decision from
+  # collecting. Even on, the endpoint needs AURA_INSIGHTS_TOKEN and answers 404 without it, so
+  # enabling the switch and forgetting the token fails closed rather than open.
+  insights:
+    enabled: ${AURA_INSIGHTS_ENABLED:true}
+    api-enabled: ${AURA_INSIGHTS_API_ENABLED:false}
+    max-gaps-returned: ${AURA_INSIGHTS_MAX_GAPS:50}
   # Project discovery and the Start Project handoff (A6). Discovery itself needs no configuration —
   # PROJECT_DISCOVERY has been a conversation mode since A3, and a visitor can talk through an idea
   # and see the brief Aura built with nothing here set. Only the last step, creating a real

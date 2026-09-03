@@ -8,6 +8,8 @@ import com.arooraa.aura.provider.SynthesisRequest;
 import com.arooraa.aura.provider.SynthesisResult;
 import com.arooraa.aura.provider.TranscriptionRequest;
 import com.arooraa.aura.provider.TranscriptionResult;
+import com.arooraa.aura.insight.AuraInsightRecorder;
+import com.arooraa.aura.insight.domain.AuraEventType;
 import com.arooraa.aura.voice.config.VoiceProperties;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -49,19 +51,22 @@ public class VoiceService {
     private final DistributionSummary recordingDuration;
     private final DistributionSummary recordingBytes;
     private final MeterRegistry meterRegistry;
+    private final AuraInsightRecorder insightRecorder;
 
     public VoiceService(SpeechTranscriptionProvider transcriptionProvider,
                          SpeechSynthesisProvider synthesisProvider,
                          AudioUploadValidator validator,
                          SpeechTextPreparer speechTextPreparer,
                          VoiceProperties properties,
-                         MeterRegistry meterRegistry) {
+                         MeterRegistry meterRegistry,
+                         AuraInsightRecorder insightRecorder) {
         this.transcriptionProvider = transcriptionProvider;
         this.synthesisProvider = synthesisProvider;
         this.validator = validator;
         this.speechTextPreparer = speechTextPreparer;
         this.properties = properties;
         this.meterRegistry = meterRegistry;
+        this.insightRecorder = insightRecorder;
         this.transcriptionLatency = meterRegistry.timer("aura.voice.transcription.latency");
         this.synthesisLatency = meterRegistry.timer("aura.voice.synthesis.latency");
         // How long people actually speak for, and how much that costs to upload. Both are needed
@@ -98,6 +103,7 @@ public class VoiceService {
             // visitor gets a sentence Aura would say, and never the provider's own words.
             log.warn("Transcription failed ({}).", e.getMessage());
             countFailure("transcription", e);
+            insightRecorder.voice(AuraEventType.VOICE_TRANSCRIPTION_FAILED, null, kindOf(e));
             throw new VoiceUnavailableException("TRANSCRIPTION_FAILED",
                     "I couldn't quite make that out. Try saying it again?");
         }
@@ -106,6 +112,7 @@ public class VoiceService {
 
         // Length, not content: a transcript is a visitor's own words and is treated exactly as a
         // typed message would be — never logged, never stored here, never inspected.
+        insightRecorder.voice(AuraEventType.VOICE_TRANSCRIBED, null, null);
         log.info("Aura voice: transcribed {} bytes in {}ms ({} characters).",
                 audio.bytes().length, latencyMs, result.text().length());
         return new Transcript(result.text(), result.detectedLanguage(), latencyMs);
@@ -134,11 +141,13 @@ public class VoiceService {
         } catch (ProviderTransientException | ProviderPermanentException e) {
             log.warn("Speech synthesis failed ({}).", e.getMessage());
             countFailure("synthesis", e);
+            insightRecorder.voice(AuraEventType.VOICE_SYNTHESIS_FAILED, null, kindOf(e));
             throw new VoiceUnavailableException("SYNTHESIS_FAILED", "I couldn't find my voice just then.");
         }
         long latencyMs = (System.nanoTime() - startedAt) / 1_000_000;
         synthesisLatency.record(latencyMs, TimeUnit.MILLISECONDS);
 
+        insightRecorder.voice(AuraEventType.VOICE_SPOKEN, null, null);
         log.info("Aura voice: spoke {} characters in {}ms.", spoken.length(), latencyMs);
         return new Speech(result.audio(), result.mimeType(), latencyMs);
     }
@@ -153,8 +162,13 @@ public class VoiceService {
      * carry detail we have been careful not to log.
      */
     private void countFailure(String stage, RuntimeException failure) {
-        String kind = failure instanceof ProviderTransientException ? "transient" : "permanent";
-        meterRegistry.counter("aura.voice.provider.failures", "stage", stage, "kind", kind).increment();
+        meterRegistry.counter("aura.voice.provider.failures", "stage", stage, "kind", kindOf(failure))
+                .increment();
+    }
+
+    /** Whether it might have worked on a retry — the first thing anyone looking at a spike needs. */
+    private String kindOf(RuntimeException failure) {
+        return failure instanceof ProviderTransientException ? "transient" : "permanent";
     }
 
     private String languageHint() {

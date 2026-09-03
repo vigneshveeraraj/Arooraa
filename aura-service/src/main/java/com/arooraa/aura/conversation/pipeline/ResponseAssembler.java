@@ -57,7 +57,7 @@ public class ResponseAssembler {
                     stored.getId(), position++, source.title(), source.section(), source.sourceUrl()));
         }
 
-        return new AuraAnswer(conversationPublicId, answerText, mode, evidenceLevel, sources,
+        return new AuraAnswer(conversationPublicId, sequence, answerText, mode, evidenceLevel, sources,
                 language, tone, latencyMs, guardrailViolation);
     }
 
