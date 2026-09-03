@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { AuraState } from "../state";
 import { createAuraSpeaker } from "./playback";
+import { hasSeenVoiceIntro, markVoiceIntroSeen } from "./intro";
 import {
   getSpeakAnswersServerSnapshot,
   getSpeakAnswersSnapshot,
@@ -78,10 +79,22 @@ export interface AuraVoiceController {
   speakAnswers: boolean;
   /**
    * Seconds left before the recorder stops itself, but only once that is close enough to matter.
-   * Null for most of a recording: a stopwatch running from the first word would make an ordinary
-   * question feel timed.
+   * Null for most of a recording: a countdown running from the first word would make an ordinary
+   * question feel timed. Shown alongside the elapsed clock, not instead of it.
    */
   secondsLeft: number | null;
+  /**
+   * How long this recording has been running, in whole seconds. A5.2: the owner could not tell
+   * whether Aura was listening, and a clock that is visibly moving is the plainest possible answer
+   * to that — an elapsed count says "still going", where a countdown alone says "hurry up".
+   */
+  elapsedSeconds: number;
+  /**
+   * Whether this is the visitor's first time at the microphone in this browser, and therefore
+   * whether the listening surface should introduce itself. True for the whole of one recording and
+   * never again — see intro.ts for where that is remembered and why it is nowhere else.
+   */
+  introducing: boolean;
   /** True when Aura has just finished reading an answer and it can be heard again. */
   replayable: boolean;
   timings: AuraVoiceTimings;
@@ -106,8 +119,10 @@ export interface AuraVoiceController {
 
 const RECORDING_MESSAGES: Record<AuraRecordingError, string> = {
   UNSUPPORTED: "This browser won't let me listen here — type it to me instead?",
+  // The owner's own words, plus the way out. No browser vocabulary, no permission API name, and
+  // nothing that reads as an engineering failure — the visitor did nothing wrong.
   PERMISSION_DENIED:
-    "I'll need microphone permission to hear you. You can allow it in your browser, or just type.",
+    "Microphone access is needed to talk with Aura. You can allow it in your browser, or just type.",
   NO_MICROPHONE: "I can't find a microphone on this device — type it to me instead?",
   MICROPHONE_BUSY: "Something else is using the microphone right now. Try again in a moment?",
   RECORDING_FAILED: "That recording didn't come through. Try again?",
@@ -158,6 +173,8 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<AuraVoiceTranscript | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [introducing, setIntroducing] = useState(false);
   const [replayTarget, setReplayTarget] = useState<string | null>(null);
   const [timings, setTimings] = useState<AuraVoiceTimings>(NO_TIMINGS);
 
@@ -181,6 +198,7 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     if (countdown.current) clearInterval(countdown.current);
     countdown.current = null;
     setSecondsLeft(null);
+    setElapsedSeconds(0);
   }, []);
 
   // Asking the backend what it can do, once. A failure — including the 404 a backend with voice
@@ -252,25 +270,42 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     const maxSeconds = probed?.maxRecordingSeconds ?? 60;
     const startedAt = Date.now();
 
+    // Read and written here rather than when the recording finishes, so a visitor who cancels has
+    // still had their introduction and does not get it again. Both calls are individually guarded:
+    // a browser with storage blocked shows the guidance every time, which is a repetition rather
+    // than a failure, and voice never waits on either answer.
+    const firstTime = !hasSeenVoiceIntro();
+    if (firstTime) markVoiceIntroSeen();
+    setIntroducing(firstTime);
+
     recorder.current = startRecording({
       maxSeconds,
       onLevel: (level) => levelListeners.current.forEach((listener) => listener(level)),
       onListening: () => {
         setStatus("LISTENING");
+        // One interval for both clocks. A second is slow enough that re-rendering the panel for it
+        // is unremarkable, which is exactly why the level meter — ten times a second — is a
+        // subscription instead.
         countdown.current = setInterval(() => {
-          const remaining = Math.max(0, maxSeconds - Math.round((Date.now() - startedAt) / 1000));
+          const elapsed = Math.round((Date.now() - startedAt) / 1000);
+          setElapsedSeconds(elapsed);
+          const remaining = Math.max(0, maxSeconds - elapsed);
           setSecondsLeft(remaining <= COUNTDOWN_FROM_SECONDS ? remaining : null);
         }, 1000);
       },
       onError: (failure) => {
         recorder.current = null;
         stopCountdown();
+        // Never left in LISTENING with a microphone that was refused. The panel returns to the
+        // composer, and the visitor can type — voice is never the only way in.
+        setIntroducing(false);
         setStatus("IDLE");
         setError(RECORDING_MESSAGES[failure]);
       },
       onComplete: (recording) => {
         recorder.current = null;
         stopCountdown();
+        setIntroducing(false);
         setStatus("PROCESSING");
         turnStartedAt.current = Date.now();
 
@@ -302,9 +337,12 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
   }, [stopCountdown]);
 
   const cancelListening = useCallback(() => {
+    // The recorder handle discards what it captured and releases the microphone; nothing is
+    // uploaded, so no transcript arrives and no conversation message is ever created.
     recorder.current?.cancel();
     recorder.current = null;
     stopCountdown();
+    setIntroducing(false);
     setStatus("IDLE");
   }, [stopCountdown]);
 
@@ -377,6 +415,8 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     transcript,
     speakAnswers,
     secondsLeft,
+    elapsedSeconds,
+    introducing,
     replayable: replayTarget !== null && status !== "SPEAKING",
     timings,
     startListening,

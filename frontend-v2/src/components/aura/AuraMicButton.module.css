@@ -1,7 +1,12 @@
 /*
  * Sits beside Send, and deliberately does not compete with it. Send is the filled CTA; the
- * microphone is an outline control until it is actually recording, at which point it becomes the
- * loudest thing in the composer — because at that moment it is the only thing that matters.
+ * microphone is an outline control that opens the recording stage.
+ *
+ * A5.2 removed the recording state from this stylesheet entirely. It used to hold the whole
+ * recording affordance — a red fill and a ring that followed the microphone level — and the owner
+ * could not tell from it whether Aura was listening. That treatment moved to
+ * AuraListening.module.css, which has the room to answer the question properly; this button is
+ * never on screen while a recording is running, so a recording state here would be dead style.
  */
 
 .mic {
@@ -18,7 +23,6 @@
   cursor: pointer;
   transition:
     color var(--duration-fast) var(--ease-standard),
-    background var(--duration-fast) var(--ease-standard),
     border-color var(--duration-fast) var(--ease-standard);
 }
 
@@ -42,63 +46,8 @@
   cursor: not-allowed;
 }
 
-/*
- * Recording. Colour and fill carry the state on their own — the pulse below is decoration, and
- * everything still reads correctly with motion switched off.
- */
-.mic[data-recording="true"] {
-  color: var(--color-cta-fg);
-  background: var(--color-error);
-  border-color: var(--color-error);
-  /*
-   * A ring whose size follows what the microphone is actually hearing (A5.1). This is what Aura
-   * does instead of guessing when a visitor has finished: an automatic stop has to decide that a
-   * pause is the end of a sentence, and Tamil and Tanglish both carry pauses that a detector reads
-   * wrongly — cutting someone off mid-thought is far worse than one extra tap. A level meter
-   * answers the question a visitor genuinely has ("is it hearing me?") without ever guessing the
-   * answer to one only they can answer.
-   *
-   * --aura-mic-level is written directly onto the element by AuraMicButton, ten times a second,
-   * with no React render involved. It defaults to 0, so a browser that will record but will not
-   * analyse simply gets a steady ring.
-   */
-  box-shadow: 0 0 0 calc(2px + 9px * var(--aura-mic-level, 0)) rgba(200, 42, 42, 0.28);
-  transition: box-shadow 110ms linear;
-}
-
-/* Transcribing: a small mark that turns, in place of the microphone glyph. */
-.working {
-  inline-size: 16px;
-  block-size: 16px;
-  border: 2px solid var(--color-border-strong);
-  border-block-start-color: var(--color-accent);
-  border-radius: var(--radius-full);
-  animation: micWorking 900ms linear infinite;
-}
-
-@keyframes micWorking {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .mic,
-  .working {
-    animation: none;
+  .mic {
     transition: none;
-  }
-  /*
-   * The ring stops following the level and sits at a fixed width. Recording is still unmistakable:
-   * the button is filled in the error colour, its glyph changed, its accessible name changed, and
-   * the strip above the composer says so in words. Motion was never the signal.
-   */
-  .mic[data-recording="true"] {
-    box-shadow: 0 0 0 3px rgba(200, 42, 42, 0.3);
-  }
-  /* Without the spin, the transcribing state still needs to look unlike the idle one. */
-  .working {
-    border-color: var(--color-accent);
-    opacity: 0.6;
   }
 }

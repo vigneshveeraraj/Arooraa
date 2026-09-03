@@ -7,7 +7,6 @@ import {
   type AuraGuidedProduct,
   type AuraGuidedService,
 } from "@/lib/aura/guided-entry";
-import { AuraVoiceCue } from "./AuraVoiceCue";
 import styles from "./AuraGuidedEntry.module.css";
 
 export type AuraGuidedSection = "root" | "products" | "services";
@@ -24,8 +23,6 @@ interface AuraGuidedEntryProps {
   onStartIdea: () => void;
   onNavigateOnly: (href: string) => void;
   onDismiss: () => void;
-  /** Shows the "speak naturally" cue. True only when voice is actually working (A5). */
-  voiceAvailable?: boolean;
 }
 
 /**
@@ -49,7 +46,6 @@ export function AuraGuidedEntry({
   onStartIdea,
   onNavigateOnly,
   onDismiss,
-  voiceAvailable = false,
 }: AuraGuidedEntryProps) {
   return (
     <div className={styles.guided}>
@@ -94,9 +90,6 @@ export function AuraGuidedEntry({
               Ask something else
             </button>
           </div>
-          {/* Below the choices, not above them: the openings are the point of this screen, and the
-              cue is a quiet reassurance for anyone who would rather talk than pick. */}
-          {voiceAvailable ? <AuraVoiceCue className={styles.voiceCue} /> : null}
         </>
       ) : null}
 

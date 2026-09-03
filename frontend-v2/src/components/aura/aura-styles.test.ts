@@ -28,6 +28,7 @@ const RICH_TEXT = css("AuraRichText.module.css");
 const MIC = css("AuraMicButton.module.css");
 const SPEAKER = css("AuraSpeakerButton.module.css");
 const CUE = css("AuraVoiceCue.module.css");
+const LISTENING = css("AuraListening.module.css");
 
 describe("Aura layout contract", () => {
   it("gives mobile its own layout rather than a scaled-down panel", () => {
@@ -106,6 +107,9 @@ describe("Aura layout contract", () => {
   it("gives every voice control a real touch target", () => {
     expect(MIC).toMatch(/inline-size: 44px/);
     expect(MIC).toMatch(/block-size: 44px/);
+    // Cancel and Done are the two controls a visitor reaches for mid-recording, on a phone,
+    // usually one-handed.
+    expect(LISTENING).toMatch(/min-block-size: 44px/);
     // The speaker is a narrower target on desktop, where it is a preference rather than an action,
     // and widens to the full 44px on touch.
     const speakerMobile = SPEAKER.slice(SPEAKER.indexOf("@media (max-width: 600px)"));
@@ -115,11 +119,12 @@ describe("Aura layout contract", () => {
   });
 
   it("keeps recording legible with motion switched off", () => {
-    // The pulse is decoration. Colour and fill carry the state on their own, which is what a
-    // visitor with prefers-reduced-motion has to rely on.
-    expect(MIC).toMatch(/data-recording="true"/);
-    expect(MIC).toMatch(/background: var\(--color-error\)/);
-    const reduced = MIC.slice(MIC.indexOf("@media (prefers-reduced-motion: reduce)"));
+    // The moving meter is the decoration; recording is carried by things that were never motion —
+    // the Spark's listening state, the word "Listening", a clock counting up, and a Done button
+    // that only exists while a microphone is open. With motion off the bars take a fixed shape.
+    const reduced = LISTENING.slice(LISTENING.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toMatch(/\.bar \{/);
+    expect(reduced).toMatch(/transition: none/);
     expect(reduced).toMatch(/animation: none/);
   });
 
@@ -144,14 +149,14 @@ describe("Aura layout contract", () => {
   });
 
   it("keeps the voice surfaces on the design tokens too", () => {
-    for (const [name, sheet] of Object.entries({ MIC, SPEAKER, CUE })) {
+    for (const [name, sheet] of Object.entries({ MIC, SPEAKER, CUE, LISTENING })) {
       const hexes = sheet.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
       expect(hexes, `${name} should use design tokens, found ${hexes.join(", ")}`).toHaveLength(0);
     }
   });
 
   it("switches the voice animations off under prefers-reduced-motion", () => {
-    for (const [name, sheet] of Object.entries({ MIC, SPEAKER })) {
+    for (const [name, sheet] of Object.entries({ MIC, SPEAKER, LISTENING })) {
       expect(sheet, `${name} should honour prefers-reduced-motion`).toMatch(
         /@media \(prefers-reduced-motion: reduce\)/,
       );
@@ -168,10 +173,25 @@ describe("Aura layout contract", () => {
 
   it("shows the recording level rather than guessing when the visitor has finished", () => {
     // Aura has no voice activity detection on purpose: Tamil and Tanglish both carry pauses that
-    // an aggressively tuned detector reads as the end of a sentence. The ring answers "is it
+    // an aggressively tuned detector reads as the end of a sentence. The meter answers "is it
     // hearing me?" without answering "am I finished?", which is not ours to answer.
-    expect(MIC).toMatch(/--aura-mic-level/);
-    expect(MIC).toMatch(/box-shadow: 0 0 0 calc\(/);
+    expect(LISTENING).toMatch(/--aura-level/);
+    expect(LISTENING).toMatch(/block-size: calc\(4px \+ 36px \* var\(--bar-weight, 1\) \* var\(--aura-level, 0\)\)/);
+    // Defaulted, so a browser that will record but will not analyse gets a still meter rather
+    // than a broken-looking one.
+    expect(LISTENING).toMatch(/var\(--aura-level, 0\)/);
+  });
+
+  it("keeps the recording stage inside the narrowest phone", () => {
+    expect(LISTENING).toMatch(/@media \(max-width: 600px\)/);
+    const mobile = LISTENING.slice(LISTENING.indexOf("@media (max-width: 600px)"));
+    expect(mobile).toMatch(/max-inline-size: 100%/);
+    // Flex children default to min-width:auto, which is what pushes a row past the viewport.
+    expect(LISTENING).toMatch(/min-inline-size: 0/);
+  });
+
+  it("keeps the seconds from shuffling sideways as they tick over", () => {
+    expect(LISTENING).toMatch(/font-variant-numeric: tabular-nums/);
   });
 
   it("keeps the voice strip out of the way until it has something to say", () => {

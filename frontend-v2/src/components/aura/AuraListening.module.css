@@ -1,0 +1,210 @@
+/*
+ * The recording stage. It replaces the composer rather than sitting above it, because the whole
+ * point of A5.2's third finding is that recording should be unmistakable — and something that
+ * shares the row with a text box, a speaker toggle and a send button is not unmistakable.
+ *
+ * Everything here is built from the site's tokens and the Spark's own geometry. No new colours, no
+ * red dot, no scrolling waveform.
+ */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-4);
+  background: var(--color-bg-subtle);
+}
+
+.headline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.state {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+}
+
+/* The one-time introduction. Centred under the state line, and quiet — it is reassurance. */
+.intro {
+  justify-content: center;
+  text-align: center;
+  max-inline-size: 34ch;
+}
+
+/*
+ * The level meter. Nine bars, and the height of each is one measured number (--aura-level, written
+ * onto this element by AuraListening ten times a second) shaped by that bar's own weight. It
+ * defaults to 0, so a browser that will record but will not analyse gets a still, legible meter
+ * rather than a broken-looking one.
+ */
+.meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  block-size: 44px;
+  inline-size: 100%;
+  max-inline-size: 220px;
+}
+
+.bar {
+  inline-size: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  /* 4px at silence, up to 40px at full scale — the bar is always visibly present. */
+  block-size: calc(4px + 36px * var(--bar-weight, 1) * var(--aura-level, 0));
+  /* The Spark's own descending opacity, applied outwards from the centre. */
+  opacity: calc(0.42 + 0.58 * var(--bar-weight, 1));
+  transition: block-size 110ms linear;
+}
+
+/* Transcribing. Three marks that rise in turn — the same vocabulary as the meter, standing in for
+   a measurement there is no longer anything to take. */
+.working {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  block-size: 44px;
+}
+
+.working span {
+  inline-size: 4px;
+  block-size: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  opacity: 0.6;
+  animation: auraUnderstanding 1000ms ease-in-out infinite;
+}
+
+.working span:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.working span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes auraUnderstanding {
+  0%,
+  100% {
+    block-size: 10px;
+    opacity: 0.45;
+  }
+  50% {
+    block-size: 26px;
+    opacity: 1;
+  }
+}
+
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.elapsed {
+  /* Digits must not shuffle sideways as the seconds tick over. */
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-body);
+  color: var(--color-text);
+}
+
+.remaining {
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+}
+
+.cancel,
+.done {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding-inline: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.cancel {
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.cancel:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-interactive);
+}
+
+.done {
+  color: var(--color-cta-fg);
+  background: var(--color-cta-bg);
+  border: var(--border-width) solid transparent;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.done:hover {
+  background: var(--color-cta-bg-hover);
+}
+
+.cancel:focus-visible,
+.done:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* 320px is the narrowest viewport in the brief, and the stage has to fit inside it whole. */
+@media (max-width: 600px) {
+  .stage {
+    padding-inline: var(--space-3);
+  }
+
+  .meter {
+    max-inline-size: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Motion switched off, the same bargain the microphone button struck before it: the meter holds a
+   * fixed, legible shape and stops following the level, and recording stays unmistakable from the
+   * things that were never motion — the Spark in its listening state, the word "Listening", a clock
+   * counting up, and a Done button that only exists while a microphone is open.
+   */
+  .bar {
+    block-size: calc(8px + 20px * var(--bar-weight, 1));
+    transition: none;
+  }
+
+  .working span {
+    animation: none;
+    block-size: 18px;
+    opacity: 0.7;
+  }
+
+  .done {
+    transition: none;
+  }
+}

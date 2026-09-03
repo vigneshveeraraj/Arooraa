@@ -1,95 +1,47 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { AuraVoiceStatus } from "@/lib/aura/voice/useAuraVoice";
 import styles from "./AuraMicButton.module.css";
 
 interface AuraMicButtonProps {
-  status: AuraVoiceStatus;
   onStart: () => void;
-  onStop: () => void;
   /** True while a message is being answered — one thing at a time. */
   busy: boolean;
-  /** Microphone loudness, about ten times a second. Absent when nothing is measuring it. */
-  subscribeToLevel?: (listener: (level: number) => void) => () => void;
 }
 
-const RECORDING_STATES: AuraVoiceStatus[] = ["REQUESTING", "LISTENING"];
-
 /**
- * Push to talk, as a tap rather than a hold.
+ * The way in to voice: one button, in the composer row, that starts recording.
  *
- * <p>Hold-to-talk is the more obvious gesture and the wrong one here. It cannot be operated from a
- * keyboard without inventing a key-down/key-up convention nobody knows; it fails on touch the
- * moment a finger drifts off the button; and it makes a long sentence into a physical endurance
- * task. Tap to start, tap to stop — the same control, in two states, reachable by Tab and Enter
- * like everything else in the panel.
+ * <p>Tap rather than hold. Hold-to-talk is the more obvious gesture and the wrong one here: it
+ * cannot be operated from a keyboard without inventing a key-down/key-up convention nobody knows,
+ * it fails on touch the moment a finger drifts off the button, and it makes a long sentence into a
+ * physical endurance task.
+ *
+ * <p>A5.2 took the other half of its job away, and the button is better for it. It used to also
+ * <em>be</em> the recording indicator — same 44px square, tinted red, with a ring that followed the
+ * microphone level — and the owner's finding was that this is not enough to tell whether Aura is
+ * actually listening. Recording now has a surface of its own ({@link AuraListening}), which
+ * replaces the composer while it is up, so this button is only ever seen in one state and says one
+ * thing.
  */
-export function AuraMicButton({
-  status,
-  onStart,
-  onStop,
-  busy,
-  subscribeToLevel,
-}: AuraMicButtonProps) {
-  const recording = RECORDING_STATES.includes(status);
-  const processing = status === "PROCESSING";
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  /*
-   * The level is written straight onto this element as a custom property rather than held in
-   * state. It changes ten times a second; as state it would re-render the panel — and with it the
-   * whole conversation — ten times a second to animate one ring. Nothing else on the page needs to
-   * know how loud the room is, so nothing else is told.
-   */
-  useEffect(() => {
-    if (!subscribeToLevel || !recording) return;
-    const button = buttonRef.current;
-    if (!button) return;
-
-    const unsubscribe = subscribeToLevel((level) => {
-      button.style.setProperty("--aura-mic-level", level.toFixed(2));
-    });
-    return () => {
-      unsubscribe();
-      button.style.removeProperty("--aura-mic-level");
-    };
-  }, [recording, subscribeToLevel]);
-
+export function AuraMicButton({ onStart, busy }: AuraMicButtonProps) {
   return (
     <button
-      ref={buttonRef}
       type="button"
       className={styles.mic}
-      data-recording={recording ? "true" : undefined}
-      onClick={recording ? onStop : onStart}
-      disabled={busy || processing}
-      // The accessible name changes with the state, so a screen-reader user always hears what the
-      // button will do next rather than what it is called. `aria-pressed` carries the state
-      // itself, which is what makes the two readable together.
-      aria-pressed={recording}
-      aria-label={
-        recording
-          ? "Stop recording and transcribe"
-          : processing
-            ? "Working out what you said"
-            : "Speak to Aura — English, Tamil or Tanglish"
-      }
+      onClick={onStart}
+      disabled={busy}
+      aria-label="Start voice input"
     >
-      {processing ? (
-        <span className={styles.working} aria-hidden="true" />
-      ) : (
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <rect x="7.25" y="2" width="5.5" height="10" rx="2.75" fill="currentColor" />
-          <path
-            d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v3"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            fill="none"
-          />
-        </svg>
-      )}
+      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <rect x="7.25" y="2" width="5.5" height="10" rx="2.75" fill="currentColor" />
+        <path
+          d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v3"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
     </button>
   );
 }

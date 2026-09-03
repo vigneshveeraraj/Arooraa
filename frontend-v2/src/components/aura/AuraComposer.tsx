@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { AuraMessageSource } from "@/lib/aura/useAuraConversation";
 import type { AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
+import { AuraListening } from "./AuraListening";
 import { AuraMicButton } from "./AuraMicButton";
 import { AuraSpeakerButton } from "./AuraSpeakerButton";
 import styles from "./AuraComposer.module.css";
@@ -77,9 +78,44 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
   }
 
   const recording = voice?.status === "LISTENING" || voice?.status === "REQUESTING";
+  const processing = voice?.status === "PROCESSING";
   const speaking = voice?.status === "SPEAKING";
   const notice = voice?.error ?? null;
-  const secondsLeft = voice?.secondsLeft ?? null;
+
+  /*
+   * The composer is unmounted while the recording stage is up, and a textarea that never blurs is
+   * a textarea the conversation still believes has focus — which would leave the Spark in
+   * INPUT_ACTIVE after a cancelled recording. React fires no blur on unmount, so this says it.
+   */
+  const listeningRef = useRef(false);
+  useEffect(() => {
+    const listening = recording || processing;
+    if (listening === listeningRef.current) return;
+    listeningRef.current = listening;
+    if (listening) {
+      onActiveChange(false);
+    } else {
+      // Focus was on Done, which has just gone. Without this it falls to the document body and the
+      // panel's Tab cycle loses its visitor; the composer is also where they are going next.
+      textareaRef.current?.focus({ preventScroll: true });
+    }
+  }, [onActiveChange, processing, recording]);
+
+  if (voice && (recording || processing)) {
+    return (
+      <div className={styles.dock}>
+        <AuraListening
+          status={voice.status as "REQUESTING" | "LISTENING" | "PROCESSING"}
+          introducing={voice.introducing}
+          elapsedSeconds={voice.elapsedSeconds}
+          secondsLeft={voice.secondsLeft}
+          onDone={voice.stopListening}
+          onCancel={voice.cancelListening}
+          subscribeToLevel={voice.subscribeToLevel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.dock}>
@@ -94,16 +130,6 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
           <button type="button" className={styles.noticeAction} onClick={() => voice?.dismissError()}>
             Dismiss
           </button>
-        </p>
-      ) : recording ? (
-        <p className={styles.notice}>
-          {/* The countdown appears only near the ceiling. A stopwatch running from the first word
-              would make an ordinary question feel timed. */}
-          <span>
-            {secondsLeft === null
-              ? "Listening — tap the microphone when you’re done."
-              : `Listening — ${secondsLeft}s left.`}
-          </span>
         </p>
       ) : speaking ? (
         <p className={styles.notice}>
@@ -153,15 +179,7 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
           onBlur={() => onActiveChange(false)}
         />
 
-        {voice?.available ? (
-          <AuraMicButton
-            status={voice.status}
-            onStart={voice.startListening}
-            onStop={voice.stopListening}
-            busy={busy}
-            subscribeToLevel={voice.subscribeToLevel}
-          />
-        ) : null}
+        {voice?.available ? <AuraMicButton onStart={voice.startListening} busy={busy} /> : null}
 
         <button type="submit" className={styles.send} disabled={!canSend} aria-label="Send message">
           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">

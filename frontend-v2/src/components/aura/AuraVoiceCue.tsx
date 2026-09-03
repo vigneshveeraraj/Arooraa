@@ -1,11 +1,18 @@
 import styles from "./AuraVoiceCue.module.css";
 
 /**
- * The one line that tells a visitor they can speak, and in which languages.
+ * The one line that tells a visitor they do not have to speak English.
  *
- * <p>Named languages rather than a claim of universal support: English, Tamil and Tanglish are
- * what Aura has actually been built and tested for, and Tamil is written in Tamil because a Tamil
- * speaker should be able to see that at a glance rather than read an English word for it.
+ * <p>A5.2 changed both what it says and where it lives. It used to sit permanently in the guided
+ * entry, naming the three languages — "Speak naturally — English · <span lang="ta">தமிழ்</span> ·
+ * Tanglish" — which took conversation space from every visitor, including everyone who never
+ * touches the microphone, and read as a feature announcement. Now it appears once, on the recording
+ * stage, the first time this browser reaches for the microphone, and then never again.
+ *
+ * <p>The copy dropped the list with it, on the owner's instruction. Naming three languages tells
+ * somebody who speaks a fourth that they are not invited; "in your own language" says the thing
+ * that is actually true of the model behind it, and is shorter at the moment somebody is about to
+ * start talking.
  *
  * <p>No flag, and no globe. A flag maps a language to a country, which is wrong for Tamil in
  * particular and slightly wrong for every language; a globe emoji is a generic control-panel
@@ -27,9 +34,7 @@ export function AuraVoiceCue({ className }: { className?: string }) {
           <rect className={styles.barTall} x="19" y="1.5" width="2" height="13" rx="1" />
         </svg>
       </span>
-      <span>
-        Speak naturally — English · <span lang="ta">தமிழ்</span> · Tanglish
-      </span>
+      <span>Speak naturally in your own language</span>
     </p>
   );
 }

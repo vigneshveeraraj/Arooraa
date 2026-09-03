@@ -118,7 +118,7 @@ async function openAura(client: AuraApiClient, voiceClient: AuraVoiceApiClient) 
   render(<AuraWidget client={client} voiceClient={voiceClient} />);
   await user.click(screen.getByRole("button", { name: "Ask Aura" }));
   await screen.findByRole("dialog", { name: /Aura/ });
-  await screen.findByRole("button", { name: /Speak to Aura/ });
+  await screen.findByRole("button", { name: "Start voice input" });
   return user;
 }
 
@@ -143,12 +143,12 @@ describe("Aura's voice, in use", () => {
     const utterance = FakeAudio.latest();
     expect(utterance.paused).toBe(false);
 
-    await user.click(screen.getByRole("button", { name: /Speak to Aura/ }));
+    await user.click(screen.getByRole("button", { name: "Start voice input" }));
 
     expect(utterance.paused).toBe(true);
     expect(audio!.revoked).toContain(audio!.created[0]);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Stop recording and transcribe" })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /stop recording/i })).toBeInTheDocument(),
     );
   });
 
@@ -194,7 +194,7 @@ describe("Aura's voice, in use", () => {
     FakeAudio.latest().end();
     await screen.findByRole("button", { name: "Play again" });
 
-    await user.click(screen.getByRole("button", { name: /Speak to Aura/ }));
+    await user.click(screen.getByRole("button", { name: "Start voice input" }));
 
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Play again" })).not.toBeInTheDocument(),
@@ -213,21 +213,23 @@ describe("Aura's voice, in use", () => {
 
   // --- recording lifecycle --------------------------------------------------------------------
 
-  it("says nothing about the clock until the ceiling is close", async () => {
-    // A stopwatch running from the first word would make an ordinary question feel timed.
+  it("says nothing about the ceiling until it is close", async () => {
+    // The elapsed clock runs from the first word; the countdown does not. A5.2 added the first
+    // because the owner could not tell whether Aura was listening, and kept the second late
+    // because a countdown from the start makes an ordinary question feel timed.
     const user = await openAura(new FakeAuraClient(), new FakeVoiceClient().withRecordingCeiling(60));
 
-    await user.click(screen.getByRole("button", { name: /Speak to Aura/ }));
+    await user.click(screen.getByRole("button", { name: "Start voice input" }));
 
-    const strip = await screen.findByText(/Listening/);
-    expect(strip).toHaveTextContent("tap the microphone when you’re done");
-    expect(strip.textContent).not.toMatch(/\ds left/);
+    await screen.findByText("Listening…");
+    expect(screen.getByText("0:00")).toBeInTheDocument();
+    expect(screen.queryByText(/\ds left/)).not.toBeInTheDocument();
   });
 
   it("counts down once the ceiling is close, so stopping is never a surprise", async () => {
     const user = await openAura(new FakeAuraClient(), new FakeVoiceClient().withRecordingCeiling(10));
 
-    await user.click(screen.getByRole("button", { name: /Speak to Aura/ }));
+    await user.click(screen.getByRole("button", { name: "Start voice input" }));
 
     await screen.findByText(/\ds left/, undefined, { timeout: 4_000 });
   });
@@ -239,7 +241,7 @@ describe("Aura's voice, in use", () => {
     const voice = new FakeVoiceClient();
     const user = await openAura(new FakeAuraClient(), voice);
 
-    await user.click(screen.getByRole("button", { name: /Speak to Aura/ }));
+    await user.click(screen.getByRole("button", { name: "Start voice input" }));
     await waitFor(() => expect(FakeMediaRecorder.instances.length).toBeGreaterThan(0));
     FakeMediaRecorder.latest().emit(50_000);
 

@@ -149,7 +149,7 @@ async function openAura(client: AuraApiClient, voiceClient: AuraVoiceApiClient) 
 }
 
 function micButton() {
-  return screen.getByRole("button", { name: /Speak to Aura/ });
+  return screen.getByRole("button", { name: "Start voice input" });
 }
 
 /** Runs one full push-to-talk cycle: tap, the browser produces audio, tap again. */
@@ -157,7 +157,7 @@ async function speak(user: ReturnType<typeof userEvent.setup>) {
   await user.click(micButton());
   await waitFor(() => expect(FakeMediaRecorder.instances.length).toBeGreaterThan(0));
   FakeMediaRecorder.latest().emit(50_000);
-  await user.click(screen.getByRole("button", { name: "Stop recording and transcribe" }));
+  await user.click(screen.getByRole("button", { name: /stop recording/i }));
 }
 
 describe("Aura's voice", () => {
@@ -167,7 +167,7 @@ describe("Aura's voice", () => {
     // aura.voice.enabled=false means the route 404s, which the client reports as no capabilities.
     await openAura(new FakeAuraClient(), new FakeVoiceClient().withCapabilities(null));
 
-    expect(screen.queryByRole("button", { name: /Speak to Aura/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start voice input" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Read answers aloud/ })).not.toBeInTheDocument();
   });
 
@@ -178,7 +178,7 @@ describe("Aura's voice", () => {
 
     await openAura(new FakeAuraClient(), new FakeVoiceClient());
 
-    expect(screen.queryByRole("button", { name: /Speak to Aura/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start voice input" })).not.toBeInTheDocument();
   });
 
   it("shows the microphone when the browser can record and the backend will listen", async () => {
@@ -202,15 +202,14 @@ describe("Aura's voice", () => {
     expect(screen.queryByRole("button", { name: /Read answers aloud/ })).not.toBeInTheDocument();
   });
 
-  it("tells a visitor they can speak in English, Tamil or Tanglish", async () => {
+  it("says nothing about languages until somebody reaches for the microphone", async () => {
+    // A5.2 owner finding 2. The row used to sit in the guided entry permanently, taking
+    // conversation space from every visitor — including everyone who never speaks — in order to
+    // say something that only matters at one moment.
     await openAura(new FakeAuraClient(), new FakeVoiceClient());
+    await waitFor(() => expect(micButton()).toBeInTheDocument());
 
-    const cue = await screen.findByText(/Speak naturally/);
-    expect(cue).toHaveTextContent("English");
-    expect(cue).toHaveTextContent("தமிழ்");
-    expect(cue).toHaveTextContent("Tanglish");
-    // No flag, no globe: the mark is Aura's own geometry, and it is decorative.
-    expect(cue.textContent).not.toMatch(/[\u{1F1E6}-\u{1F1FF}\u{1F310}]/u);
+    expect(screen.queryByText(/Speak naturally/)).not.toBeInTheDocument();
   });
 
   it("says nothing about speaking when voice is off", async () => {
@@ -289,7 +288,7 @@ describe("Aura's voice", () => {
   });
 
   it.each([
-    ["NotAllowedError", /microphone permission/i],
+    ["NotAllowedError", /Microphone access is needed/i],
     ["NotFoundError", /can't find a microphone/i],
     ["NotReadableError", /using the microphone/i],
   ])("says something human when the browser refuses with %s", async (name, expected) => {
@@ -463,10 +462,11 @@ describe("Aura's voice", () => {
 
     await user.click(micButton());
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Stop recording and transcribe" })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /stop recording/i })).toBeInTheDocument(),
     );
-    // The same control, now offering the opposite action rather than a second button appearing.
-    expect(screen.queryByRole("button", { name: /Speak to Aura/ })).not.toBeInTheDocument();
+    // The recording stage replaces the composer entirely, so there is no microphone to press
+    // again and no textarea to send from while one is running.
+    expect(screen.queryByRole("button", { name: "Start voice input" })).not.toBeInTheDocument();
   });
 
   it("keeps every voice control reachable from the keyboard", async () => {

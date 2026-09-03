@@ -169,13 +169,3 @@
     transition: none;
   }
 }
-
-/*
- * Separated from the secondary row by a hairline rather than by space alone, so the cue reads as
- * a footnote to the menu instead of a fourth tier of choices (A5).
- */
-.voiceCue {
-  margin-block-start: var(--space-3);
-  padding-block-start: var(--space-3);
-  border-block-start: var(--border-width) solid var(--color-border);
-}

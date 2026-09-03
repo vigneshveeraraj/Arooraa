@@ -139,6 +139,17 @@ export function AuraPanel({
     panelRef.current?.querySelector<HTMLElement>("textarea")?.focus({ preventScroll: true });
   }
 
+  /**
+   * Starting again also ends anything voice is doing. A conversation is meant to survive a lot of
+   * things; a microphone that stays open once the conversation it belonged to is gone is not one
+   * of them, and the browser's own recording indicator would still be lit.
+   */
+  function startNewConversation() {
+    voice?.cancelListening();
+    voice?.stopSpeaking();
+    controller.startNewConversation();
+  }
+
   function openGuidedMenu() {
     setGuidedSection("root");
     setGuidedOpen(true);
@@ -261,7 +272,7 @@ export function AuraPanel({
         <button
           type="button"
           className={styles.headerAction}
-          onClick={controller.startNewConversation}
+          onClick={startNewConversation}
           disabled={busy || empty}
         >
           New
@@ -331,7 +342,6 @@ export function AuraPanel({
             onStartIdea={startIdea}
             onNavigateOnly={navigateOnly}
             onDismiss={dismissGuidedMenu}
-            voiceAvailable={voice?.available ?? false}
           />
         ) : null}
 
@@ -371,8 +381,17 @@ export function AuraPanel({
         ) : null}
       </div>
 
+      {/*
+        The panel's one live region, and deliberately the only one. The recording stage has plenty
+        to say visually and says none of it here: a level meter that announced itself, or a clock
+        that spoke every second, would make the microphone unusable with a screen reader. The first
+        microphone use adds its guidance to this same sentence rather than opening a second region
+        that would compete with it.
+      */}
       <p className={styles.srOnly} role="status">
-        {describeAuraState(presence)}
+        {voice?.introducing && voice.status === "LISTENING"
+          ? "Aura is recording — speak naturally in your own language"
+          : describeAuraState(presence)}
       </p>
 
       <AuraComposer
