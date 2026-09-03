@@ -120,7 +120,7 @@ describe("the developer inspector", () => {
     );
     // A real dynamic import: the inspector lives in its own chunk so a public page never fetches
     // it, which means even here it arrives a tick later than the panel around it.
-    const summary = await screen.findByText("Dev", {}, { timeout: 10_000 });
+    const summary = await screen.findByText("Dev");
 
     const user = userEvent.setup();
     await user.click(summary);
@@ -150,7 +150,7 @@ describe("the developer inspector", () => {
     );
 
     // One inspector, describing the most recent answer.
-    await screen.findByText("Dev", {}, { timeout: 10_000 });
+    await screen.findByText("Dev");
     expect(screen.getAllByText("Dev")).toHaveLength(1);
     expect(screen.getByText("SOCIAL")).toBeInTheDocument();
     expect(screen.queryByText("GROUNDED_QA")).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe("the developer inspector", () => {
       />,
     );
 
-    await screen.findByText("Dev", {}, { timeout: 10_000 });
+    await screen.findByText("Dev");
     expect(screen.getByText("3142ms")).toBeInTheDocument();
     expect(screen.getByText("880ms")).toBeInTheDocument();
     expect(screen.getByText("640ms")).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe("the developer inspector", () => {
       />,
     );
 
-    await screen.findByText("Dev", {}, { timeout: 10_000 });
+    await screen.findByText("Dev");
     expect(screen.queryByText("transcribe")).not.toBeInTheDocument();
     expect(screen.queryByText("voice turn")).not.toBeInTheDocument();
   });

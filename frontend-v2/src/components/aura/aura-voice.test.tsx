@@ -144,7 +144,7 @@ async function openAura(client: AuraApiClient, voiceClient: AuraVoiceApiClient) 
   render(<AuraWidget client={client} voiceClient={voiceClient} />);
   await user.click(screen.getByRole("button", { name: "Ask Aura" }));
   // The panel is a real dynamic import, so opening it genuinely waits on a module.
-  await screen.findByRole("dialog", { name: /Aura/ }, { timeout: 10_000 });
+  await screen.findByRole("dialog", { name: /Aura/ });
   return user;
 }
 

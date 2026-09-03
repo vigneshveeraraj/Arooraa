@@ -117,8 +117,8 @@ async function openAura(client: AuraApiClient, voiceClient: AuraVoiceApiClient) 
   const user = userEvent.setup();
   render(<AuraWidget client={client} voiceClient={voiceClient} />);
   await user.click(screen.getByRole("button", { name: "Ask Aura" }));
-  await screen.findByRole("dialog", { name: /Aura/ }, { timeout: 10_000 });
-  await screen.findByRole("button", { name: /Speak to Aura/ }, { timeout: 10_000 });
+  await screen.findByRole("dialog", { name: /Aura/ });
+  await screen.findByRole("button", { name: /Speak to Aura/ });
   return user;
 }
 

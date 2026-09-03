@@ -6,6 +6,17 @@ import { localJobApplicationAdapter, notConnectedJobApplicationAdapter } from "@
 import { JOBS } from "@/lib/careers/jobs";
 import type { JobOpening } from "@/lib/careers/types";
 
+/**
+ * Fills a field in one go rather than a keystroke at a time. Same reason as ContactForm's helper:
+ * simulating forty keystrokes re-renders and re-validates the form forty times, which is what made
+ * these tests time out under a fully parallel suite while passing on their own. Nothing here is
+ * about what happens between keystrokes.
+ */
+async function fill(user: ReturnType<typeof userEvent.setup>, element: HTMLElement, text: string) {
+  await user.click(element);
+  await user.paste(text);
+}
+
 const OPEN_JOB = JOBS[0]!;
 const PLANNED_JOB: JobOpening = { ...OPEN_JOB, status: "PLANNED" };
 const CLOSED_JOB: JobOpening = { ...OPEN_JOB, status: "CLOSED" };
@@ -39,9 +50,9 @@ describe("JobApplyPanel", () => {
     render(<JobApplyPanel job={OPEN_JOB} adapter={notConnectedJobApplicationAdapter} />);
 
     await user.click(screen.getByRole("button", { name: /apply for this role/i }));
-    await user.type(screen.getByLabelText(/full name/i), "Priya Sharma");
-    await user.type(screen.getByLabelText(/email address/i), "priya@example.com");
-    await user.type(screen.getByLabelText(/phone number/i), "9876543210");
+    await fill(user, screen.getByLabelText(/full name/i), "Priya Sharma");
+    await fill(user, screen.getByLabelText(/email address/i), "priya@example.com");
+    await fill(user, screen.getByLabelText(/phone number/i), "9876543210");
     await user.click(screen.getByLabelText(/i consent to arooraa/i));
     await user.click(screen.getByRole("button", { name: /submit application/i }));
 
@@ -76,9 +87,9 @@ describe("JobApplyPanel", () => {
     render(<JobApplyPanel job={OPEN_JOB} adapter={localJobApplicationAdapter} />);
 
     await user.click(screen.getByRole("button", { name: /apply for this role/i }));
-    await user.type(screen.getByLabelText(/full name/i), "Priya Sharma");
-    await user.type(screen.getByLabelText(/email address/i), "priya@example.com");
-    await user.type(screen.getByLabelText(/phone number/i), "9876543210");
+    await fill(user, screen.getByLabelText(/full name/i), "Priya Sharma");
+    await fill(user, screen.getByLabelText(/email address/i), "priya@example.com");
+    await fill(user, screen.getByLabelText(/phone number/i), "9876543210");
     await user.click(screen.getByLabelText(/i consent to arooraa/i));
     await user.click(screen.getByRole("button", { name: /submit application/i }));
 

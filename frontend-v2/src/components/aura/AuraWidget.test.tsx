@@ -89,9 +89,10 @@ async function openAura(client: AuraApiClient) {
   const user = userEvent.setup();
   render(<AuraWidget client={client} />);
   await user.click(screen.getByRole("button", { name: "Ask Aura" }));
-  // The panel is a real dynamic import, so opening it genuinely waits on a module. The default
-  // 1s findBy timeout is enough on an idle machine and not enough under a loaded full-suite run.
-  await screen.findByRole("dialog", { name: /Aura/ }, { timeout: 10_000 });
+  // The panel is a real dynamic import, so opening it genuinely waits on a module. The budget for
+  // that wait is set centrally in vitest.setup.ts — Testing Library's own 1s default is enough on
+  // an idle machine and not enough under a loaded full-suite run.
+  await screen.findByRole("dialog", { name: /Aura/ });
   return user;
 }
 

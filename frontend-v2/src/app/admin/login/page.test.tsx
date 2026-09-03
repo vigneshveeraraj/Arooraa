@@ -13,6 +13,17 @@ function mockResponse(status: number, body: unknown): Response {
   return { status, ok: status >= 200 && status < 300, json: async () => body } as Response;
 }
 
+/**
+ * Pasted rather than typed. `user.type` fires a keystroke at a time, and a controlled form
+ * re-renders on every one — forty-six of them per test here, for credentials no test inspects
+ * character by character. Under a full-suite run that was the difference between a fast test and a
+ * timeout. What these tests are about is what happens after the submit.
+ */
+async function fill(user: ReturnType<typeof userEvent.setup>, element: HTMLElement, text: string) {
+  await user.click(element);
+  await user.paste(text);
+}
+
 describe("AdminLoginPage", () => {
   const fetchMock = vi.fn();
 
@@ -58,8 +69,8 @@ describe("AdminLoginPage", () => {
     );
     await screen.findByLabelText("Email");
 
-    await user.type(screen.getByLabelText("Email"), "owner@arooraa.test");
-    await user.type(screen.getByLabelText("Password"), "correct-horse-battery-staple");
+    await fill(user, screen.getByLabelText("Email"), "owner@arooraa.test");
+    await fill(user, screen.getByLabelText("Password"), "correct-horse-battery-staple");
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(await screen.findByRole("button", { name: "Logging in…" })).toBeDisabled();
@@ -78,8 +89,8 @@ describe("AdminLoginPage", () => {
     );
     await screen.findByLabelText("Email");
 
-    await user.type(screen.getByLabelText("Email"), "owner@arooraa.test");
-    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await fill(user, screen.getByLabelText("Email"), "owner@arooraa.test");
+    await fill(user, screen.getByLabelText("Password"), "wrong-password");
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
@@ -98,8 +109,8 @@ describe("AdminLoginPage", () => {
     );
     await screen.findByLabelText("Email");
 
-    await user.type(screen.getByLabelText("Email"), "owner@arooraa.test");
-    await user.type(screen.getByLabelText("Password"), "correct-horse-battery-staple");
+    await fill(user, screen.getByLabelText("Email"), "owner@arooraa.test");
+    await fill(user, screen.getByLabelText("Password"), "correct-horse-battery-staple");
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/admin"));

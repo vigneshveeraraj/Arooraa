@@ -4,11 +4,31 @@ import userEvent from "@testing-library/user-event";
 import { ContactForm } from "./ContactForm";
 import { localContactAdapter, notConnectedContactAdapter, type ContactAdapter } from "@/lib/contact/adapter";
 
+/**
+ * Fills each field in one go rather than a keystroke at a time.
+ *
+ * <p>This helper was the cause of a long-standing flake: the five tests that use it were the only
+ * ones in the whole suite that failed intermittently, always by timing out at five seconds, and
+ * always passing on their own. `user.type` simulates every keystroke — seventy-four of them here —
+ * and the form re-renders and re-validates on each one. On an idle machine that is comfortably
+ * under a second; with three hundred test files running in parallel on the same cores it is not,
+ * and the failure moved around depending on what else happened to be running.
+ *
+ * <p>Pasting does the same thing in one event per field. Nothing is lost: not one of these tests is
+ * about what happens between keystrokes — they are about validation, submission, and what survives
+ * an error. The timeout was never the problem, so raising it would have hidden the cost rather
+ * than removing it.
+ */
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>, reason = "General enquiry") {
-  await user.type(screen.getByLabelText(/^name/i), "Priya Sharma");
-  await user.type(screen.getByLabelText(/email address/i), "priya@example.com");
+  await fill(user, screen.getByLabelText(/^name/i), "Priya Sharma");
+  await fill(user, screen.getByLabelText(/email address/i), "priya@example.com");
   await user.selectOptions(screen.getByLabelText(/what's this about/i), reason);
-  await user.type(screen.getByLabelText(/^message/i), "I have a question about AROORAA as a company.");
+  await fill(user, screen.getByLabelText(/^message/i), "I have a question about AROORAA as a company.");
+}
+
+async function fill(user: ReturnType<typeof userEvent.setup>, element: HTMLElement, text: string) {
+  await user.click(element);
+  await user.paste(text);
 }
 
 describe("ContactForm", () => {
