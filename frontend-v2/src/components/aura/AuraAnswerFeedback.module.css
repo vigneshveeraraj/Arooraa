@@ -1,0 +1,66 @@
+/*
+ * As quiet as a control can be while still being findable. Label type, muted, no border, no
+ * background — it sits under one answer and is not competing with it for attention.
+ */
+
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.prompt {
+  color: var(--color-text-muted);
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-block-size: 28px;
+  padding-inline: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  background: none;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.choice svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+
+.choice:hover {
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.choice:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.thanks {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+/*
+ * Bigger on touch, where a 28px target is a miss waiting to happen — but still the quietest thing
+ * in the panel.
+ */
+@media (max-width: 600px) {
+  .choice {
+    min-block-size: 44px;
+    padding-inline: var(--space-3);
+  }
+}

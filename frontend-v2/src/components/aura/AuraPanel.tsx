@@ -8,6 +8,7 @@ import { voicePresence, type AuraVoiceController } from "@/lib/aura/voice/useAur
 import type { AuraBriefController } from "@/lib/aura/brief/useAuraBrief";
 import dynamic from "next/dynamic";
 import { AuraComposer } from "./AuraComposer";
+import { AuraAnswerFeedback } from "./AuraAnswerFeedback";
 import { AuraBrief } from "./AuraBrief";
 import { AuraGuidedEntry, type AuraGuidedSection } from "./AuraGuidedEntry";
 import { AuraMark } from "./AuraMark";
@@ -43,6 +44,11 @@ interface AuraPanelProps {
    * is conditional on it, so a panel without one is exactly the panel A5 shipped.
    */
   brief?: AuraBriefController | null;
+  /**
+   * Records whether an answer was any use. Absent when feedback is not wired up, and then the
+   * control simply does not appear — like everything else Aura has gained since A4, it is additive.
+   */
+  onRate?: (sequence: number, rating: "HELPFUL" | "NOT_HELPFUL") => void;
 }
 
 /**
@@ -95,6 +101,7 @@ export function AuraPanel({
   initialGuidedSection,
   voice = null,
   brief = null,
+  onRate,
 }: AuraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -102,6 +109,8 @@ export function AuraPanel({
   const empty = transcript.length === 0;
 
   // One presence for the visitor to read, out of two sources — see mergeAuraState.
+  const latestTurn = latestAuraTurn(transcript);
+
   const presence = mergeAuraState(state, voice ? voicePresence(voice.status) : null);
 
   // The guided menu owns two small pieces of presentation state: whether it is showing at all, and
@@ -272,7 +281,7 @@ export function AuraPanel({
 
       {devDiagnostics ? (
         <AuraDevInspector
-          turn={latestAuraTurn(transcript)}
+          turn={latestTurn}
           defaultOpen={devDiagnosticsOpen}
           voiceTimings={voice?.timings ?? null}
         />
@@ -297,6 +306,16 @@ export function AuraPanel({
               {/* Aura's turn is the answer and nothing else. Its sources and diagnostics travel on
                   the message object and are read by the developer inspector above, never here. */}
               <AuraRichText text={message.text} />
+
+              {/* Under the latest answer only, and only while it is still the latest. Feedback
+                  controls under every message turn a conversation into a survey; asking once,
+                  about the thing just said, is a question rather than a form (A7). */}
+              {onRate && message === latestTurn && !message.failed && message.sequence != null && !busy ? (
+                <AuraAnswerFeedback
+                  key={`feedback-${message.id}`}
+                  onRate={(rating) => onRate(message.sequence as number, rating)}
+                />
+              ) : null}
             </div>
           ),
         )}

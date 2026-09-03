@@ -142,6 +142,7 @@ export function useAuraConversation({
       setFailure(null);
       appendAura({
         text: result.value.answer,
+        sequence: result.value.sequence,
         sources: result.value.sources,
         diagnostics: result.value.diagnostics ?? null,
       });

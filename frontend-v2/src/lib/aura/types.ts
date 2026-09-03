@@ -27,6 +27,8 @@ export interface AuraDiagnostics {
 
 export interface AuraAnswer {
   conversationId: string;
+  /** Which turn this is, from the backend. What feedback names when it is given. */
+  sequence: number | null;
   answer: string;
   sources: AuraSource[];
   diagnostics?: AuraDiagnostics | null;
@@ -73,6 +75,8 @@ export interface AuraTranscriptMessage {
   id: string;
   role: "user" | "aura";
   text: string;
+  /** The backend turn this message is, when it has one. Null for anything rendered locally. */
+  sequence?: number | null;
   sources?: AuraSource[];
   diagnostics?: AuraDiagnostics | null;
   failed?: boolean;

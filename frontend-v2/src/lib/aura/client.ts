@@ -177,10 +177,12 @@ export function createAuraApiClient(): AuraApiClient {
       const answer = result.json?.answer;
       if (typeof answer !== "string" || answer.trim().length === 0) return auraFailure("SERVER");
       const diagnostics = result.json?.diagnostics;
+      const sequence = result.json?.sequence;
       return {
         ok: true,
         value: {
           conversationId,
+          sequence: typeof sequence === "number" ? sequence : null,
           answer,
           sources: toSources(result.json?.sources),
           diagnostics:

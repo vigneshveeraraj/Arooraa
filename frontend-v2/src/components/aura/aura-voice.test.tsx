@@ -59,7 +59,7 @@ class FakeAuraClient implements AuraApiClient {
     return (
       this.answers.shift() ?? {
         ok: true as const,
-        value: { conversationId, answer: "Happy to help.", sources: [], diagnostics: null },
+        value: { conversationId, sequence: 1, answer: "Happy to help.", sources: [], diagnostics: null },
       }
     );
   }

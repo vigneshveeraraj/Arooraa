@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import type { AuraApiClient } from "@/lib/aura/client";
@@ -10,6 +10,7 @@ import { useAuraVoice, voicePresence } from "@/lib/aura/voice/useAuraVoice";
 import type { AuraVoiceApiClient } from "@/lib/aura/voice/voice-client";
 import { useAuraBrief } from "@/lib/aura/brief/useAuraBrief";
 import type { AuraBriefApiClient } from "@/lib/aura/brief/brief-client";
+import { createAuraFeedbackClient, type AuraFeedbackClient } from "@/lib/aura/feedback";
 import { AuraLauncher } from "./AuraLauncher";
 
 /**
@@ -30,6 +31,8 @@ interface AuraWidgetProps {
   voiceClient?: AuraVoiceApiClient;
   /** Injected by tests; production always uses the real client. */
   briefClient?: AuraBriefApiClient;
+  /** Injected by tests; production always uses the real client. */
+  feedbackClient?: AuraFeedbackClient;
 }
 
 /**
@@ -41,7 +44,7 @@ interface AuraWidgetProps {
  * conversation controller. The controller lives here rather than inside the panel so closing Aura
  * does not throw away the conversation.
  */
-export function AuraWidget({ client, voiceClient, briefClient }: AuraWidgetProps) {
+export function AuraWidget({ client, voiceClient, briefClient, feedbackClient }: AuraWidgetProps) {
   const [open, setOpen] = useState(false);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -59,6 +62,7 @@ export function AuraWidget({ client, voiceClient, briefClient }: AuraWidgetProps
 
   const voice = useAuraVoice({ client: voiceClient });
   const brief = useAuraBrief({ client: briefClient });
+  const feedback = useMemo(() => feedbackClient ?? createAuraFeedbackClient(), [feedbackClient]);
 
   // Both of the things that happen when an answer lands, fired as one event the moment it does
   // rather than noticed later by watching the transcript grow. Speaking has to follow a spoken
@@ -76,6 +80,23 @@ export function AuraWidget({ client, voiceClient, briefClient }: AuraWidgetProps
     currentPath: pathname ?? null,
     onAnswer,
   });
+
+  const rate = useCallback(
+    (sequence: number, rating: "HELPFUL" | "NOT_HELPFUL") => {
+      // No conversation, nothing to rate. Cannot happen from the UI — the control only appears
+      // under an answer, and an answer implies a conversation — but the type allows it.
+      if (!controller.conversationId) return;
+      try {
+        feedback.rate(controller.conversationId, sequence, rating);
+      } catch {
+        // Swallowed here rather than trusted to the client, for the same reason the backend's
+        // recorder swallows its own failures: a visitor who was kind enough to answer must never
+        // be shown an error about our analytics, and a conversation must never end because of one.
+        // This runs inside a React event handler, where an escaping throw would tear down the tree.
+      }
+    },
+    [controller.conversationId, feedback],
+  );
 
   const close = useCallback(() => {
     // Closing the panel ends anything voice is doing. A conversation survives a close and is
@@ -122,6 +143,7 @@ export function AuraWidget({ client, voiceClient, briefClient }: AuraWidgetProps
           onNavigate={router.push}
           voice={voice}
           brief={brief}
+          onRate={rate}
         />
       )}
     </>

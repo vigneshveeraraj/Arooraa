@@ -41,7 +41,7 @@ class FakeAuraClient implements AuraApiClient {
     this.sent.push(message);
     return {
       ok: true as const,
-      value: { conversationId, answer: "What are they doing today?", sources: [], diagnostics: null },
+      value: { conversationId, sequence: 1, answer: "What are they doing today?", sources: [], diagnostics: null },
     };
   }
 }

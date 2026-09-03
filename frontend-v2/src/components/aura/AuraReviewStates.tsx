@@ -77,6 +77,9 @@ const GROUNDED_WITH_DIAGNOSTICS: AuraTranscriptMessage[] = [
   },
 ];
 
+/** The same grounded answer, numbered — which is what lets feedback name the turn it is about. */
+const GROUNDED_NUMBERED: AuraTranscriptMessage[] = [GROUNDED[0]!, { ...GROUNDED[1]!, sequence: 3 }];
+
 /** A short project discussion, so the brief states have a conversation behind them. */
 const DISCOVERY: AuraTranscriptMessage[] = [
   { id: "d1", role: "user", text: "I have an app idea. It helps parents manage school schedules." },
@@ -405,6 +408,21 @@ const STATES: ReviewState[] = [
           brief: REVIEW_BRIEF,
           enquiryReference: "ARO-2026-000042",
         })}
+      />,
+    ),
+  },
+  {
+    id: "feedback",
+    title: "Asked once, about the thing just said",
+    note: "Under the latest answer only, and gone the moment the visitor says anything else. Two choices, because “was this any use?” has two answers — and no box to justify a no in before we will accept it.",
+    frame: panel(
+      "feedback",
+      <AuraPanel
+        id="review-feedback"
+        onClose={() => {}}
+        controller={stubController(GROUNDED_NUMBERED)}
+        onNavigate={() => {}}
+        onRate={() => {}}
       />,
     ),
   },

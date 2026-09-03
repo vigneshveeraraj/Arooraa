@@ -75,14 +75,14 @@ class FakeAuraClient implements AuraApiClient {
     return (
       this.answers.shift() ?? {
         ok: true as const,
-        value: { conversationId, answer: "Happy to help.", sources: [], diagnostics: null },
+        value: { conversationId, sequence: 1, answer: "Happy to help.", sources: [], diagnostics: null },
       }
     );
   }
 }
 
 function answer(text: string, sources: AuraAnswer["sources"] = [], diagnostics: AuraAnswer["diagnostics"] = null) {
-  return { ok: true as const, value: { conversationId: "c-1", answer: text, sources, diagnostics } };
+  return { ok: true as const, value: { conversationId: "c-1", sequence: 1, answer: text, sources, diagnostics } };
 }
 
 async function openAura(client: AuraApiClient) {
