@@ -12,6 +12,7 @@ import com.arooraa.aura.conversation.pipeline.AuraAnswer;
 import com.arooraa.aura.conversation.pipeline.ComposedPrompt;
 import com.arooraa.aura.conversation.pipeline.ConversationContext;
 import com.arooraa.aura.conversation.pipeline.ConversationContextLoader;
+import com.arooraa.aura.conversation.pipeline.DiscoveryContinuityResolver;
 import com.arooraa.aura.conversation.pipeline.GenerationDecision;
 import com.arooraa.aura.conversation.pipeline.GenerationPolicy;
 import com.arooraa.aura.conversation.pipeline.GuardrailResult;
@@ -75,6 +76,7 @@ public class ConversationOrchestrator {
     private final AssistantProfileResolver profileResolver;
     private final ScopeClassifier scopeClassifier;
     private final PageAwareScopeResolver pageAwareScopeResolver;
+    private final DiscoveryContinuityResolver discoveryContinuityResolver;
     private final LanguageDetector languageDetector;
     private final ToneDetector toneDetector;
     private final ConversationContextLoader contextLoader;
@@ -94,6 +96,7 @@ public class ConversationOrchestrator {
                                      AssistantProfileResolver profileResolver,
                                      ScopeClassifier scopeClassifier,
                                      PageAwareScopeResolver pageAwareScopeResolver,
+                                     DiscoveryContinuityResolver discoveryContinuityResolver,
                                      LanguageDetector languageDetector,
                                      ToneDetector toneDetector,
                                      ConversationContextLoader contextLoader,
@@ -112,6 +115,7 @@ public class ConversationOrchestrator {
         this.profileResolver = profileResolver;
         this.scopeClassifier = scopeClassifier;
         this.pageAwareScopeResolver = pageAwareScopeResolver;
+        this.discoveryContinuityResolver = discoveryContinuityResolver;
         this.languageDetector = languageDetector;
         this.toneDetector = toneDetector;
         this.contextLoader = contextLoader;
@@ -171,6 +175,10 @@ public class ConversationOrchestrator {
         // doc for exactly which three conditions all have to hold before it changes anything.
         PageAwareScopeResolver.Resolution pageContext = pageAwareScopeResolver.resolve(scope, message, currentPath);
         scope = pageContext.scope();
+        // 3.6 (A6). "Right now they use WhatsApp groups" is an answer to Aura's own question and
+        // names nothing on its own either — so a project discussion keeps being one. Runs after 3.5
+        // so that a page-anchored question mid-discussion is still answered about the page.
+        scope = discoveryContinuityResolver.resolve(scope, conversation.getId());
         ConversationMode mode = scope.mode();
         Language language = languageDetector.detect(message);
         ConversationTone tone = toneDetector.detect(message);

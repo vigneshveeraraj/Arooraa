@@ -96,6 +96,21 @@ aura:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
       timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
+  # Project discovery and the Start Project handoff (A6). Discovery itself needs no configuration —
+  # PROJECT_DISCOVERY has been a conversation mode since A3, and a visitor can talk through an idea
+  # and see the brief Aura built with nothing here set. Only the last step, creating a real
+  # enquiry, reaches outside this service, and it is off by default.
+  discovery:
+    handoff-enabled: ${AURA_DISCOVERY_HANDOFF_ENABLED:false}
+    # The existing Start Project workflow — the same public endpoint the website's own form posts
+    # to, with the same idempotency header. There is deliberately no second lead store and no
+    # credential: Aura is a caller here, not an owner. Blank means the handoff stays disabled even
+    # if the switch above is on, and the service says so in the log rather than failing to start.
+    start-project-base-url: ${AURA_DISCOVERY_START_PROJECT_BASE_URL:}
+    timeout-seconds: ${AURA_DISCOVERY_TIMEOUT_SECONDS:15}
+    # How many things a visitor has to have said before a summary is offered. A brief built from
+    # one sentence is not a brief, and offering one would make Aura look like it stopped listening.
+    min-visitor-turns: ${AURA_DISCOVERY_MIN_VISITOR_TURNS:3}
   # Voice (A5). Off by default, at three levels: this master switch, and one per direction below.
   # With `enabled` false the voice controller bean is not registered at all, so /api/v1/aura/voice/**
   # returns 404 rather than refusing — the same "there is nothing there" guarantee aura.chat.enabled
