@@ -33,8 +33,14 @@ public final class HttpTestClient {
         this.restClient = RestClient.builder().baseUrl("http://localhost:" + port).build();
     }
 
-    /** Status, raw body, and the body parsed as a JSON object when it is one. */
-    public record Response(int status, String rawBody, Map<String, Object> json) {
+    /** Status, headers, raw body, and the body parsed as a JSON object when it is one. */
+    public record Response(int status, String rawBody, Map<String, Object> json,
+                            Map<String, String> headers) {
+
+        /** For the few assertions that are about a header — Retry-After, mostly. */
+        public String header(String name) {
+            return headers == null ? null : headers.get(name.toLowerCase(java.util.Locale.ROOT));
+        }
 
         public String string(String field) {
             Object value = json == null ? null : json.get(field);
@@ -58,13 +64,27 @@ public final class HttpTestClient {
                 .uri(path)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body == null ? Map.of() : body)
-                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response), response.getHeaders()), false);
+    }
+
+    /**
+     * A POST that names its own client, for the rate-limit tests. Every request in a test class
+     * otherwise arrives from the same loopback address and shares one bucket, which makes the tests
+     * order-dependent; a distinct address per test keeps each one about its own behaviour.
+     */
+    public Response postAs(String path, Object body, String clientAddress) {
+        return restClient.post()
+                .uri(path)
+                .header("X-Forwarded-For", clientAddress)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body == null ? Map.of() : body)
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response), response.getHeaders()), false);
     }
 
     public Response get(String path) {
         return restClient.get()
                 .uri(path)
-                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response), response.getHeaders()), false);
     }
 
     /** For the internal insights surface, which is addressed by a header rather than a session. */
@@ -72,7 +92,7 @@ public final class HttpTestClient {
         return restClient.get()
                 .uri(path)
                 .header(header, value)
-                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response), response.getHeaders()), false);
     }
 
     /**
@@ -102,7 +122,7 @@ public final class HttpTestClient {
                 .uri(path)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(form)
-                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response)), false);
+                .exchange((request, response) -> toResponse(response.getStatusCode().value(), read(response), response.getHeaders()), false);
     }
 
     /** Status plus raw bytes — the speech endpoint returns audio, not JSON. */
@@ -131,7 +151,7 @@ public final class HttpTestClient {
         }
     }
 
-    private static Response toResponse(int status, String raw) {
+    private static Response toResponse(int status, String raw, HttpHeaders headers) {
         Map<String, Object> json = null;
         if (raw != null && raw.startsWith("{")) {
             try {
@@ -140,6 +160,12 @@ public final class HttpTestClient {
                 json = null;
             }
         }
-        return new Response(status, raw, json);
+        Map<String, String> flattened = new java.util.HashMap<>();
+        if (headers != null) {
+            headers.forEach((name, values) -> {
+                if (!values.isEmpty()) flattened.put(name.toLowerCase(java.util.Locale.ROOT), values.get(0));
+            });
+        }
+        return new Response(status, raw, json, flattened);
     }
 }

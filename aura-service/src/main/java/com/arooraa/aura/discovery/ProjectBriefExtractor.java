@@ -3,6 +3,7 @@ package com.arooraa.aura.discovery;
 import com.arooraa.aura.conversation.domain.AuraMessage;
 import com.arooraa.aura.conversation.domain.MessageRole;
 import com.arooraa.aura.discovery.domain.ProjectBriefFields;
+import com.arooraa.aura.protection.DailyCallBudget;
 import com.arooraa.aura.provider.ChatGenerationProvider;
 import com.arooraa.aura.provider.ChatGenerationRequest;
 import com.arooraa.aura.provider.ChatMessage;
@@ -93,9 +94,11 @@ public class ProjectBriefExtractor {
             """;
 
     private final ChatGenerationProvider chatProvider;
+    private final DailyCallBudget budget;
 
-    public ProjectBriefExtractor(ChatGenerationProvider chatProvider) {
+    public ProjectBriefExtractor(ChatGenerationProvider chatProvider, DailyCallBudget budget) {
         this.chatProvider = chatProvider;
+        this.budget = budget;
     }
 
     /**
@@ -106,6 +109,12 @@ public class ProjectBriefExtractor {
     public ProjectBriefFields extract(List<AuraMessage> transcript) {
         String visitorText = visitorTurns(transcript);
         if (visitorText.isBlank() || !chatProvider.isEnabled()) {
+            return ProjectBriefFields.empty();
+        }
+        // Its own daily ceiling rather than a share of chat's (A8): correcting a brief re-extracts,
+        // so one visitor can ask for this many times over, and an empty brief is already a
+        // first-class outcome here — the visitor is told there is not enough to summarise yet.
+        if (!budget.tryConsume(DailyCallBudget.Kind.EXTRACTION)) {
             return ProjectBriefFields.empty();
         }
 

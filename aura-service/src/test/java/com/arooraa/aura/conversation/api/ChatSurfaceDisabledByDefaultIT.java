@@ -36,7 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * unreviewed chat surface off the public internet.
  */
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        // Not a test about rate limiting: these drive the API far harder than any visitor
+        // would, and A8's limiter is exercised on its own in AuraProtectionIT.
+        "aura.protection.enabled=false",
+})
 class ChatSurfaceDisabledByDefaultIT {
 
     @Container

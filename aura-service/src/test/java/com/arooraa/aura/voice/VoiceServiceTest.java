@@ -7,6 +7,7 @@ import com.arooraa.aura.provider.stub.StubSpeechTranscriptionProvider;
 import com.arooraa.aura.voice.config.VoiceProperties;
 import com.arooraa.aura.insight.AuraInsightRecorder;
 import com.arooraa.aura.insight.config.InsightProperties;
+import com.arooraa.aura.protection.TestBudgets;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ class VoiceServiceTest {
     void setUp() {
         voiceService = new VoiceService(transcription, synthesis,
                 new AudioUploadValidator(PROPERTIES), new SpeechTextPreparer(), PROPERTIES,
-                new SimpleMeterRegistry(), silentRecorder());
+                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited());
     }
 
     /**
@@ -76,7 +77,7 @@ class VoiceServiceTest {
                 PROPERTIES.synthesis(), PROPERTIES.audio());
         VoiceService service = new VoiceService(transcription, synthesis,
                 new AudioUploadValidator(pinned), new SpeechTextPreparer(), pinned,
-                new SimpleMeterRegistry(), silentRecorder());
+                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited());
 
         transcription.hears("...");
         service.transcribe(recording(), 3_000);

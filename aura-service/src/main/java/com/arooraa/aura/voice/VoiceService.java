@@ -2,6 +2,7 @@ package com.arooraa.aura.voice;
 
 import com.arooraa.aura.provider.ProviderPermanentException;
 import com.arooraa.aura.provider.ProviderTransientException;
+import com.arooraa.aura.protection.DailyCallBudget;
 import com.arooraa.aura.provider.SpeechSynthesisProvider;
 import com.arooraa.aura.provider.SpeechTranscriptionProvider;
 import com.arooraa.aura.provider.SynthesisRequest;
@@ -52,6 +53,7 @@ public class VoiceService {
     private final DistributionSummary recordingBytes;
     private final MeterRegistry meterRegistry;
     private final AuraInsightRecorder insightRecorder;
+    private final DailyCallBudget budget;
 
     public VoiceService(SpeechTranscriptionProvider transcriptionProvider,
                          SpeechSynthesisProvider synthesisProvider,
@@ -59,7 +61,8 @@ public class VoiceService {
                          SpeechTextPreparer speechTextPreparer,
                          VoiceProperties properties,
                          MeterRegistry meterRegistry,
-                         AuraInsightRecorder insightRecorder) {
+                         AuraInsightRecorder insightRecorder,
+                         DailyCallBudget budget) {
         this.transcriptionProvider = transcriptionProvider;
         this.synthesisProvider = synthesisProvider;
         this.validator = validator;
@@ -67,6 +70,7 @@ public class VoiceService {
         this.properties = properties;
         this.meterRegistry = meterRegistry;
         this.insightRecorder = insightRecorder;
+        this.budget = budget;
         this.transcriptionLatency = meterRegistry.timer("aura.voice.transcription.latency");
         this.synthesisLatency = meterRegistry.timer("aura.voice.synthesis.latency");
         // How long people actually speak for, and how much that costs to upload. Both are needed
@@ -88,6 +92,13 @@ public class VoiceService {
                     "I can't listen right now — type it to me instead?");
         }
         ValidatedAudio audio = validator.validate(file, declaredDurationMillis);
+        // After validation and before the provider (A8): a request that was never going to be
+        // accepted should be refused on its own terms, and today's ceiling should not be spent
+        // proving it. The visitor is told voice is unavailable, which is true, and can type.
+        if (!budget.tryConsume(DailyCallBudget.Kind.TRANSCRIPTION)) {
+            throw new VoiceUnavailableException("TRANSCRIPTION_UNAVAILABLE",
+                    "I can't listen right now — type it to me instead?");
+        }
         recordingBytes.record(audio.bytes().length);
         if (declaredDurationMillis != null) {
             recordingDuration.record(declaredDurationMillis);
@@ -125,6 +136,9 @@ public class VoiceService {
      */
     public Speech speak(String text, String languageHint) {
         if (!synthesisProvider.isEnabled()) {
+            throw new VoiceUnavailableException("SYNTHESIS_UNAVAILABLE", "I can't speak right now.");
+        }
+        if (!budget.tryConsume(DailyCallBudget.Kind.SYNTHESIS)) {
             throw new VoiceUnavailableException("SYNTHESIS_UNAVAILABLE", "I can't speak right now.");
         }
         VoiceProperties.Synthesis synthesis = properties.synthesis();

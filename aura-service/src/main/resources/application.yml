@@ -96,6 +96,70 @@ aura:
       enabled: ${AURA_RERANKING_PROVIDER_ENABLED:false}
       model: ${AURA_RERANKING_MODEL:}
       timeout-seconds: ${AURA_RERANKING_PROVIDER_TIMEOUT_SECONDS:30}
+  # Abuse and cost controls (A8). Both default ON, which is the opposite of most switches here —
+  # everything else that defaults off can spend money or expose a surface, and these two are what
+  # stop that. A protection that has to be remembered is a protection that is missing on the day it
+  # is needed.
+  protection:
+    enabled: ${AURA_PROTECTION_ENABLED:true}
+    # Whether X-Forwarded-For may name the caller. FALSE by default and it matters in both
+    # directions: with a reverse proxy in front and this off, every visitor shares the proxy's
+    # bucket and the limiter counts nothing; with no proxy and this on, any caller can pick a new
+    # identity per request and the limiter counts nothing. Turn it on in the same step that puts
+    # Nginx in front, and only with a proxy that SETS the header rather than appending to whatever
+    # the client sent. See ops/nginx/aura.conf.template.
+    trust-proxy-headers: ${AURA_PROTECTION_TRUST_PROXY_HEADERS:false}
+    # A ceiling on the limiter's own bookkeeping, so the thing protecting this service cannot become
+    # the cheapest way to exhaust its memory.
+    max-tracked-clients: ${AURA_PROTECTION_MAX_TRACKED_CLIENTS:10000}
+    # Per caller, per surface, per minute — separate allowances so somebody mid-conversation never
+    # loses the ability to send the brief they just wrote, and a script cannot spend a visitor's
+    # question budget on the cheapest endpoint. Sized by what each costs us.
+    conversations:
+      per-minute: ${AURA_PROTECTION_CONVERSATIONS_PER_MINUTE:20}
+      burst: ${AURA_PROTECTION_CONVERSATIONS_BURST:5}
+    messages:
+      per-minute: ${AURA_PROTECTION_MESSAGES_PER_MINUTE:20}
+      burst: ${AURA_PROTECTION_MESSAGES_BURST:6}
+    voice:
+      per-minute: ${AURA_PROTECTION_VOICE_PER_MINUTE:12}
+      burst: ${AURA_PROTECTION_VOICE_BURST:4}
+    brief:
+      per-minute: ${AURA_PROTECTION_BRIEF_PER_MINUTE:6}
+      burst: ${AURA_PROTECTION_BRIEF_BURST:3}
+    handoff:
+      per-minute: ${AURA_PROTECTION_HANDOFF_PER_MINUTE:3}
+      burst: ${AURA_PROTECTION_HANDOFF_BURST:2}
+    other:
+      per-minute: ${AURA_PROTECTION_OTHER_PER_MINUTE:60}
+      burst: ${AURA_PROTECTION_OTHER_BURST:20}
+    # What Aura may spend in a day, counted in provider calls. Rate limiting stops one caller doing
+    # too much; this stops a thousand reasonable callers on the day the site is linked somewhere
+    # busy. Counted in calls and not currency on purpose: this service knows exactly how many calls
+    # it made and cannot know what they cost, and a ceiling in dollars would be a guess presented
+    # as a control. Reaching one is not an error — Aura says she can't do that just now, in her own
+    # words, and the conversation continues. The count lives in this process and resets with it;
+    # see the runbook before running more than one instance.
+    budget:
+      enabled: ${AURA_BUDGET_ENABLED:true}
+      chat-calls-per-day: ${AURA_BUDGET_CHAT_CALLS_PER_DAY:2000}
+      transcription-calls-per-day: ${AURA_BUDGET_TRANSCRIPTION_CALLS_PER_DAY:1000}
+      synthesis-calls-per-day: ${AURA_BUDGET_SYNTHESIS_CALLS_PER_DAY:1000}
+      # Its own ceiling rather than a share of chat's: correcting a brief re-extracts, so one
+      # visitor can ask for this repeatedly.
+      extraction-calls-per-day: ${AURA_BUDGET_EXTRACTION_CALLS_PER_DAY:300}
+  # How long anything is kept (A8). Deletion is on by default, because a retention policy that has
+  # to be switched on is a retention policy nobody has.
+  retention:
+    enabled: ${AURA_RETENTION_ENABLED:true}
+    # A conversation and everything only readable as part of it — its messages, its brief, its
+    # feedback. Those messages are a visitor's own words, often about their business, and there is
+    # no reason to hold them once anything they asked us to act on has become an enquiry of its own.
+    conversation-days: ${AURA_RETENTION_CONVERSATION_DAYS:90}
+    # Counted events last longer because they contain nothing anybody said, and the question they
+    # answer — is Aura getting better or worse — is asked across seasons. V7 severed their link to
+    # a conversation on delete so this window means what it says.
+    event-days: ${AURA_RETENTION_EVENT_DAYS:365}
   # Operational memory (A7). Two switches, defaulting differently on purpose.
   #
   # `enabled` — recording — defaults to TRUE, which is the opposite of every other switch here.
@@ -212,6 +276,16 @@ aura:
       strong-query-term-coverage: ${AURA_EVIDENCE_STRONG_QUERY_TERM_COVERAGE:0.75}
       weak-query-term-coverage: ${AURA_EVIDENCE_WEAK_QUERY_TERM_COVERAGE:0.40}
 
+# Observability (A8). One endpoint, and details only for a caller that has already been
+# authenticated — which nothing is here, so in practice `never` and a plain UP/DOWN.
+#
+# `include: health` is a list of exactly what is exposed rather than an exclusion of what is not:
+# /actuator/env and /actuator/configprops would print this whole file, resolved, with
+# OPENAI_API_KEY in it. An allowlist cannot be widened by a dependency adding an endpoint.
+#
+# AuraReadinessIndicator adds the details worth having — which providers are wired, and how much of
+# today's budget is spent. It holds no reference to anything carrying a credential, so there is
+# nothing there for a misconfiguration to leak.
 management:
   endpoints:
     web:
@@ -219,7 +293,15 @@ management:
         include: health
   endpoint:
     health:
-      show-details: never
+      show-details: ${AURA_HEALTH_SHOW_DETAILS:never}
+      show-components: ${AURA_HEALTH_SHOW_COMPONENTS:never}
+  # There is deliberately no `management.server.port` here. Pinning one would put the actuator on a
+  # fixed port whatever port the application is on — which is wrong in every test that binds a
+  # random one, and is a deployment decision rather than a default. To move health onto its own
+  # port, set MANAGEMENT_SERVER_PORT in the environment; Spring binds it natively.
+  #
+  # What actually keeps /actuator off the public internet is the reverse proxy, which does not
+  # proxy that path at all. See ops/nginx/aura.conf.template.
 
 logging:
   level:

@@ -33,6 +33,7 @@ import com.arooraa.aura.conversation.repository.AuraMessageRepository;
 import com.arooraa.aura.insight.AuraInsightRecorder;
 import com.arooraa.aura.insight.KnowledgeGapDetector;
 import com.arooraa.aura.insight.domain.AuraEventType;
+import com.arooraa.aura.protection.DailyCallBudget;
 import com.arooraa.aura.provider.ChatGenerationProvider;
 import com.arooraa.aura.provider.ChatGenerationRequest;
 import com.arooraa.aura.provider.ChatGenerationResult;
@@ -92,6 +93,7 @@ public class ConversationOrchestrator {
     private final ResponseAssembler responseAssembler;
     private final AuraConversationRepository conversationRepository;
     private final AuraMessageRepository messageRepository;
+    private final DailyCallBudget budget;
     private final AuraInsightRecorder insightRecorder;
     private final KnowledgeGapDetector knowledgeGapDetector;
     private final ChatProperties properties;
@@ -114,6 +116,7 @@ public class ConversationOrchestrator {
                                      ResponseAssembler responseAssembler,
                                      AuraConversationRepository conversationRepository,
                                      AuraMessageRepository messageRepository,
+                                     DailyCallBudget budget,
                                      AuraInsightRecorder insightRecorder,
                                      KnowledgeGapDetector knowledgeGapDetector,
                                      ChatProperties properties,
@@ -135,6 +138,7 @@ public class ConversationOrchestrator {
         this.responseAssembler = responseAssembler;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.budget = budget;
         this.insightRecorder = insightRecorder;
         this.knowledgeGapDetector = knowledgeGapDetector;
         this.properties = properties;
@@ -219,6 +223,12 @@ public class ConversationOrchestrator {
         if (!chatProvider.isEnabled()) {
             generated = SafeResponses.providerDisabled(language);
             failureCode = "PROVIDER_DISABLED";
+        } else if (!budget.tryConsume(DailyCallBudget.Kind.CHAT)) {
+            // Today's ceiling is reached (A8). The same path a switched-off provider takes, and
+            // deliberately so: the visitor hears a sentence Aura would say and learns nothing about
+            // AROORAA's spending, which is not their business.
+            generated = SafeResponses.providerUnavailable(language);
+            failureCode = "BUDGET_EXHAUSTED";
         } else {
             try {
                 ChatGenerationResult result = chatProvider.generate(new ChatGenerationRequest(

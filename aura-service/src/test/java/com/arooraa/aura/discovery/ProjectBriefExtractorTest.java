@@ -5,6 +5,7 @@ import com.arooraa.aura.conversation.domain.ConversationMode;
 import com.arooraa.aura.conversation.domain.ConversationTone;
 import com.arooraa.aura.conversation.domain.Language;
 import com.arooraa.aura.discovery.domain.ProjectBriefFields;
+import com.arooraa.aura.protection.TestBudgets;
 import com.arooraa.aura.provider.ChatMessage;
 import com.arooraa.aura.provider.ProviderTransientException;
 import com.arooraa.aura.provider.stub.StubChatGenerationProvider;
@@ -31,7 +32,7 @@ class ProjectBriefExtractorTest {
     @BeforeEach
     void setUp() {
         chat.reset();
-        extractor = new ProjectBriefExtractor(chat);
+        extractor = new ProjectBriefExtractor(chat, TestBudgets.unlimited());
     }
 
     private static AuraMessage visitor(int sequence, String text) {
