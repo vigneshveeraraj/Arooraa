@@ -23,6 +23,12 @@ export interface AuraDiagnostics {
   tone?: string;
   latencyMs?: number;
   guardrail?: string | null;
+  /**
+   * Which approved AROORAA public names the backend understood the question to be about (A5.2).
+   * Names only — the confidence behind them never leaves the service, and this whole object is
+   * absent from any deployed build.
+   */
+  recognisedEntities?: string[];
 }
 
 export interface AuraAnswer {

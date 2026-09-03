@@ -45,7 +45,7 @@ public class ResponseAssembler {
     public AuraAnswer assemble(UUID conversationPublicId, UUID conversationId, int sequence, String answerText,
                                 ConversationMode mode, EvidenceLevel evidenceLevel, Language language,
                                 ConversationTone tone, List<Evidence> evidence, boolean includeSources,
-                                long latencyMs, String guardrailViolation) {
+                                long latencyMs, String guardrailViolation, List<String> recognisedEntities) {
         List<SourceReference> sources = includeSources ? toSources(evidence) : List.of();
 
         AuraMessage stored = messageRepository.save(AuraMessage.assistantTurn(
@@ -58,7 +58,7 @@ public class ResponseAssembler {
         }
 
         return new AuraAnswer(conversationPublicId, sequence, answerText, mode, evidenceLevel, sources,
-                language, tone, latencyMs, guardrailViolation);
+                language, tone, latencyMs, guardrailViolation, recognisedEntities);
     }
 
     /**

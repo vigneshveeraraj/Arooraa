@@ -11,6 +11,8 @@ import com.arooraa.aura.provider.TranscriptionRequest;
 import com.arooraa.aura.provider.TranscriptionResult;
 import com.arooraa.aura.insight.AuraInsightRecorder;
 import com.arooraa.aura.insight.domain.AuraEventType;
+import com.arooraa.aura.vocabulary.EntityResolution;
+import com.arooraa.aura.vocabulary.PublicEntityResolver;
 import com.arooraa.aura.voice.config.VoiceProperties;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -33,6 +35,13 @@ import java.util.concurrent.TimeUnit;
  * guardrail as a typed one. There is no second pipeline for voice to bypass anything with,
  * because there is no second pipeline.
  *
+ * <p>A5.2 adds one step on the way out, and only one: the transcript is passed through
+ * {@link PublicEntityResolver}, so a visitor who said "MESA" and was heard as "Meesa" sees MESA in
+ * the composer and confirms a question Aura can actually answer. That is a recognition aid over a
+ * fixed list of AROORAA's own public names — it corrects nothing else a visitor says, and it does
+ * not make voice a second pipeline: the canonical transcript still goes back to the browser and
+ * still re-enters through the ordinary chat endpoint.
+ *
  * <p>Nothing recorded is persisted. Audio exists as a byte array for the length of one request and
  * is never written to disk, never stored in a column, and never embedded — no voice recording can
  * become Aura knowledge, because nothing here can reach the ingestion path at all.
@@ -54,6 +63,7 @@ public class VoiceService {
     private final MeterRegistry meterRegistry;
     private final AuraInsightRecorder insightRecorder;
     private final DailyCallBudget budget;
+    private final PublicEntityResolver entityResolver;
 
     public VoiceService(SpeechTranscriptionProvider transcriptionProvider,
                          SpeechSynthesisProvider synthesisProvider,
@@ -62,7 +72,8 @@ public class VoiceService {
                          VoiceProperties properties,
                          MeterRegistry meterRegistry,
                          AuraInsightRecorder insightRecorder,
-                         DailyCallBudget budget) {
+                         DailyCallBudget budget,
+                         PublicEntityResolver entityResolver) {
         this.transcriptionProvider = transcriptionProvider;
         this.synthesisProvider = synthesisProvider;
         this.validator = validator;
@@ -71,6 +82,7 @@ public class VoiceService {
         this.meterRegistry = meterRegistry;
         this.insightRecorder = insightRecorder;
         this.budget = budget;
+        this.entityResolver = entityResolver;
         this.transcriptionLatency = meterRegistry.timer("aura.voice.transcription.latency");
         this.synthesisLatency = meterRegistry.timer("aura.voice.synthesis.latency");
         // How long people actually speak for, and how much that costs to upload. Both are needed
@@ -121,12 +133,23 @@ public class VoiceService {
         long latencyMs = (System.nanoTime() - startedAt) / 1_000_000;
         transcriptionLatency.record(latencyMs, TimeUnit.MILLISECONDS);
 
+        // The provider's words, and then our own names spelled our way. Both are kept: the raw
+        // transcript is what the provider actually returned and stays available to whoever is
+        // diagnosing a bad recognition, and the canonical one is what the visitor is shown.
+        EntityResolution understood = entityResolver.resolve(result.text());
+        for (String entity : understood.canonicalNames()) {
+            // Which of our own names a recording turned out to be about — never a word of what was
+            // said. A rise here alongside a rise in knowledge gaps is the shape of "the microphone
+            // hears the name but the corpus has nothing to say about it".
+            meterRegistry.counter("aura.voice.transcript.canonicalised", "entity", entity).increment();
+        }
+
         // Length, not content: a transcript is a visitor's own words and is treated exactly as a
         // typed message would be — never logged, never stored here, never inspected.
         insightRecorder.voice(AuraEventType.VOICE_TRANSCRIBED, null, null);
-        log.info("Aura voice: transcribed {} bytes in {}ms ({} characters).",
-                audio.bytes().length, latencyMs, result.text().length());
-        return new Transcript(result.text(), result.detectedLanguage(), latencyMs);
+        log.info("Aura voice: transcribed {} bytes in {}ms ({} characters, recognised {}).",
+                audio.bytes().length, latencyMs, result.text().length(), understood.canonicalNames());
+        return new Transcript(understood.canonicalText(), result.text(), result.detectedLanguage(), latencyMs);
     }
 
     /**
@@ -190,8 +213,15 @@ public class VoiceService {
         return configured == null || configured.isBlank() ? null : configured;
     }
 
-    /** @param detectedLanguage advisory only — Aura's own detector still decides the reply's language */
-    public record Transcript(String text, String detectedLanguage, long latencyMs) {
+    /**
+     * @param text what the visitor is shown and confirms: the provider's transcript with any
+     *        approved AROORAA public name written the way AROORAA writes it
+     * @param rawText exactly what the provider returned, kept for diagnosing a bad recognition. Not
+     *        published on the voice API — the browser has no use for it, and a transcript is the
+     *        visitor's own words, which this service does not hand around more widely than it must
+     * @param detectedLanguage advisory only — Aura's own detector still decides the reply's language
+     */
+    public record Transcript(String text, String rawText, String detectedLanguage, long latencyMs) {
     }
 
     public record Speech(byte[] audio, String mimeType, long latencyMs) {

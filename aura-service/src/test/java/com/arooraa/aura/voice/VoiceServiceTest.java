@@ -4,6 +4,7 @@ import com.arooraa.aura.provider.ProviderPermanentException;
 import com.arooraa.aura.provider.ProviderTransientException;
 import com.arooraa.aura.provider.stub.StubSpeechSynthesisProvider;
 import com.arooraa.aura.provider.stub.StubSpeechTranscriptionProvider;
+import com.arooraa.aura.vocabulary.PublicEntityResolver;
 import com.arooraa.aura.voice.config.VoiceProperties;
 import com.arooraa.aura.insight.AuraInsightRecorder;
 import com.arooraa.aura.insight.config.InsightProperties;
@@ -33,7 +34,7 @@ class VoiceServiceTest {
     void setUp() {
         voiceService = new VoiceService(transcription, synthesis,
                 new AudioUploadValidator(PROPERTIES), new SpeechTextPreparer(), PROPERTIES,
-                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited());
+                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited(), new PublicEntityResolver());
     }
 
     /**
@@ -53,6 +54,40 @@ class VoiceServiceTest {
     void returnsWhatTheVisitorSaidWithoutTouchingIt() {
         transcription.hears("What is MESA?");
         assertThat(voiceService.transcribe(recording(), 3_000).text()).isEqualTo("What is MESA?");
+    }
+
+    @Test
+    void writesOurOwnNamesOurOwnWayBeforeTheVisitorSeesTheTranscript() {
+        // The owner's finding: MESA is said clearly and comes back as Meesa, and the question then
+        // names nothing Aura can look up. The composer shows the corrected form, which the visitor
+        // reads and confirms — nothing is sent on their behalf.
+        transcription.hears("Tell me about Meesa");
+
+        VoiceService.Transcript transcript = voiceService.transcribe(recording(), 3_000);
+
+        assertThat(transcript.text()).isEqualTo("Tell me about MESA");
+    }
+
+    @Test
+    void keepsTheProvidersOwnWordsBesideTheCorrectedOnes() {
+        // Whoever is diagnosing a bad recognition needs to know what was actually heard. The raw
+        // transcript stays on the record this service returns and is not published on the API.
+        transcription.hears("Tell me about Meesa");
+
+        VoiceService.Transcript transcript = voiceService.transcribe(recording(), 3_000);
+
+        assertThat(transcript.rawText()).isEqualTo("Tell me about Meesa");
+        assertThat(transcript.text()).isNotEqualTo(transcript.rawText());
+    }
+
+    @Test
+    void leavesEverythingThatIsNotOneOfOurNamesExactlyAsItWasHeard() {
+        transcription.hears("I want a mesa in my dining room");
+
+        VoiceService.Transcript transcript = voiceService.transcribe(recording(), 3_000);
+
+        assertThat(transcript.text()).isEqualTo("I want a mesa in my dining room");
+        assertThat(transcript.text()).isEqualTo(transcript.rawText());
     }
 
     @Test
@@ -77,7 +112,7 @@ class VoiceServiceTest {
                 PROPERTIES.synthesis(), PROPERTIES.audio());
         VoiceService service = new VoiceService(transcription, synthesis,
                 new AudioUploadValidator(pinned), new SpeechTextPreparer(), pinned,
-                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited());
+                new SimpleMeterRegistry(), silentRecorder(), TestBudgets.unlimited(), new PublicEntityResolver());
 
         transcription.hears("...");
         service.transcribe(recording(), 3_000);

@@ -43,6 +43,8 @@ import com.arooraa.aura.retrieval.EvidenceLevel;
 import com.arooraa.aura.retrieval.HybridRetrievalService;
 import com.arooraa.aura.retrieval.RetrievalRequest;
 import com.arooraa.aura.retrieval.RetrievalResult;
+import com.arooraa.aura.vocabulary.EntityResolution;
+import com.arooraa.aura.vocabulary.PublicEntityResolver;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -58,15 +60,18 @@ import java.util.UUID;
  * to the stage that made it, and this class refuses to second-guess any of them.
  *
  * <pre>
- *   validate → resolve profile → classify scope → classify confidentiality → load context
- *   → decide retrieval → retrieve → evidence gate → generation policy → compose prompt
- *   → generate → guardrail → assemble
+ *   validate → recognise public entities → resolve profile → classify scope
+ *   → classify confidentiality → load context → decide retrieval → retrieve → evidence gate
+ *   → generation policy → compose prompt → generate → guardrail → assemble
  * </pre>
  *
- * <p>Two ordering choices are load-bearing rather than incidental. Classification happens
+ * <p>Three ordering choices are load-bearing rather than incidental. Classification happens
  * <em>before</em> retrieval, so a confidentiality boundary is decided without any corpus content in
- * play. And the guardrail runs on every path out, including the fallbacks — a safe answer that
- * skips the last check is not a safe answer.
+ * play. The guardrail runs on every path out, including the fallbacks — a safe answer that skips
+ * the last check is not a safe answer. And entity recognition (A5.2) happens before classification
+ * rather than before retrieval, because by retrieval time the routing decision that skipped
+ * retrieval has already been taken: "tell me about meesa" names no organisation subject, so it
+ * lands in the general fallback and never searches anything.
  *
  * <p>A turn is addressed by conversation id, never by a conversation object. That is a persistence
  * rule, not a style preference: see {@link #respond}.
@@ -77,6 +82,7 @@ public class ConversationOrchestrator {
     private static final Logger log = LoggerFactory.getLogger(ConversationOrchestrator.class);
 
     private final InputValidator inputValidator;
+    private final PublicEntityResolver entityResolver;
     private final AssistantProfileResolver profileResolver;
     private final ScopeClassifier scopeClassifier;
     private final PageAwareScopeResolver pageAwareScopeResolver;
@@ -100,6 +106,7 @@ public class ConversationOrchestrator {
     private final Timer turnLatencyTimer;
 
     public ConversationOrchestrator(InputValidator inputValidator,
+                                     PublicEntityResolver entityResolver,
                                      AssistantProfileResolver profileResolver,
                                      ScopeClassifier scopeClassifier,
                                      PageAwareScopeResolver pageAwareScopeResolver,
@@ -122,6 +129,7 @@ public class ConversationOrchestrator {
                                      ChatProperties properties,
                                      MeterRegistry meterRegistry) {
         this.inputValidator = inputValidator;
+        this.entityResolver = entityResolver;
         this.profileResolver = profileResolver;
         this.scopeClassifier = scopeClassifier;
         this.pageAwareScopeResolver = pageAwareScopeResolver;
@@ -175,6 +183,16 @@ public class ConversationOrchestrator {
         // 1. Input validation — before anything costs money or touches the model.
         String message = inputValidator.validate(rawMessage);
 
+        // 1.5 (A5.2). The same words, with AROORAA's own public names spelled AROORAA's way. This
+        //     is what the deterministic stages below read; `message` — the visitor's own words — is
+        //     what is stored, what the model is shown as the user's turn, and what a knowledge gap
+        //     records. Nothing outside the registry is ever touched, and nothing here decides what
+        //     Aura may say: a recognised MESA still has to survive the confidentiality boundary,
+        //     the evidence gate and the guardrail, and it makes the first of those stricter rather
+        //     than weaker, since "what database does Meesa use?" now reads as the probe it is.
+        EntityResolution entities = entityResolver.resolve(message, currentPath);
+        String understood = entities.canonicalText();
+
         // 2. Assistant profile resolution. Fails closed: an unrecognised profile gets no
         //    capabilities rather than the website assistant's.
         AssistantProfileDefinition profile = profileResolver.resolve(conversation.getAssistantProfile())
@@ -182,11 +200,11 @@ public class ConversationOrchestrator {
                         "Unknown assistant profile on conversation: " + conversation.getAssistantProfile()));
 
         // 3 + 4. Scope and confidentiality classification, both deterministic.
-        ScopeDecision scope = scopeClassifier.classify(message);
+        ScopeDecision scope = scopeClassifier.classify(understood);
         // 3.5 (A4.1). "Tell me more about this." names nothing on its own — only page context can
         // resolve it. Only ever narrows the GENERAL_CONSULTING fallback; see the resolver's own
         // doc for exactly which three conditions all have to hold before it changes anything.
-        PageAwareScopeResolver.Resolution pageContext = pageAwareScopeResolver.resolve(scope, message, currentPath);
+        PageAwareScopeResolver.Resolution pageContext = pageAwareScopeResolver.resolve(scope, understood, currentPath);
         scope = pageContext.scope();
         // 3.6 (A6). "Right now they use WhatsApp groups" is an answer to Aura's own question and
         // names nothing on its own either — so a project discussion keeps being one. Runs after 3.5
@@ -258,7 +276,7 @@ public class ConversationOrchestrator {
         long latencyMs = (System.nanoTime() - startedAt) / 1_000_000;
         AuraAnswer answer = responseAssembler.assemble(conversation.getPublicId(), conversation.getId(), sequence,
                 guarded.text(), mode, effectiveEvidenceLevel(retrieval, guarded), language, tone,
-                retrieval.evidence(), includeSources, latencyMs, violation);
+                retrieval.evidence(), includeSources, latencyMs, violation, entities.canonicalNames());
 
         // 14 (A7). Counted, not logged in full: what kind of turn it was and how it went, never a
         // word of what was asked or answered. Both calls swallow their own failures — analytics
@@ -280,9 +298,10 @@ public class ConversationOrchestrator {
         knowledgeGapDetector.observe(conversation.getId(), message, mode, answer.evidenceLevel(),
                 profile.profile().code(), pageContext.resolvedSubject());
 
-        log.info("Aura turn: mode={} evidence={} language={} tone={} sources={} guardrail={} latencyMs={}",
-                mode, answer.evidenceLevel(), language, tone, answer.sources().size(),
-                violation == null ? "clean" : violation, latencyMs);
+        // Our own product names are safe to log; a visitor's words are not, and none appear here.
+        log.info("Aura turn: mode={} evidence={} language={} tone={} entities={} sources={} guardrail={} latencyMs={}",
+                mode, answer.evidenceLevel(), language, tone, entities.canonicalNames(),
+                answer.sources().size(), violation == null ? "clean" : violation, latencyMs);
         return answer;
     }
 

@@ -68,7 +68,7 @@ public final class ChatDtos {
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Diagnostics(String mode, String evidenceLevel, String language, String tone,
-                               long latencyMs, String guardrail) {
+                               long latencyMs, String guardrail, List<String> recognisedEntities) {
 
         static Diagnostics from(AuraAnswer answer) {
             return new Diagnostics(
@@ -77,7 +77,12 @@ public final class ChatDtos {
                     answer.language().name(),
                     answer.tone().name(),
                     answer.latencyMs(),
-                    answer.guardrailViolation());
+                    answer.guardrailViolation(),
+                    // Which of our own public names the turn was understood to be about (A5.2).
+                    // The names, never the confidence that produced them: a visitor being told how
+                    // sure an assistant was about what they meant would be an odd thing to read,
+                    // and this surface is switched off in every deployed build anyway.
+                    answer.recognisedEntities());
         }
     }
 

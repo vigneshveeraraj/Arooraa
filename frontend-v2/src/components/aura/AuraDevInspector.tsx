@@ -55,6 +55,11 @@ export function AuraDevInspector({
   if (diagnostics?.tone) rows.push({ label: "tone", value: diagnostics.tone });
   if (diagnostics?.latencyMs != null) rows.push({ label: "latency", value: `${diagnostics.latencyMs}ms` });
   if (diagnostics?.guardrail) rows.push({ label: "guardrail", value: diagnostics.guardrail });
+  // Which of our own public names the question was understood to be about. The row that answers
+  // "did it realise I said MESA?" without anybody having to read a log.
+  if (diagnostics?.recognisedEntities?.length) {
+    rows.push({ label: "recognised", value: diagnostics.recognisedEntities.join(", ") });
+  }
 
   // Each stage of the voice turn separately, because "voice feels slow" has four possible causes
   // and one total tells you which of them it was in none of the cases.

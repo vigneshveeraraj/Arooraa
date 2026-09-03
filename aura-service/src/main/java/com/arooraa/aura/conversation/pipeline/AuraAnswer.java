@@ -15,6 +15,9 @@ import java.util.UUID;
  *
  * @param guardrailViolation which output check fired, if any — diagnostics only, never rendered
  *        into the conversation
+ * @param recognisedEntities which approved AROORAA public names this turn was understood to be
+ *        about (A5.2). Names only, never the confidence behind them, and diagnostics only — a
+ *        visitor is shown an answer, not a report on how their question was parsed
  */
 public record AuraAnswer(
         UUID conversationId,
@@ -31,5 +34,6 @@ public record AuraAnswer(
         Language language,
         ConversationTone tone,
         long latencyMs,
-        String guardrailViolation) {
+        String guardrailViolation,
+        List<String> recognisedEntities) {
 }
