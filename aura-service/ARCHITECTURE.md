@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A6 project discovery → A7 operational memory)
+# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A6 project discovery → A7 operational memory → A8 pre-production)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -624,6 +624,95 @@ constraint, not a UI convention.
 and answers **404** rather than 401 when it is wrong or missing — an unauthorised caller learns
 nothing, not even that there is something there. Recording defaults on and reading defaults off,
 because exposing is a different decision from collecting.
+
+## What A8 added (the things a public deployment would need)
+
+Nothing in A8 is a feature. It is the set of answers to "what would go wrong if this were reachable
+from the internet tomorrow", and one of those answers turned out to be a real defect in the site's
+existing configuration.
+
+### Abuse controls
+
+`AuraRateLimitFilter` runs before Spring's handler mapping, before a request body is parsed and
+before a multipart upload is buffered — which is the point on the voice surface, where a refusal
+after Tomcat has read four megabytes has already paid for what it is refusing.
+
+Allowances are per caller **and per surface**, sized by what each costs: a conversation row, a
+generation, a generation plus an audio file, or something a person at AROORAA has to read. One
+bucket for everything would let a script spend a visitor's question allowance on the cheapest
+endpoint, and would let somebody mid-conversation lose the ability to send the brief they just
+wrote.
+
+Two details carry more weight than they look:
+
+- **Who a request is counted against** is configuration, not a guess. Trusting `X-Forwarded-For`
+  with no proxy in front lets every caller pick a fresh identity per request; ignoring it behind one
+  makes every visitor on earth share the proxy's bucket. Both failures are silent and they are
+  opposites, so a heuristic would be wrong in whichever direction the deployment was not.
+- **The bucket map is bounded.** The obvious implementation keeps a bucket per caller forever, which
+  turns the thing protecting this service into the cheapest way to exhaust its memory. Least
+  recently used is evicted, and eviction fails towards leniency: a forgotten bucket is a full one.
+
+### Cost
+
+Rate limiting stops one caller doing too much. It does not stop a thousand callers each doing
+something reasonable on the day the site is linked somewhere busy, and that bill arrives a month
+later. `DailyCallBudget` is the ceiling for that day, counted in **provider calls** — this service
+knows exactly how many it made and cannot know what any of them cost, and a ceiling in currency
+would be a guess wearing the costume of a control.
+
+Reaching a ceiling takes the path every caller already had for "the provider is switched off": the
+visitor hears a sentence Aura would say and learns nothing about AROORAA's spending. Four separate
+ceilings, because a visitor correcting their brief repeatedly must not be able to stop everybody
+else asking questions.
+
+### Retention
+
+Conversations and everything only readable with them — messages, brief, feedback — after 90 days.
+Counted events on their own longer clock, which needed a schema change: V6 hung events off
+conversations with `ON DELETE CASCADE`, so the question they exist to answer could never reach
+further back than a conversation is kept. V7 makes it `ON DELETE SET NULL`, so an event keeps its
+counts and loses its grouping — which is also the more private of the two outcomes.
+
+Knowledge gaps are deliberately not swept. A gap is a question about AROORAA that our own knowledge
+could not answer; it is a work queue for a person, holds no contact details, and deleting it on a
+timer would quietly discard the thing this service noticed.
+
+### The review pages are not in a production build
+
+`/design-system` and `/design-system/aura` carried `robots: noindex`, which asks a crawler not to
+list a page that is nonetheless sitting on the server for anyone who types the URL. The Aura one is
+the sharper case: it assembles states a visitor is never meant to see side by side, including a
+rendered project brief and a consent screen out of context.
+
+They are now `page.review.tsx`, an extension that is a page extension only in development. A
+production build finds no `page` file in those directories, so there is no route and nothing reaches
+`out/` — verified by building and grepping the export, including for the review fixtures' own copy,
+which appears in no chunk.
+
+### What the Nginx review found
+
+`ops/nginx/aura.conf.template` is a plan, not a configuration: nothing was applied, and the live
+`arooraa.com.conf` was not touched. Writing it found two things in the *existing* production config
+that would break Aura in ways that look like our bugs:
+
+- `Permissions-Policy: microphone=()` denies the microphone to the whole site, so `getUserMedia`
+  is refused before any Aura code runs. Voice would be dead and would look broken rather than off.
+- `client_max_body_size 2m` is below the 4 MB voice bound, so a longer recording gets Nginx's own
+  HTML error page instead of a sentence from Aura.
+
+Both are written down with the exact change and the reason. Neither has been made.
+
+### Kill switches
+
+Every surface already had one, and A8 added the one that was missing: the launcher itself. The
+backend switches stop Aura saying anything — with `aura.chat.enabled` false the API returns 404 —
+but a launcher still on the page when the service is off is worse than no launcher, because a
+visitor opens it, types, and is apologised to. `NEXT_PUBLIC_AURA_ENABLED` is checked at build time
+alongside `NODE_ENV`, so a production build without it drops the branch and the widget's chunk:
+off means *not shipped*, and a production build has to be told to include Aura rather than told not
+to. `RUNBOOK.md` lists every switch, what a visitor sees when it is thrown, and the order to use
+them in.
 
 ## Running Aura locally for a manual session
 

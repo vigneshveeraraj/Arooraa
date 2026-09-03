@@ -1,0 +1,163 @@
+# AROORAA — Aura routing, PREPARED AND NOT APPLIED (A8)
+#
+# ============================================================================
+#  THIS FILE IS NOT LIVE. Nothing here has been applied to any server.
+#
+#  It is the plan for putting Aura behind the existing reverse proxy, written
+#  so the decisions can be reviewed before anybody touches a running site. The
+#  live configuration is ops/nginx/arooraa.com.conf and this milestone did not
+#  modify it, or Cloudflare, or Hostinger, or DigitalOcean.
+#
+#  Do not `include` this file. Do not copy it to sites-enabled. When the owner
+#  decides to expose Aura, the blocks below are merged BY HAND into the
+#  existing `server { listen 443 ssl ... }` block, and the two edits marked
+#  CHANGES TO EXISTING DIRECTIVES are made to lines that are already there.
+# ============================================================================
+#
+#
+# ----------------------------------------------------------------------------
+# 1. TWO CHANGES TO EXISTING DIRECTIVES — Aura does not work without them
+# ----------------------------------------------------------------------------
+#
+# Both of these are already in arooraa.com.conf and both would break Aura
+# silently, in ways that look like application bugs. They are listed first
+# because they are the ones that will waste a day if they are missed.
+#
+# (a) Permissions-Policy currently denies the microphone to the whole site:
+#
+#         add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+#
+#     With that header, `getUserMedia` is refused by the browser before any
+#     Aura code runs. The panel handles the refusal correctly and tells the
+#     visitor their browser is not allowing the microphone, which is true and
+#     completely unhelpful, because nothing they can do in their browser will
+#     change it. Voice is dead on the site and looks broken rather than off.
+#
+#     If, and only if, voice is being enabled, this becomes:
+#
+#         add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
+#
+#     Note `self`, not `*`. Only this origin may ask; an embedded third party
+#     still cannot. If voice is NOT being enabled, leave the line alone — the
+#     current value is the right one for a site without voice.
+#
+# (b) client_max_body_size is 2m, and a voice upload is bounded at 4 MB:
+#
+#         client_max_body_size 2m;
+#
+#     A longer recording is rejected by Nginx with its own HTML 413 before it
+#     reaches aura-service, so the visitor gets a bare error page instead of
+#     Aura saying something. Rather than raising it for the whole site — the
+#     lead forms have no business accepting 5 MB — it is raised only inside
+#     the voice location below. The server-wide 2m stays as it is.
+#
+#
+# ----------------------------------------------------------------------------
+# 2. THE AURA LOCATION — add inside the existing 443 server block
+# ----------------------------------------------------------------------------
+#
+# Path convention matches the existing /api/leads/ and /api/admin/ blocks:
+# the public path is rewritten to the service's own /api/v1/aura/**, so no
+# browser ever contains a port number and the frontend's dev rewrite and the
+# production proxy agree on one relative path (/api/aura/**).
+#
+#     location /api/aura/ {
+#         proxy_pass http://127.0.0.1:8091/api/v1/aura/;
+#
+#         proxy_set_header Host $host;
+#         proxy_set_header X-Real-IP $remote_addr;
+#         # Aura's rate limiter reads the LEFTMOST value of this header, and only
+#         # when aura.protection.trust-proxy-headers is true. $proxy_add_x_forwarded_for
+#         # APPENDS to whatever the client sent, so a client that sends its own
+#         # X-Forwarded-For gets to choose the address Aura counts against — which
+#         # is every caller choosing a fresh identity per request, and no rate
+#         # limiting at all.
+#         #
+#         # Behind Cloudflare the correct source is CF-Connecting-IP, which
+#         # Cloudflare sets and strips from client input. SET the header from it
+#         # rather than appending:
+#         proxy_set_header X-Forwarded-For $http_cf_connecting_ip;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#
+#         # Longer than the 30s used for the lead API. A grounded answer is a
+#         # retrieval plus a generation, and a transcription of a 60-second
+#         # recording is slower again; aura-service's own provider timeouts are
+#         # 30s (chat) and 45s (voice), so this has to be above the larger of
+#         # them or Nginx gives up first and the visitor sees a gateway error
+#         # instead of the sentence Aura has ready for exactly this case.
+#         proxy_read_timeout 90s;
+#         proxy_connect_timeout 5s;
+#
+#         # Audio uploads only. Kept here rather than server-wide so the lead
+#         # forms keep their 2 MB ceiling. Slightly above aura-service's own
+#         # 4 MB bound, so the service refuses an oversize upload in Aura's
+#         # voice rather than Nginx refusing it with an HTML error page.
+#         client_max_body_size 5m;
+#
+#         # An answer is specific to one conversation and one visitor. Nothing
+#         # about it may be cached by Cloudflare or by an intermediary.
+#         add_header Cache-Control "no-store" always;
+#     }
+#
+#
+# ----------------------------------------------------------------------------
+# 3. WHAT IS DELIBERATELY NOT PROXIED
+# ----------------------------------------------------------------------------
+#
+#   /actuator/**            Health, as with lead-service, is checked directly
+#                           against 127.0.0.1:8091 from the host. There is no
+#                           public location for it and there should not be one.
+#                           If it is ever wanted on its own port, set
+#                           MANAGEMENT_SERVER_PORT in the service environment —
+#                           the application config pins no port on purpose.
+#
+#   /api/v1/aura/insights   Reachable only through the /api/aura/ block above,
+#                           and refused there anyway: it is off by default
+#                           (aura.insights.api-enabled) and answers 404 without
+#                           AURA_INSIGHTS_TOKEN. Deliberately no separate public
+#                           location, and no reason to add one — it is read over
+#                           an SSH tunnel or from the host.
+#
+#   /design-system          Does not exist in a production build at all. The
+#   /design-system/aura     review pages are `page.review.tsx`, an extension
+#                           that is only a page extension in development, so
+#                           there is nothing in `out/` to serve. No location
+#                           block would help or hurt; robots.txt keeps
+#                           disallowing the path for anything already indexed.
+#
+#
+# ----------------------------------------------------------------------------
+# 4. CLOUDFLARE
+# ----------------------------------------------------------------------------
+#
+# NOT CHANGED by this milestone, and listed here only so the review is complete:
+#
+#   - /api/aura/* must be a bypass-cache rule, like the existing /api/* rules.
+#     A cached Aura answer served to a second visitor would be a confidentiality
+#     failure, not a performance win.
+#   - Cloudflare's own rate limiting, if used, sits in front of Aura's and does
+#     not replace it: theirs protects the edge, Aura's protects the provider
+#     spend, and only Aura's knows the difference between opening a conversation
+#     and asking a question.
+#   - CF-Connecting-IP is what makes the rate limiter's identity real. Without
+#     Cloudflare in front, `trust-proxy-headers` must stay false and Aura counts
+#     the socket address instead — which is correct for a directly exposed host.
+#
+#
+# ----------------------------------------------------------------------------
+# 5. VERIFYING, AFTER SOMEBODY DECIDES TO APPLY THIS
+# ----------------------------------------------------------------------------
+#
+#   nginx -t                              # syntax, before any reload
+#   systemctl reload nginx                # never restart; reload keeps connections
+#   curl -sS -o /dev/null -w '%{http_code}\n' \
+#        https://arooraa.com/api/aura/conversations -X POST \
+#        -H 'Content-Type: application/json' -d '{}'
+#        # 201 with aura.chat.enabled=true; 404 while it is false, which is the
+#        # correct answer for a switched-off surface and not an error.
+#   curl -sS -o /dev/null -w '%{http_code}\n' https://arooraa.com/actuator/health
+#        # 404. If this returns 200, the actuator has been exposed publicly and
+#        # the change must be reverted before anything else is done.
+#
+# See aura-service/RUNBOOK.md for the order these steps belong in, what to
+# check before enabling anything, and how to turn each piece off again.
