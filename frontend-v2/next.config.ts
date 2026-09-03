@@ -23,8 +23,27 @@ import type { NextConfig } from "next";
 // and needs no change now that this app owns the admin routes.
 const isDev = process.env.NODE_ENV !== "production";
 
+// A8: the internal review pages are not routes in a production build.
+//
+// `/design-system` and `/design-system/aura` exist to be looked at during development — every
+// component on one page, every Aura state on the other. Neither has ever been part of the public
+// site, and both carry `robots: noindex`. That is not enough: noindex asks a crawler not to list a
+// page that is nonetheless sitting on the server, reachable by anyone who types the URL, and the
+// Aura page in particular renders states a visitor is never meant to see assembled in one place.
+//
+// So they are named `page.review.tsx` and that extension is a page extension only in development.
+// In a production build Next does not see a `page` file in those directories, so there is no route
+// to render, nothing is emitted into `out/`, and the pages cannot be served because they do not
+// exist — rather than existing and asking politely not to be indexed. `robots.ts` keeps disallowing
+// the path anyway, for anything already in an index.
+//
+// The defaults have to be repeated here: setting this key replaces the list rather than adding to
+// it, and every other page, layout and not-found file in the app uses them.
+const DEFAULT_PAGE_EXTENSIONS = ["tsx", "ts", "jsx", "js"];
+
 const nextConfig: NextConfig = isDev
   ? {
+      pageExtensions: [...DEFAULT_PAGE_EXTENSIONS, "review.tsx"],
       async rewrites() {
         return [
           {
@@ -49,6 +68,7 @@ const nextConfig: NextConfig = isDev
       },
     }
   : {
+      pageExtensions: DEFAULT_PAGE_EXTENSIONS,
       output: "export",
       images: { unoptimized: true },
     };
