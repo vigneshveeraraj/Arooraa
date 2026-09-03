@@ -1,4 +1,4 @@
-# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A6 project discovery → A7 operational memory → A8 pre-production)
+# Aura service architecture (A0/A1 foundation → A2 retrieval → A3 conversation → A5 voice → A5.2 entity recognition → A6 project discovery → A7 operational memory → A8 pre-production)
 
 ## Why a separate service, not a module inside lead-service
 
@@ -453,6 +453,122 @@ stops itself, and re-checked here as a courtesy.
 "Safe filename handling" is answered by not handling one: the browser's filename is discarded, and
 the name that travels onward is generated from the *validated* media type. There is consequently no
 path to traverse and no extension to smuggle.
+
+## What A5.2 added (understanding our own names, however they were heard)
+
+The owner's finding, from real voice testing: a visitor says MESA clearly and speech-to-text returns
+Meesa, Mesa, Meso, Messa, Misa or Meeza. The question then names no organisation subject, so
+`ScopeClassifier` routes it to the general fallback, `RetrievalPlanner` skips retrieval entirely,
+and Aura answers a question about its own product as though it had never heard of it. One word being
+misheard costs the visitor the whole answer.
+
+`com.arooraa.aura.vocabulary` holds the fix and nothing else.
+
+### One registry, in code
+
+`PublicEntityAliasRegistry` is the single canonical list: MESA, Mindra, Smart Mirror, Arooraa Smart
+Home and AROORAA, each with the spellings it may be recognised from. It is code rather than
+configuration on purpose — an alias list is a way to make Aura treat one word as another, and a
+deployment that could add entries could quietly point an ordinary English word at a product. The
+cost of the restriction is a rebuild when a genuinely new product ships.
+
+The lists are short, and that is a decision. Each entry is the canonical spelling, one the owner
+reported from real testing, or an obvious near-neighbour of one of those. Two absences were
+considered and rejected rather than overlooked: there is no bare "smart home" form, because it is a
+whole industry's word for itself and it collides with the three-word product name (which would have
+produced "AROORAA's Arooraa Smart Home" in a visitor's own composer); and there is no bare "mirror".
+
+### Why recognition is graded
+
+The owner's counterexample is the specification: "I want a mesa in my dining room" must not become a
+product question merely because the letters appear. So each registered spelling carries a certainty,
+and the whole decision is four cases and one threshold:
+
+| | written exactly | near miss |
+|---|---|---|
+| **distinctive** (`meesa`, `meeza`, `arooraa`) | 1.00 | 0.55 |
+| **everyday** (`mesa`, `misa`, `arora`, `aurora`) | 0.55 | 0.35 |
+
+Contextual support adds 0.35, and a mention resolves at 0.75. Read across: a spelling nobody types
+by accident resolves alone; a near miss of one, and an everyday spelling, each resolve only with
+support; and a fuzzy match to a word that is *already* an ordinary word never resolves at all, which
+is the cell with no route to a rewrite and deliberately so.
+
+Support is any of: an entity-intent phrase in the same clause with the candidate itself blanked out,
+so a word cannot vouch for itself; the visitor standing on that entity's own page; or the same
+message having already named that same entity unambiguously. The intent vocabulary names products
+and companies and nothing else — no industries, no rooms, no use cases — because "restaurant" and
+"dining room" are neighbours and the counterexample lives in the second one.
+
+### The near-miss envelope
+
+`SpeechShape` requires two independent things at once: the same consonant skeleton with runs
+collapsed, and an edit distance of at most one (two for longer words). Either alone is too generous,
+and it is worth being concrete. "Messy" is one edit from "messa" and would be corrected on distance
+alone; its skeleton is `M-S-Y` against `M-S`, so the first rule refuses it. "Mouse" shares the
+skeleton `M-S` with "mesa" and would be corrected on shape alone; it is three edits away, so the
+second refuses it. The minimum length is five on both sides, because at four letters the envelope
+was quietly offering to rewrite "miso" and "mess".
+
+### Where it runs, and what it does not touch
+
+Recognition is pipeline stage 1.5 — **before** classification, not before retrieval. By retrieval
+time the routing decision that skipped retrieval has already been taken.
+
+What the deterministic stages read is the canonical text. What is **stored**, what the model is
+shown as the user's turn, and what a knowledge gap records are all the visitor's own words. Nothing
+about conversation persistence changed.
+
+Nothing here decides what Aura may say. A recognised MESA still passes the confidentiality
+classifier, the evidence gate and the output guardrail unchanged — and the first of those becomes
+*stricter*, not weaker: "what database does Meesa use internally?" was not previously even a
+candidate for `INTERNAL_BOUNDARY`, because "Meesa" named no organisation subject.
+
+### Voice, and the two transcripts
+
+`VoiceService` canonicalises the provider's transcript before returning it, so the visitor reads
+"Tell me about MESA" in the composer and confirms a question Aura can actually answer. The provider's
+own words stay on the `Transcript` record beside the corrected ones for diagnosing a bad recognition,
+and are **not** published on the voice API — the browser has no use for them.
+
+Confidence is internal. It exists so one number governs one decision; it is never returned to a
+browser, never logged beside a visitor's words, and never rendered. Diagnostics carry the recognised
+*names* only, and that surface is off in every deployed build.
+
+### What A5.2 changed in the panel
+
+Two owner findings about the voice UI, both about what a visitor is shown rather than what happens
+underneath.
+
+**The language row is gone.** "Speak naturally — English · தமிழ் · Tanglish" sat permanently in the
+guided entry, which meant it took conversation space from every visitor including everyone who never
+touches the microphone, and it read as a feature announcement. The guidance now appears once, on the
+recording stage, the first time that browser reaches for the microphone — "Speak naturally in your
+own language", with no list, because naming three languages tells somebody who speaks a fourth that
+they are not invited. Remembered in `localStorage` under `arooraa.aura.voice-intro-seen`, read
+inside the click handler rather than during a render, and guarded on both sides: with storage
+blocked the guidance simply appears again, and voice never waits on an answer from it. No account,
+no cookie, nothing reaching the backend.
+
+**Recording has a surface of its own.** It used to be a 44px button turning red with a ring that
+followed the microphone level, and the owner could not tell from it whether Aura was actually
+hearing anything. `AuraListening` now replaces the composer entirely while a recording is running
+and gives four independent answers to "is this working?": the Spark in its listening state, a meter
+that moves with the room, a clock counting up, and the word "Listening" written out. Cancel and Done
+are both there at 44px, Done takes focus so a keyboard visitor can stop without hunting, and
+"Understanding…" replaces the meter while the transcript is on its way — no provider name, no
+upload vocabulary.
+
+The meter is informational and nothing else: it never ends a recording, never influences a
+transcript and is not a safety control. A5.1's decision not to run voice activity detection stands,
+because Tamil and Tanglish both carry pauses a detector reads as the end of a thought. With
+`prefers-reduced-motion` the bars take a fixed shape and everything that was never motion still
+carries the state.
+
+Cancel stops the recorder, releases the tracks, and uploads nothing — no transcription call, no
+message. The microphone is also released on Done, on panel close, on "New", on unmount, on a
+recorder error, and when the tab is backgrounded (that one finishes the recording rather than
+discarding it, so whatever was already said survives).
 
 ## What A6 added (project discovery, and a way to hand it over)
 

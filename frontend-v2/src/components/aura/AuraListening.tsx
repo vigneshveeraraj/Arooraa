@@ -133,12 +133,17 @@ export function AuraListening({
         </div>
       )}
 
-      {/* Not announced. A clock that spoke every second would make the microphone unusable with a
-          screen reader, and the state above already says what is happening. */}
-      <p className={styles.clock} aria-hidden="true">
-        <span className={styles.elapsed}>{formatElapsed(elapsedSeconds)}</span>
-        {secondsLeft !== null ? <span className={styles.remaining}>{secondsLeft}s left</span> : null}
-      </p>
+      {/* Only while something is actually being timed. A frozen clock under "Understanding…" reads
+          as a recording that is still running, which is the opposite of what has happened.
+
+          Not announced, either: a clock that spoke every second would make the microphone unusable
+          with a screen reader, and the state above already says what is happening. */}
+      {!processing ? (
+        <p className={styles.clock} aria-hidden="true">
+          <span className={styles.elapsed}>{formatElapsed(elapsedSeconds)}</span>
+          {secondsLeft !== null ? <span className={styles.remaining}>{secondsLeft}s left</span> : null}
+        </p>
+      ) : null}
 
       {!processing ? (
         <div className={styles.actions}>

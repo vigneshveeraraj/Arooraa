@@ -223,6 +223,15 @@ describe("the recording stage", () => {
     expect(screen.queryByRole("button", { name: /stop recording/i })).not.toBeInTheDocument();
   });
 
+  it("stops the clock rather than freezing it", () => {
+    // A still 0:08 under "Understanding…" reads as a recording that is somehow still running.
+    const { rerender } = render(<AuraListening {...props} status="LISTENING" elapsedSeconds={8} />);
+    expect(screen.getByText("0:08")).toBeInTheDocument();
+
+    rerender(<AuraListening {...props} status="PROCESSING" elapsedSeconds={8} />);
+    expect(screen.queryByText("0:08")).not.toBeInTheDocument();
+  });
+
   it("keeps the meter and the clock out of what a screen reader is told", () => {
     // A level meter that announced itself, or a clock that spoke every second, would make the
     // microphone unusable. The state is announced once, by the panel, in words.

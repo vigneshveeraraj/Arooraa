@@ -17,6 +17,16 @@
   background: var(--color-bg-subtle);
 }
 
+/*
+ * The stage takes focus when Done disappears, purely so focus does not fall out of the dialog while
+ * transcription runs. It is not reachable by Tab and does nothing when focused, so a focus ring on
+ * it would be a large blue rule across the panel announcing a control that is not there.
+ */
+.stage:focus,
+.stage:focus-visible {
+  outline: none;
+}
+
 .headline {
   display: flex;
   align-items: center;
@@ -59,8 +69,16 @@
   inline-size: 4px;
   border-radius: var(--radius-full);
   background: var(--color-accent);
-  /* 4px at silence, up to 40px at full scale — the bar is always visibly present. */
-  block-size: calc(4px + 36px * var(--bar-weight, 1) * var(--aura-level, 0));
+  /*
+   * Three terms, and the first two are the reason the meter reads as a meter even when it is
+   * hearing nothing: a floor every bar keeps, a resting profile that gives the row its shape, and
+   * then the live measurement on top. Without the middle term silence rendered as nine identical
+   * 4px dots, which looks like a broken control rather than a quiet room — and that is exactly
+   * what a browser with no analyser would have shown for the whole recording.
+   */
+  block-size: calc(
+    6px + 12px * var(--bar-weight, 1) + 24px * var(--bar-weight, 1) * var(--aura-level, 0)
+  );
   /* The Spark's own descending opacity, applied outwards from the centre. */
   opacity: calc(0.42 + 0.58 * var(--bar-weight, 1));
   transition: block-size 110ms linear;

@@ -176,10 +176,10 @@ describe("Aura layout contract", () => {
     // an aggressively tuned detector reads as the end of a sentence. The meter answers "is it
     // hearing me?" without answering "am I finished?", which is not ours to answer.
     expect(LISTENING).toMatch(/--aura-level/);
-    expect(LISTENING).toMatch(/block-size: calc\(4px \+ 36px \* var\(--bar-weight, 1\) \* var\(--aura-level, 0\)\)/);
-    // Defaulted, so a browser that will record but will not analyse gets a still meter rather
-    // than a broken-looking one.
-    expect(LISTENING).toMatch(/var\(--aura-level, 0\)/);
+    expect(LISTENING).toMatch(/24px \* var\(--bar-weight, 1\) \* var\(--aura-level, 0\)/);
+    // A floor and a resting profile before the live term, so silence — and a browser that will
+    // record but will not analyse — reads as a quiet meter rather than as a broken control.
+    expect(LISTENING).toMatch(/6px \+ 12px \* var\(--bar-weight, 1\)/);
   });
 
   it("keeps the recording stage inside the narrowest phone", () => {

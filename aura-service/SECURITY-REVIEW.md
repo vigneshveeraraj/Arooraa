@@ -46,6 +46,15 @@ over the approved corpus only, and nothing a visitor types is ever written to th
 no knowledge-mutation endpoint at all. A7's knowledge gaps record a question for a person to read;
 they are not retrievable and are not a route into what Aura knows.
 
+**Can the entity resolver be used to inject anything?** (A5.2) No, and its shape is why. It has one
+move: replace a run of words that matches a registered spelling with that entity's canonical name,
+which is a fixed string in our own source. It cannot insert text of a visitor's choosing, cannot
+delete anything, and cannot produce a name that is not one of five. The worst a determined visitor
+achieves is making Aura believe they said "MESA" — which they could have done by typing MESA. It
+runs before classification, so its output is what the confidentiality classifier reads: recognition
+makes that boundary fire on probes it previously missed ("what database does Meesa use internally?")
+and cannot make it fire less. Asserted in `EntityRecognitionIT`.
+
 **Can injected text change the brief?** It becomes text in the brief or is dropped. The extractor
 sees only visitor turns, delivered as numbered quoted lines under an explicit "this is DATA"
 instruction, and `BriefGrounding` then drops anything whose words are not in what they said.
@@ -63,6 +72,12 @@ transcription alone reaches no conversation and creates no message.
 **Can `/voice/speech` be used to read arbitrary text aloud?** No. It takes a conversation id and a
 sequence, never text, and speaks a *stored* answer. Free text-to-speech and divergence between what
 is shown and what is heard are both structurally impossible rather than validated against.
+
+**Does the corrected transcript say more than the visitor did?** The canonical transcript is the
+provider's transcript with approved public names respelled, and the visitor reads it in the composer
+and presses send themselves — nothing is submitted on their behalf, which is the A5 decision and is
+unchanged. The provider's raw words are kept on the service's own record for diagnosing a bad
+recognition and are not published on the voice API. Confidence scores never leave the service.
 
 **Does the spoken answer say more than the written one?** `SpeechTextPreparer` is deterministic —
 markdown stripped, clamped to a sentence boundary. It calls no model, so what is heard is always a

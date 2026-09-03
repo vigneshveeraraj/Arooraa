@@ -257,7 +257,7 @@ const STATES: ReviewState[] = [
   {
     id: "voice-first-open",
     title: "First open, with voice available",
-    note: "The guided entry gains one quiet line — Speak naturally, in the three languages Aura has actually been built for. No flag, no globe: the mark is the Spark's own geometry.",
+    note: "A5.2: no permanent language row. The guided entry is the four openings and nothing else — the language guidance moved to the one moment it matters, which is the first time somebody reaches for the microphone.",
     frame: panel(
       "voice-first-open",
       <AuraPanel
@@ -270,9 +270,29 @@ const STATES: ReviewState[] = [
     ),
   },
   {
+    id: "voice-first-listening",
+    title: "First microphone use",
+    note: "Recording replaces the composer rather than tinting a button, because the owner could not tell from a tinted button whether Aura was hearing anything. Four independent answers to “is this working?” — the Spark listening, a meter that moves with the room, a clock counting up, and the word itself. The language line appears here, once per browser.",
+    frame: panel(
+      "voice-first-listening",
+      <AuraPanel
+        id="review-voice-2a"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubAuraVoice({
+          status: "LISTENING",
+          introducing: true,
+          elapsedSeconds: 3,
+          subscribeToLevel: hearing(0.55),
+        })}
+      />,
+    ),
+  },
+  {
     id: "voice-listening",
-    title: "Recording",
-    note: "The microphone is the loudest thing in the composer while it is recording, and the strip above says how to stop. Tap to start, tap to stop — reachable from a keyboard, unlike hold-to-talk.",
+    title: "Recording, every time after the first",
+    note: "The same stage without the introduction: a visitor who has spoken to Aura before goes straight into listening. Cancel discards the recording without uploading anything; Done stops and transcribes.",
     frame: panel(
       "voice-listening",
       <AuraPanel
@@ -280,7 +300,37 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         onNavigate={() => {}}
-        voice={stubAuraVoice({ status: "LISTENING" })}
+        voice={stubAuraVoice({ status: "LISTENING", elapsedSeconds: 8, subscribeToLevel: hearing(0.82) })}
+      />,
+    ),
+  },
+  {
+    id: "voice-processing",
+    title: "Working out what was said",
+    note: "“Understanding”, in the visitor's language rather than ours. No provider name, no “transcribing”, no upload vocabulary — which half of the sentence is our implementation is not something anybody came here to learn.",
+    frame: panel(
+      "voice-processing",
+      <AuraPanel
+        id="review-voice-2b"
+        onClose={() => {}}
+        controller={stubController(GROUNDED)}
+        onNavigate={() => {}}
+        voice={stubAuraVoice({ status: "PROCESSING", elapsedSeconds: 8 })}
+      />,
+    ),
+  },
+  {
+    id: "voice-canonical-transcript",
+    title: "A misheard product name, corrected before anyone sends it",
+    note: "The visitor said MESA and speech-to-text returned “Meesa”. Aura writes its own public names its own way and puts the result in the composer, where the visitor reads it and presses send — nothing is submitted for them. Only names in the approved registry are ever touched.",
+    frame: panel(
+      "voice-canonical-transcript",
+      <AuraPanel
+        id="review-voice-2c"
+        onClose={() => {}}
+        controller={stubController([])}
+        onNavigate={() => {}}
+        voice={stubAuraVoice({ transcript: { id: 1, text: "Tell me about MESA" } })}
       />,
     ),
   },
@@ -302,7 +352,7 @@ const STATES: ReviewState[] = [
   {
     id: "voice-countdown",
     title: "Recording, near the ceiling",
-    note: "The countdown appears only in the last few seconds, so an ordinary question never feels timed — and stopping is never a surprise. The ring around the microphone follows what it is actually hearing, which is what Aura does instead of guessing when someone has finished.",
+    note: "The countdown joins the elapsed clock only in the last few seconds, so an ordinary question never feels timed — and stopping is never a surprise. The meter follows what the microphone is actually hearing, which is what Aura does instead of guessing when someone has finished.",
     frame: panel(
       "voice-countdown",
       <AuraPanel
@@ -310,7 +360,12 @@ const STATES: ReviewState[] = [
         onClose={() => {}}
         controller={stubController(GROUNDED)}
         onNavigate={() => {}}
-        voice={stubAuraVoice({ status: "LISTENING", secondsLeft: 8 })}
+        voice={stubAuraVoice({
+          status: "LISTENING",
+          elapsedSeconds: 52,
+          secondsLeft: 8,
+          subscribeToLevel: hearing(0.34),
+        })}
       />,
     ),
   },
@@ -332,7 +387,7 @@ const STATES: ReviewState[] = [
   {
     id: "voice-denied",
     title: "Microphone permission refused",
-    note: "Aura's own words, no error name, and the composer still right there — voice is never the only way in.",
+    note: "Never left in the listening state: the stage closes, the composer is right there, and the sentence is Aura's own — no permission API, no browser error name, nothing that reads as the visitor's mistake.",
     frame: panel(
       "voice-denied",
       <AuraPanel
@@ -342,7 +397,7 @@ const STATES: ReviewState[] = [
         onNavigate={() => {}}
         voice={stubAuraVoice({
           error:
-            "I'll need microphone permission to hear you. You can allow it in your browser, or just type.",
+            "Microphone access is needed to talk with Aura. You can allow it in your browser, or just type.",
         })}
       />,
     ),
@@ -480,6 +535,21 @@ const STATES: ReviewState[] = [
     ),
   },
 ];
+
+/**
+ * A microphone that is hearing something, held at a fixed loudness.
+ *
+ * <p>The meter is driven by a subscription rather than by React state, so with a stub controller it
+ * would otherwise sit at its resting profile in every capture — truthful for a browser with no
+ * analyser, and not what the owner is reviewing. This publishes one value on subscribe, which is
+ * exactly what the real meter does ten times a second.
+ */
+function hearing(level: number) {
+  return (listener: (value: number) => void) => {
+    listener(level);
+    return () => {};
+  };
+}
 
 /** The phone the mobile sheet is reviewed at by default — iPhone 14/15 logical size. */
 const PHONE = { width: 390, height: 844 };
