@@ -35,7 +35,7 @@ And one on the frontend, which is a **build-time** variable rather than a runtim
 
 | Variable | Default | What it does |
 |---|---|---|
-| `NEXT_PUBLIC_AURA_ENABLED` | off in a production build, on in `next dev` | Whether the launcher is on the public site at all. Both halves of the check are build-time substitutions, so a production build without it drops the branch and the widget's chunk with it — off means *not shipped*, not merely hidden. A production build has to be told to include Aura, which is the right way round for something not yet approved for the public. |
+| `NEXT_PUBLIC_AURA_ENABLED` | off in a production build, on in `next dev` | Whether the launcher is mounted on the public site. Off, there is no launcher in the HTML, nothing can be opened and no request reaches aura-service. It does **not** strip the widget's code from the bundle — measured, not assumed; the chunk is still in `out/`, referenced by no page. A production build has to be told to include Aura, which is the right way round for something not yet approved for the public. |
 
 `OPENAI_API_KEY` is read from the environment and never appears in configuration, in a properties
 object, in a log line or on the health surface. It is not in this repository and must not be.

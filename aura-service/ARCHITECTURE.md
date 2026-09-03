@@ -709,10 +709,20 @@ Every surface already had one, and A8 added the one that was missing: the launch
 backend switches stop Aura saying anything — with `aura.chat.enabled` false the API returns 404 —
 but a launcher still on the page when the service is off is worse than no launcher, because a
 visitor opens it, types, and is apologised to. `NEXT_PUBLIC_AURA_ENABLED` is checked at build time
-alongside `NODE_ENV`, so a production build without it drops the branch and the widget's chunk:
-off means *not shipped*, and a production build has to be told to include Aura rather than told not
-to. `RUNBOOK.md` lists every switch, what a visitor sees when it is thrown, and the order to use
-them in.
+alongside `NODE_ENV`, so a production build has to be told to include Aura rather than told to
+leave it out.
+
+It is a render switch, and the distinction is worth stating because the first version of this
+section got it wrong. Off, there is no launcher in the rendered HTML, nothing can be opened and no
+request is ever made to aura-service — which is the whole of what a visitor experiences. It does
+not remove the widget's code from the bundle: building with the variable unset and with it set to
+`false` both leave the launcher's chunk in `out/`, referenced by no page. That is measured, not
+assumed. It is a weaker guarantee than the review pages get, where a production build genuinely has
+no route and no file, and anyone relying on this should rely on the render behaviour rather than on
+the bundle.
+
+`RUNBOOK.md` lists every switch, what a visitor sees when it is thrown, and the order to use them
+in.
 
 ## Running Aura locally for a manual session
 

@@ -15,6 +15,10 @@ vi.mock("@/components/layout/SiteFooter", () => ({ SiteFooter: () => <footer /> 
  * say nothing whatever the browser does. This is about the other failure: a launcher still sitting
  * on the page when the service behind it is off, which a visitor opens, types into, and is
  * apologised to by. Turning Aura off should mean it is not there.
+ *
+ * <p>These tests are about mounting, which is exactly what the switch controls. They deliberately
+ * do not claim anything about the bundle: building with the variable unset and with it set to
+ * "false" both leave the widget's chunk in `out/`, unreferenced. See the note on the switch itself.
  */
 describe("whether Aura is on the public site at all", () => {
   afterEach(() => {
