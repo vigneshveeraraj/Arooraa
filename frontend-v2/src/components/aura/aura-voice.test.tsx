@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuraApiClient } from "@/lib/aura/client";
 import type { AuraAnswer, AuraResult } from "@/lib/aura/types";
@@ -126,6 +126,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmount first, with the fakes still installed. React tears the widget down here — releasing
+  // the microphone, disposing the speaker, revoking blob URLs — and if the fakes have already
+  // been restored it does all of that against the real jsdom APIs, which leaves the next test
+  // rendering into a broken environment.
+  cleanup();
   microphone?.restore();
   microphone = null;
   audio?.restore();

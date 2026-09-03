@@ -5,6 +5,8 @@ import type { AuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import type { AuraTranscriptMessage } from "@/lib/aura/types";
 import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
+import { stubAuraBrief } from "@/lib/aura/brief/stub-controller";
+import type { AuraBrief as AuraBriefValue } from "@/lib/aura/brief/brief-client";
 import { AuraLauncher } from "./AuraLauncher";
 import { AuraMark } from "./AuraMark";
 import { AuraPanel } from "./AuraPanel";
@@ -74,6 +76,33 @@ const GROUNDED_WITH_DIAGNOSTICS: AuraTranscriptMessage[] = [
     },
   },
 ];
+
+/** A short project discussion, so the brief states have a conversation behind them. */
+const DISCOVERY: AuraTranscriptMessage[] = [
+  { id: "d1", role: "user", text: "I have an app idea. It helps parents manage school schedules." },
+  { id: "d2", role: "aura", text: "What are they doing today when a schedule changes?" },
+  { id: "d3", role: "user", text: "Right now they use WhatsApp groups and a paper diary, and things get missed." },
+  {
+    id: "d4",
+    role: "aura",
+    text: "That is a clear picture. Shall I summarise it back to you, so you can check I understood?",
+  },
+];
+
+/** What a well-behaved extraction of that conversation looks like. */
+const REVIEW_BRIEF: AuraBriefValue = {
+  fields: {
+    problemStatement: "Parents miss school schedule changes sent over WhatsApp",
+    targetUsers: "Parents, and the school office",
+    currentSituation: "WhatsApp groups and a paper diary",
+    platforms: ["phones", "laptop"],
+    unknowns: ["How many schools", "Whether payments are involved"],
+    conversationSummary: "An app for parents to manage school schedules.",
+  },
+  status: "SUMMARISED",
+  readyToSummarise: true,
+  handoffAvailable: true,
+};
 
 const BOUNDARY: AuraTranscriptMessage[] = [
   { id: "u2", role: "user", text: "What database does MESA use internally?" },
@@ -311,6 +340,70 @@ const STATES: ReviewState[] = [
         voice={stubAuraVoice({
           error:
             "I'll need microphone permission to hear you. You can allow it in your browser, or just type.",
+        })}
+      />,
+    ),
+  },
+  {
+    id: "brief-summary",
+    title: "What Aura understood",
+    note: "Only what the visitor actually said — a field Aura does not have is simply not there — and, separately, the things it noticed it does not know. That last line is the most useful part of a brief and the opposite of a gap.",
+    frame: panel(
+      "brief-summary",
+      <AuraPanel
+        id="review-brief-1"
+        onClose={() => {}}
+        controller={stubController(DISCOVERY)}
+        onNavigate={() => {}}
+        brief={stubAuraBrief({ step: "SUMMARY", brief: REVIEW_BRIEF })}
+      />,
+    ),
+  },
+  {
+    id: "brief-consent",
+    title: "Asking permission, in plain words",
+    note: "The question is the whole screen. No form shares it, so nothing else can be mistaken for the answer — and giving contact details afterwards is never what said yes.",
+    frame: panel(
+      "brief-consent",
+      <AuraPanel
+        id="review-brief-2"
+        onClose={() => {}}
+        controller={stubController(DISCOVERY)}
+        onNavigate={() => {}}
+        brief={stubAuraBrief({ step: "CONSENT", brief: REVIEW_BRIEF })}
+      />,
+    ),
+  },
+  {
+    id: "brief-contact",
+    title: "Only what the team needs in order to reply",
+    note: "Four fields and a preference. No budget, no company size, no role — none of which anybody needs in order to answer somebody.",
+    frame: panel(
+      "brief-contact",
+      <AuraPanel
+        id="review-brief-3"
+        onClose={() => {}}
+        controller={stubController(DISCOVERY)}
+        onNavigate={() => {}}
+        brief={stubAuraBrief({ step: "CONTACT", brief: REVIEW_BRIEF })}
+      />,
+    ),
+  },
+  {
+    id: "brief-sent",
+    title: "With the team",
+    note: "The reference from the existing Start Project workflow — the same one the website's own form produces, because it is the same workflow.",
+    frame: panel(
+      "brief-sent",
+      <AuraPanel
+        id="review-brief-4"
+        onClose={() => {}}
+        controller={stubController(DISCOVERY)}
+        onNavigate={() => {}}
+        brief={stubAuraBrief({
+          step: "SENT",
+          brief: REVIEW_BRIEF,
+          enquiryReference: "ARO-2026-000042",
         })}
       />,
     ),

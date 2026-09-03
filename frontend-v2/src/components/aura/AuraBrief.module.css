@@ -1,0 +1,214 @@
+/*
+ * The brief sits inside the conversation, not over it — a card in the flow rather than a modal, so
+ * the visitor can still see what they said and scroll back to it while deciding.
+ */
+
+.brief {
+  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+}
+
+.body {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+}
+
+/* --- the summary ----------------------------------------------------------------------------- */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fieldLabel {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.fieldValue {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * What Aura noticed it does not know, given its own line rather than hidden. It is the most useful
+ * part of a brief for whoever picks it up, and showing it is how the summary stays honest about
+ * being incomplete instead of reading as though it were finished.
+ */
+.unknowns {
+  margin: 0 0 var(--space-4);
+  padding-block-start: var(--space-3);
+  border-block-start: var(--border-width) solid var(--color-border);
+  font-size: var(--text-label);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+}
+
+.unknownsLabel {
+  display: block;
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+/* --- actions --------------------------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.primary {
+  min-block-size: 40px;
+  padding-inline: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-cta-fg);
+  background: var(--color-cta-bg);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-cta-bg-hover);
+}
+
+.primary:disabled {
+  background: var(--color-border-strong);
+  color: var(--color-surface);
+  cursor: not-allowed;
+}
+
+.secondary {
+  min-block-size: 40px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  background: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.secondary:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-interactive);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible,
+.input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* --- the contact step ------------------------------------------------------------------------ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.input {
+  min-block-size: 40px;
+  padding-inline: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: 16px; /* iOS zooms the page on focus for anything under 16px. */
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: 4px;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 32px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-normal);
+  color: var(--color-error);
+}
+
+@media (max-width: 600px) {
+  .primary,
+  .secondary,
+  .input,
+  .choice {
+    min-block-size: 44px;
+  }
+  /* Stacked, because three pill buttons on one row at 320px is three truncated labels. */
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Focused programmatically as each step appears; never a tab stop of its own. */
+.brief:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}

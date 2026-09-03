@@ -244,3 +244,49 @@
     animation: none;
   }
 }
+
+/*
+ * The offer to summarise a project discussion (A6). An outline button in the conversation flow
+ * rather than a banner: it is one thing Aura can do next, offered at the moment it becomes true,
+ * and it disappears the moment the summary is on screen.
+ */
+.briefOffer {
+  align-self: flex-start;
+  min-block-size: 36px;
+  padding-inline: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-interactive);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.briefOffer:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
+.briefOffer:disabled {
+  color: var(--color-text-muted);
+  cursor: progress;
+}
+
+.briefOffer:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.briefNotice {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 600px) {
+  .briefOffer {
+    min-block-size: 44px;
+  }
+}

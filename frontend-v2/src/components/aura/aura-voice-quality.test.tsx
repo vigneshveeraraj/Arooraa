@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuraApiClient } from "@/lib/aura/client";
 import type { AuraAnswer, AuraResult } from "@/lib/aura/types";
@@ -91,11 +91,26 @@ beforeEach(() => {
   audio = installAudio();
 });
 
+/** Set by the tests that background the tab; restored here so the next test never inherits it. */
+function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
 afterEach(() => {
+  // Unmount first, with the fakes still installed. React tears the widget down here — releasing
+  // the microphone, disposing the speaker, revoking blob URLs — and if the fakes have already
+  // been restored it does all of that against the real jsdom APIs, which leaves the next test
+  // rendering into a broken environment.
+  cleanup();
   microphone?.restore();
   microphone = null;
   audio?.restore();
   audio = null;
+  // Dispatched, not just assigned. React's scheduler learns the page is hidden from the event and
+  // then defers work; setting the property back without telling anyone leaves it deferring, and
+  // the next test renders a widget whose state updates never flush.
+  setVisibility("visible");
 });
 
 async function openAura(client: AuraApiClient, voiceClient: AuraVoiceApiClient) {
@@ -228,25 +243,26 @@ describe("Aura's voice, in use", () => {
     await waitFor(() => expect(FakeMediaRecorder.instances.length).toBeGreaterThan(0));
     FakeMediaRecorder.latest().emit(50_000);
 
-    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
+    setVisibility("hidden");
 
     await waitFor(() => expect(voice.uploads).toHaveLength(1));
     await screen.findByDisplayValue("What is MESA?");
     expect(microphone!.tracks.every((track) => track.stopped)).toBe(true);
 
-    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+    // Restored while the widget is still mounted, so it — and React — see the page come back.
+    setVisibility("visible");
   });
 
   it("does not start a recording just because a tab was backgrounded", async () => {
+    // The listener lives in the widget rather than the panel, so this deliberately does not open
+    // Aura at all: backgrounding a tab must be inert whether or not anybody is looking at it.
     const voice = new FakeVoiceClient();
-    await openAura(new FakeAuraClient(), voice);
+    render(<AuraWidget client={new FakeAuraClient()} voiceClient={voice} />);
+    await screen.findByRole("button", { name: "Ask Aura" });
 
-    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
-    document.dispatchEvent(new Event("visibilitychange"));
+    setVisibility("hidden");
 
     expect(FakeMediaRecorder.instances).toHaveLength(0);
     expect(voice.uploads).toHaveLength(0);
-    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
   });
 });

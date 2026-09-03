@@ -25,12 +25,16 @@ export interface UseAuraConversationOptions {
   /** The pathname sent with every message. Context only — never authorization. */
   currentPath: string | null;
   /**
-   * Fired once per answer, with the conversation it belongs to and how the question was asked.
-   * A callback rather than something the caller observes with an effect, so voice playback starts
-   * at the moment the answer lands instead of a render later, and without anyone comparing
-   * transcript lengths to work out that something new arrived.
+   * Fired once per answer, with the conversation it belongs to, how the question was asked, and
+   * how many things the visitor has said so far.
+   *
+   * <p>A callback rather than something the caller observes with an effect, so voice playback
+   * starts at the moment the answer lands instead of a render later, and without anyone comparing
+   * transcript lengths to work out that something new arrived. The turn count is passed rather
+   * than derived by the caller for the same reason: it is a fact about the turn that just
+   * happened, and this is where that turn happened.
    */
-  onAnswer?(conversationId: string, source: AuraMessageSource): void;
+  onAnswer?(conversationId: string, source: AuraMessageSource, visitorTurns: number): void;
 }
 
 export interface AuraConversationController {
@@ -74,6 +78,8 @@ export function useAuraConversation({
   const [busy, setBusy] = useState(false);
   const lastMessage = useRef<string | null>(null);
   const lastSource = useRef<AuraMessageSource>("TYPED");
+  /** How many things the visitor has said. A ref, because it is read inside an async callback. */
+  const visitorTurns = useRef(0);
 
   // The acknowledgement state is a moment, not a mode: it settles back to idle on its own.
   useEffect(() => {
@@ -140,7 +146,7 @@ export function useAuraConversation({
         diagnostics: result.value.diagnostics ?? null,
       });
       setState("RESPONSE_READY");
-      onAnswer?.(id, lastSource.current);
+      onAnswer?.(id, lastSource.current, visitorTurns.current);
     },
     // currentPath is a dependency rather than a ref: navigation is rare, and a request that is
     // already in flight keeps the path it was sent with, which is the correct context for it.
@@ -168,6 +174,7 @@ export function useAuraConversation({
       if (text.length === 0 || inFlight.current) return;
       lastMessage.current = text;
       lastSource.current = source;
+      visitorTurns.current += 1;
       // Rendered immediately: the visitor's own words should never wait on a network call.
       setTranscript((current) => [...current, { id: nextId("user"), role: "user", text }]);
       run(text);
@@ -194,6 +201,7 @@ export function useAuraConversation({
     setConversationId(null);
     lastMessage.current = null;
     lastSource.current = "TYPED";
+    visitorTurns.current = 0;
     setState("IDLE");
   }, []);
 

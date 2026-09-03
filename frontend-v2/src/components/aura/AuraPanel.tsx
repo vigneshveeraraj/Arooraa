@@ -5,8 +5,10 @@ import type { AuraGuidedProduct, AuraGuidedService } from "@/lib/aura/guided-ent
 import { describeAuraState, mergeAuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import { voicePresence, type AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
+import type { AuraBriefController } from "@/lib/aura/brief/useAuraBrief";
 import dynamic from "next/dynamic";
 import { AuraComposer } from "./AuraComposer";
+import { AuraBrief } from "./AuraBrief";
 import { AuraGuidedEntry, type AuraGuidedSection } from "./AuraGuidedEntry";
 import { AuraMark } from "./AuraMark";
 import { AuraRichText } from "./AuraRichText";
@@ -36,6 +38,11 @@ interface AuraPanelProps {
    * panel A4.2 shipped.
    */
   voice?: AuraVoiceController | null;
+  /**
+   * The project brief, or null when discovery is not wired up. As with voice, everything it adds
+   * is conditional on it, so a panel without one is exactly the panel A5 shipped.
+   */
+  brief?: AuraBriefController | null;
 }
 
 /**
@@ -87,6 +94,7 @@ export function AuraPanel({
   onNavigate,
   initialGuidedSection,
   voice = null,
+  brief = null,
 }: AuraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -153,14 +161,26 @@ export function AuraPanel({
     setGuidedOpen(false);
   }
 
+  /*
+   * Focus goes straight to the composer when the panel opens: opening Aura is an intent to say
+   * something. preventScroll matters — the panel is fixed-position, so without it the browser
+   * scrolls the page behind it to "reveal" a textarea that was already fully visible, and the
+   * article the visitor was reading jumps out from under them.
+   *
+   * An empty dependency array, and that is the whole point of this effect being on its own. It
+   * used to share one with the key handler below, whose dependency is `onClose` — and once the
+   * widget above started rebuilding `onClose` on every render (it closes over the voice
+   * controller, which is a fresh object each time), "focus the composer" ran on every render too.
+   * With only the composer on screen nobody noticed. The moment the project brief put a contact
+   * form in the panel it became unmissable: every keystroke re-rendered, and the re-render pulled
+   * focus out of the field and back to the composer, so a visitor could not type their own name.
+   */
+  useEffect(() => {
+    panelRef.current?.querySelector<HTMLElement>("textarea")?.focus({ preventScroll: true });
+  }, []);
+
   useEffect(() => {
     const panel = panelRef.current;
-    // Focus goes straight to the composer: opening Aura is an intent to say something. preventScroll
-    // matters — the panel is fixed-position, so without it the browser scrolls the page behind it to
-    // "reveal" a textarea that was already fully visible, and the article the visitor was reading
-    // jumps out from under them. Inlined rather than routed through the focusComposer() helper
-    // below: this effect's dependency array is deliberately just [onClose].
-    panel?.querySelector<HTMLElement>("textarea")?.focus({ preventScroll: true });
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -294,6 +314,28 @@ export function AuraPanel({
             onDismiss={dismissGuidedMenu}
             voiceAvailable={voice?.available ?? false}
           />
+        ) : null}
+
+        {/* The brief sits in the conversation flow, after the turn that prompted it, so the
+            visitor can still scroll back to what they said while they decide. */}
+        {brief ? <AuraBrief controller={brief} conversationId={controller.conversationId} /> : null}
+
+        {/* Offered rather than imposed, and only once the backend agrees this is a project
+            conversation with something in it — never one sentence in, and never in a conversation
+            about a product. */}
+        {brief?.offerSummary && !busy ? (
+          <button
+            type="button"
+            className={styles.briefOffer}
+            onClick={() => brief.summarise(controller.conversationId ?? "")}
+            disabled={brief.busy}
+          >
+            {brief.busy ? "Putting that together…" : "Summarise what I've told you"}
+          </button>
+        ) : null}
+
+        {brief?.error && brief.step === "IDLE" ? (
+          <p className={styles.briefNotice}>{brief.error}</p>
         ) : null}
 
         {busy ? (

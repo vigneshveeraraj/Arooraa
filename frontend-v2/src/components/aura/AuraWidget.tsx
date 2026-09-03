@@ -8,6 +8,8 @@ import { useAuraConversation, type AuraMessageSource } from "@/lib/aura/useAuraC
 import { mergeAuraState } from "@/lib/aura/state";
 import { useAuraVoice, voicePresence } from "@/lib/aura/voice/useAuraVoice";
 import type { AuraVoiceApiClient } from "@/lib/aura/voice/voice-client";
+import { useAuraBrief } from "@/lib/aura/brief/useAuraBrief";
+import type { AuraBriefApiClient } from "@/lib/aura/brief/brief-client";
 import { AuraLauncher } from "./AuraLauncher";
 
 /**
@@ -26,6 +28,8 @@ interface AuraWidgetProps {
   client?: AuraApiClient;
   /** Injected by tests; production always uses the real client. */
   voiceClient?: AuraVoiceApiClient;
+  /** Injected by tests; production always uses the real client. */
+  briefClient?: AuraBriefApiClient;
 }
 
 /**
@@ -37,7 +41,7 @@ interface AuraWidgetProps {
  * conversation controller. The controller lives here rather than inside the panel so closing Aura
  * does not throw away the conversation.
  */
-export function AuraWidget({ client, voiceClient }: AuraWidgetProps) {
+export function AuraWidget({ client, voiceClient, briefClient }: AuraWidgetProps) {
   const [open, setOpen] = useState(false);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -54,22 +58,23 @@ export function AuraWidget({ client, voiceClient }: AuraWidgetProps) {
     process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_AURA_DIAGNOSTICS === "true";
 
   const voice = useAuraVoice({ client: voiceClient });
+  const brief = useAuraBrief({ client: briefClient });
 
-  // Speaking an answer is an event, fired the moment the answer lands, rather than something a
-  // component notices later by watching the transcript grow. That ordering is what makes a spoken
-  // reply follow a spoken question immediately, and it keeps the decision — should this be read
-  // aloud at all? — in the one place that knows both the preference and how the question was asked.
-  const announceAnswer = useCallback(
-    (conversationId: string, source: AuraMessageSource) => {
+  // Both of the things that happen when an answer lands, fired as one event the moment it does
+  // rather than noticed later by watching the transcript grow. Speaking has to follow a spoken
+  // question immediately; the brief check has to see the turn that was just recorded.
+  const onAnswer = useCallback(
+    (conversationId: string, source: AuraMessageSource, visitorTurns: number) => {
       voice.announceAnswer(conversationId, source === "VOICE");
+      brief.refresh(conversationId, visitorTurns);
     },
-    [voice],
+    [brief, voice],
   );
 
   const controller = useAuraConversation({
     client,
     currentPath: pathname ?? null,
-    onAnswer: announceAnswer,
+    onAnswer,
   });
 
   const close = useCallback(() => {
@@ -116,6 +121,7 @@ export function AuraWidget({ client, voiceClient }: AuraWidgetProps) {
           devDiagnostics={devDiagnostics}
           onNavigate={router.push}
           voice={voice}
+          brief={brief}
         />
       )}
     </>
