@@ -9,6 +9,12 @@ milestone's real before/after: a grounded answer carrying two citations and full
 none of it on screen. A5/A5.1 add voice — `12` through `16` — which is the first time the composer
 has gained a control since it was designed, so every capture below was retaken.
 
+A5.2.2 is the owner's second round of real testing, and `21` and `22` are its visible half: a
+guided choice that opens a page now answers first, in Aura's own words, where it used to change the
+route and say nothing. The other half of that correction — what "New" clears — is not a state that
+can be photographed, because it is the absence of one; `03` and `12` are what the panel looks like
+after it, which is the whole point.
+
 A5.2 is the owner's own before/after on voice, from real testing. `12` is the first: the permanent
 "Speak naturally — English · தமிழ் · Tanglish" row is gone from the guided entry entirely. `17` is
 where that guidance went — the first microphone use, once per browser. And `13`, `17`, `18` and
@@ -39,6 +45,8 @@ composer with a stage of its own rather than tinting a 44px button.
 | `18-desktop-voice-processing.png` | Working out what was said — "Understanding…", in the visitor's language rather than ours. No provider name, no upload vocabulary, and no clock, because nothing is being timed any more |
 | `19-desktop-voice-canonical-transcript.png` | **A5.2**: the visitor said MESA, the provider heard "Meesa", and the composer holds "Tell me about MESA" — waiting for them to press send. Only names in the approved registry are ever touched |
 | `20-mobile-voice-first-listening-widths.png` | The first-use stage at all four widths — the guidance holds one line even at 320 |
+| `21-desktop-guided-navigation-reply.png` | **A5.2.2**: the visitor pressed About AROORAA, and Aura said so. Fixed copy written in `guided-entry.ts`, committed before the navigation and asked of no provider — where this used to be a route change with no reply at all |
+| `22-mobile-guided-navigation-widths.png` | The same exchange at 320, 375, 390 and 430 — the reply wraps rather than overflowing, and nothing else moves |
 
 ## Regenerating
 
@@ -76,6 +84,8 @@ Three things worth knowing before regenerating these, all learned the hard way:
   them. Back-to-back invocations sharing a profile fail every time.
 - **Delete the old file only once the new one exists.** Clearing targets first and then losing the
   captures leaves a gap where screenshots used to be; git is what got them back here.
+- **`?only=navigation-acknowledged`** renders the guided-navigation reply from the same fixed copy
+  the panel uses, so the capture is the real sentence rather than an illustration of one.
 - **`?only=products` / `?only=services`** render the nested guided levels directly, via the
   review-only `initialGuidedSection` prop on `AuraPanel`, so no click is needed to capture them.
   `?only=inspector` does the same for the developer inspector, which the review page also opens

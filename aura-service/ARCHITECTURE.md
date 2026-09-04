@@ -570,6 +570,45 @@ message. The microphone is also released on Done, on panel close, on "New", on u
 recorder error, and when the tab is backgrounded (that one finishes the recording rather than
 discarding it, so whatever was already said survives).
 
+### What A5.2.2 corrected (a new conversation, and a spoken acknowledgement)
+
+Two defects the owner found by using the panel, both entirely in the browser. Nothing in this
+service changed.
+
+**"New" now means new.** The owner spoke, watched the transcript arrive in the composer, pressed
+New, closed Aura, reopened it — and the transcript was back. The cause was two pieces of state that
+have to agree kept at different lifetimes. A transcript belongs to the voice controller, which lives
+in `AuraWidget` above the lazily-loaded panel and survives a close on purpose, so that closing Aura
+does not throw a conversation away. The composer's memory of having already applied one is component
+state, and dies with the composer. A reopened panel therefore had no memory, found a transcript
+still waiting, and put it back in the box.
+
+The fix is one authoritative reset (`AuraPanel.startNewConversation`) over the three controllers that
+outlive the panel — conversation, voice and brief — plus two changes that make the class of bug
+unrepeatable. A transcript is now consumed when it reaches a composer, so it exists only until it is
+delivered. And the composer is keyed by a conversation epoch, so a reset discards the component
+outright rather than blanking fields one at a time: a draft, a half-applied transcript, and anything
+added to that file later cannot survive a reset.
+
+The same epoch supersedes work already in the air. Each controller captures it when a request starts
+and compares before touching state afterwards, so an answer, a transcription or a brief that lands
+after New changes nothing — including the conversation id, which used to be written to
+`sessionStorage` by a create that was already obsolete, handing the "new" conversation the old one's
+identity. New is available while Aura is still thinking for the same reason: it is now safe.
+
+**Guided navigation says what it did.** Clicking "About AROORAA" changed the route and produced
+nothing from Aura, which reads as broken. About, Careers and Contact now commit a turn — the
+visitor's choice, and Aura's reply — before navigating. The reply is fixed copy stored beside the
+route in `guided-entry.ts`, so no provider is called to describe an action it did not take: zero
+latency, zero cost, nothing to hallucinate, and it still works when the provider does not. The panel
+is mounted in the public layout, above the page being replaced, so the message survives the
+navigation without a timer or a replay. Page context follows the route the ordinary way — the next
+question carries the destination's path.
+
+Products and Services are unchanged: they open a second level of the menu, which is itself an
+immediate visible answer, and a chosen product still navigates and asks Aura a real question that
+gets a grounded answer. "I have a product idea" is untouched and still opens `PROJECT_DISCOVERY`.
+
 ## What A6 added (project discovery, and a way to hand it over)
 
 `PROJECT_DISCOVERY` has been a conversation mode since A3. A6 makes it useful: Aura can now build a
