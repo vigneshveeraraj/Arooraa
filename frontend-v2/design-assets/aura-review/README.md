@@ -9,6 +9,12 @@ milestone's real before/after: a grounded answer carrying two citations and full
 none of it on screen. A5/A5.1 add voice — `12` through `16` — which is the first time the composer
 has gained a control since it was designed, so every capture below was retaken.
 
+A5.2.3 brings the site header and Aura onto one navigation model, so `23` through `29` are the
+first captures here that are not of Aura at all: the header's Products and Services menus, and the
+mobile drawer's accordions. `03b` and `03c` were retaken at the same time, because Aura's own
+second level now reads the same four products and the same descriptors the header does — putting
+those two captures beside `23` is the check that they agree.
+
 A5.2.2 is the owner's second round of real testing, and `21` and `22` are its visible half: a
 guided choice that opens a page now answers first, in Aura's own words, where it used to change the
 route and say nothing. The other half of that correction — what "New" clears — is not a state that
@@ -26,8 +32,8 @@ composer with a stage of its own rather than tinting a 44px button.
 | `01-homepage-launcher-desktop.png` | Closed launcher — the Aura Spark on the real home page, 1440×900 |
 | `02-all-states-desktop.png` | Every state on one page, 1440 wide |
 | `03-desktop-first-open.png` | First open — guided entry, four openings plus two quieter ones |
-| `03b-desktop-products.png` | Guided entry, Products level — public names and short taglines |
-| `03c-desktop-services.png` | Guided entry, Services level — the six approved groups |
+| `03b-desktop-products.png` | **A5.2.3**: Aura's Products level — the same four names and the same lines as the header menu in `23`, because both read one list |
+| `03c-desktop-services.png` | Aura's Services level — the six approved groups |
 | `04-desktop-grounded.png` | **What a visitor sees**: message, answer, composer. Nothing else |
 | `05-desktop-dev-inspector.png` | The same turn with the developer inspector open — the only surface that shows citations, routing metadata or voice timings, and no public build contains it |
 | `06-desktop-thinking.png` | Thinking state |
@@ -47,6 +53,13 @@ composer with a stage of its own rather than tinting a 44px button.
 | `20-mobile-voice-first-listening-widths.png` | The first-use stage at all four widths — the guidance holds one line even at 320 |
 | `21-desktop-guided-navigation-reply.png` | **A5.2.2**: the visitor pressed About AROORAA, and Aura said so. Fixed copy written in `guided-entry.ts`, committed before the navigation and asked of no provider — where this used to be a route change with no reply at all |
 | `22-mobile-guided-navigation-widths.png` | The same exchange at 320, 375, 390 and 430 — the reply wraps rather than overflowing, and nothing else moves |
+| `23-desktop-nav-products-menu.png` | **A5.2.3**: the header's Products menu — four products, one quiet line each, and `All products` keeping the index page in reach now that the top-level item is a button |
+| `24-desktop-nav-services-menu.png` | The Services menu — six names, no descriptors, because the names already say what they are |
+| `25-desktop-nav-keyboard-focus.png` | The same menu reached by keyboard: the site's focus ring on the item, and the panel open beneath it |
+| `26-mobile-nav-products-widths.png` | The Products accordion at 320, 375, 390 and 430 — expanded in place, 44px rows, the CTA still at the foot, nothing overflowing |
+| `27-mobile-nav-services-widths.png` | The Services accordion at the same four widths |
+| `28-aura-product-navigation.png` | Choosing MESA inside Aura: the choice, then "I've opened MESA for you." No provider call, and no question sent on the visitor's behalf |
+| `29-aura-service-navigation.png` | The same for a service — the second acknowledgement shape, "our Product Engineering service" |
 
 ## Regenerating
 
@@ -84,6 +97,11 @@ Three things worth knowing before regenerating these, all learned the hard way:
   them. Back-to-back invocations sharing a profile fail every time.
 - **Delete the old file only once the new one exists.** Clearing targets first and then losing the
   captures leaves a gap where screenshots used to be; git is what got them back here.
+- **`/design-system/navigation`** is the header's own review page (A5.2.3), with the same
+  `?only=` and `?device=widths` parameters. A screenshot cannot click a menu open, so `SiteHeader`
+  and `MobileNav` each take a review-only prop — `initialOpenSection` and `initialExpanded` — in
+  exactly the way `AuraPanel` already took `initialGuidedSection`. Both files are
+  `page.review.tsx`, so a production build finds no route there.
 - **`?only=navigation-acknowledged`** renders the guided-navigation reply from the same fixed copy
   the panel uses, so the capture is the real sentence rather than an illustration of one.
 - **`?only=products` / `?only=services`** render the nested guided levels directly, via the

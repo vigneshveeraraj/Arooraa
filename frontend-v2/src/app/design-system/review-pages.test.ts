@@ -35,6 +35,7 @@ describe("the internal review pages", () => {
     );
     expect(pageFilesIn(DESIGN_SYSTEM)).not.toContain("page.tsx");
     expect(pageFilesIn(resolve(DESIGN_SYSTEM, "aura"))).not.toContain("page.tsx");
+    expect(pageFilesIn(resolve(DESIGN_SYSTEM, "navigation"))).not.toContain("page.tsx");
   });
 
   it("are a route in development and not in a production build", async () => {

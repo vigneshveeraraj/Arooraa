@@ -1,0 +1,94 @@
+/* The internal navigation review harness. Not part of any public page. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding-block-end: var(--space-8);
+}
+
+.page[data-mode="solo"] {
+  gap: 0;
+  padding: 0;
+}
+
+.intro {
+  max-width: var(--container-content);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lead {
+  color: var(--color-text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page[data-mode="all"] .section {
+  padding-inline: var(--container-gutter);
+}
+
+.note {
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+  max-width: 60ch;
+}
+
+/*
+ * The header is sticky and the panel is absolutely positioned against it, so the frame needs a
+ * real page under it — otherwise the capture shows a menu floating over nothing and says nothing
+ * about z-index or overlap, which is half of what these are for.
+ */
+.desktop {
+  position: relative;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.pageBelow {
+  min-block-size: 20rem;
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--text-body-sm);
+}
+
+.phones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.phones > div:first-child {
+  flex-basis: 100%;
+}
+
+.phone {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.phone figcaption {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.phone iframe {
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}

@@ -7,7 +7,11 @@ import type { AuraTranscriptMessage } from "@/lib/aura/types";
 import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
 import { stubAuraBrief } from "@/lib/aura/brief/stub-controller";
 import type { AuraBrief as AuraBriefValue } from "@/lib/aura/brief/brief-client";
-import { AURA_GUIDED_LINKS } from "@/lib/aura/guided-entry";
+import {
+  AURA_GUIDED_LINKS,
+  AURA_GUIDED_PRODUCTS,
+  AURA_GUIDED_SERVICES,
+} from "@/lib/aura/guided-entry";
 import { AuraLauncher } from "./AuraLauncher";
 import { AuraMark } from "./AuraMark";
 import { AuraPanel } from "./AuraPanel";
@@ -91,6 +95,22 @@ const GROUNDED_NUMBERED: AuraTranscriptMessage[] = [GROUNDED[0]!, { ...GROUNDED[
 const NAVIGATED: AuraTranscriptMessage[] = [
   { id: "n1", role: "user", text: AURA_GUIDED_LINKS.about.label },
   { id: "n2", role: "aura", text: AURA_GUIDED_LINKS.about.acknowledgement },
+];
+
+/**
+ * A product opened from the guided menu (A5.2.3). No provider call was made to produce either
+ * line: the choice is the visitor's own words from the button, and the reply is built from the
+ * product's name in the shared navigation model.
+ */
+const PRODUCT_NAVIGATED: AuraTranscriptMessage[] = [
+  { id: "p1", role: "user", text: AURA_GUIDED_PRODUCTS[0]!.label },
+  { id: "p2", role: "aura", text: AURA_GUIDED_PRODUCTS[0]!.acknowledgement },
+];
+
+/** The same, for a service — the other of the two acknowledgement shapes. */
+const SERVICE_NAVIGATED: AuraTranscriptMessage[] = [
+  { id: "s1", role: "user", text: AURA_GUIDED_SERVICES[1]!.label },
+  { id: "s2", role: "aura", text: AURA_GUIDED_SERVICES[1]!.acknowledgement },
 ];
 
 /** A short project discussion, so the brief states have a conversation behind them. */
@@ -234,6 +254,34 @@ const STATES: ReviewState[] = [
         controller={stubController([])}
         onNavigate={() => {}}
         initialGuidedSection="services"
+      />,
+    ),
+  },
+  {
+    id: "product-navigation",
+    title: "Guided navigation — a product",
+    note: "Choosing MESA opens its page and says so. Before A5.2.3 this sent \u201cTell me about MESA\u201d and spent a model call on a click that had already said where the visitor wanted to go.",
+    frame: panel(
+      "product-navigation",
+      <AuraPanel
+        id="review-product-navigation"
+        onClose={() => {}}
+        controller={stubController(PRODUCT_NAVIGATED)}
+        onNavigate={() => {}}
+      />,
+    ),
+  },
+  {
+    id: "service-navigation",
+    title: "Guided navigation — a service",
+    note: "The second acknowledgement shape. \u201cOur Product Engineering service\u201d reads as English where \u201cour MESA service\u201d would not, which is why there are two and not one.",
+    frame: panel(
+      "service-navigation",
+      <AuraPanel
+        id="review-service-navigation"
+        onClose={() => {}}
+        controller={stubController(SERVICE_NAVIGATED)}
+        onNavigate={() => {}}
       />,
     ),
   },

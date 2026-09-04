@@ -609,6 +609,33 @@ Products and Services are unchanged: they open a second level of the menu, which
 immediate visible answer, and a chosen product still navigates and asks Aura a real question that
 gets a grounded answer. "I have a product idea" is untouched and still opens `PROJECT_DISCOVERY`.
 
+### What A5.2.3 changed (one navigation model, and menus that use it)
+
+The site header and Aura's guided menu now read one list. Still nothing in this service: the whole
+correction is `frontend-v2`, and the backend is not coupled to the website's navigation in either
+direction.
+
+**One definition.** `lib/content/navigation.ts` holds `PRODUCT_NAV_LINKS` (four products, each with
+one short public line) and `SERVICE_NAV_LINKS` (the six frozen service groups). The header's menus,
+the footer's columns and Aura's guided second level all read them. Before this there were three
+partial copies — the footer wrote the lists out by hand, and Aura built its own from `products.ts`
+and `services.ts` plus a tagline map of its own — so a product could be called one thing in the
+header and another in Aura, or point at two routes from two places. It cannot now.
+
+**What is a menu and what is not.** Products and Services open one; Our Work and Insights do not.
+Our Work has four real children, but they are engineering stories about the same four products, so
+a menu would put those names in the header twice pointing at different routes — and its index page
+already lists all four. Insights has one real destination and nothing worth inventing a second for.
+A chevron promises a list, so an item without one does not get it.
+
+**Aura no longer spends a model call on a click.** Choosing MESA used to send "Tell me about MESA"
+through the whole pipeline. It now opens the page and says so — "I've opened MESA for you." — with
+no provider call at all, exactly as About, Careers and Contact have done since A5.2.2. The
+acknowledgement is built from the product's own label rather than written out sixteen times, so
+renaming a product renames the sentence in the same edit. The grounded conversation starts when the
+visitor asks something, on the page they are standing on, with that page's context. "I have a
+product idea" is untouched and still opens `PROJECT_DISCOVERY`.
+
 ## What A6 added (project discovery, and a way to hand it over)
 
 `PROJECT_DISCOVERY` has been a conversation mode since A3. A6 makes it useful: Aura can now build a
