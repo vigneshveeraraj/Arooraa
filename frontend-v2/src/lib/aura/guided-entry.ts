@@ -1,47 +1,13 @@
-import { PRODUCTS } from "@/lib/content/products";
-import { SERVICE_GROUPS } from "@/lib/content/services";
+import { PRODUCT_NAV_LINKS, SERVICE_NAV_LINKS } from "@/lib/content/navigation";
 
 /**
- * The guided first-open taxonomy (A4.1). Deliberately sourced from the site's own content modules
- * rather than hand-written here a second time — a route or a name can only ever be one the real
- * site actually serves, and if a product or service is ever added, renamed or removed in
- * `lib/content`, this list moves with it instead of quietly going stale.
+ * The guided menu's taxonomy (A4.1, rebuilt on the shared navigation model in A5.2.3).
+ *
+ * <p>Products and services are the site's own header lists, read from `lib/content/navigation.ts`
+ * rather than assembled here from a second source. That is the point of the shared model: Aura and
+ * the header cannot disagree about what a product is called or where it lives, because there is
+ * only one list and both of them read it.
  */
-
-export interface AuraGuidedProduct {
-  id: string;
-  name: string;
-  tagline: string;
-  href: string;
-}
-
-/** Short, owner-approved taglines — the one thing not already in `products.ts`, which carries a
- * much longer marketing description than a guided-menu row has room for. */
-const PRODUCT_TAGLINES: Record<string, string> = {
-  mesa: "Connected restaurant technology",
-  mindra: "Personal & family second brain",
-  "smart-mirror": "Ambient intelligent mirror",
-  "smart-home-eb": "Local-first connected living",
-};
-
-export const AURA_GUIDED_PRODUCTS: AuraGuidedProduct[] = PRODUCTS.map((product) => ({
-  id: product.id,
-  name: product.name,
-  href: product.href,
-  tagline: PRODUCT_TAGLINES[product.id] ?? product.positioning,
-}));
-
-export interface AuraGuidedService {
-  id: string;
-  name: string;
-  href: string;
-}
-
-export const AURA_GUIDED_SERVICES: AuraGuidedService[] = SERVICE_GROUPS.map((service) => ({
-  id: service.id,
-  name: service.name,
-  href: service.href,
-}));
 
 /**
  * A place the guided menu can open by itself: what the visitor pressed, where it goes, and what
@@ -57,6 +23,8 @@ export interface AuraGuidedDestination {
   /** The words on the button, and afterwards the visitor's own turn in the conversation. */
   label: string;
   href: string;
+  /** One quiet line under the name, where the name alone does not say what the thing is. */
+  descriptor?: string;
   /**
    * Aura's own words, written by us. Deterministic navigation asks no provider anything: the
    * client already knows which choice was made and where it leads, so there is nothing to infer,
@@ -83,3 +51,26 @@ export const AURA_GUIDED_LINKS: Record<"about" | "careers" | "contact", AuraGuid
     acknowledgement: "I've opened the Contact page for you.",
   },
 };
+
+/**
+ * The four products and six services, as places Aura can open.
+ *
+ * <p>The acknowledgement is built from the label rather than written out sixteen times, which is
+ * what keeps it honest: a product renamed in the navigation model is renamed in the sentence Aura
+ * says about it, in the same edit. Two shapes rather than one, because "our Product Engineering
+ * service" reads as English and "our MESA service" does not.
+ *
+ * <p>Selecting one asks no provider anything — it opens a page and says so, exactly as About,
+ * Careers and Contact do. Before A5.2.3 it sent "Tell me about MESA" and spent a model call on a
+ * click that had already said where the visitor wanted to go; the grounded conversation now starts
+ * when they ask something, on the page they are standing on.
+ */
+export const AURA_GUIDED_PRODUCTS: AuraGuidedDestination[] = PRODUCT_NAV_LINKS.map((product) => ({
+  ...product,
+  acknowledgement: `I've opened ${product.label} for you.`,
+}));
+
+export const AURA_GUIDED_SERVICES: AuraGuidedDestination[] = SERVICE_NAV_LINKS.map((service) => ({
+  ...service,
+  acknowledgement: `I've opened our ${service.label} service for you.`,
+}));

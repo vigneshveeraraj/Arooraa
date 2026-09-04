@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type {
-  AuraGuidedDestination,
-  AuraGuidedProduct,
-  AuraGuidedService,
-} from "@/lib/aura/guided-entry";
+import type { AuraGuidedDestination } from "@/lib/aura/guided-entry";
 import { describeAuraState, mergeAuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import { voicePresence, type AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
@@ -173,16 +169,6 @@ export function AuraPanel({
   function dismissGuidedMenu() {
     setGuidedOpen(false);
     focusComposer();
-  }
-
-  function selectProduct(product: AuraGuidedProduct) {
-    onNavigate(product.href);
-    controller.send(`Tell me about ${product.name}`);
-  }
-
-  function selectService(service: AuraGuidedService) {
-    onNavigate(service.href);
-    controller.send(`Tell me about ${service.name}`);
   }
 
   function startIdea() {
@@ -372,8 +358,6 @@ export function AuraPanel({
             withWelcome={empty}
             onOpenSection={setGuidedSection}
             onBack={() => setGuidedSection("root")}
-            onSelectProduct={selectProduct}
-            onSelectService={selectService}
             onStartIdea={startIdea}
             onSelectDestination={selectDestination}
             onDismiss={dismissGuidedMenu}

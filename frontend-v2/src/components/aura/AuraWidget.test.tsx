@@ -195,53 +195,85 @@ describe("Aura on the website", () => {
     expect(screen.getByRole("button", { name: "About AROORAA" })).toBeInTheDocument();
   });
 
-  it("opens the product choices, each carrying its own public name and tagline", async () => {
-    const user = await openAura(new FakeAuraClient());
+  it("opens the product choices — the four canonical products, each with its own line", async () => {
+    const client = new FakeAuraClient();
+    const user = await openAura(client);
 
     await user.click(screen.getByRole("button", { name: "Products" }));
 
+    expect(AURA_GUIDED_PRODUCTS).toHaveLength(4);
     for (const product of AURA_GUIDED_PRODUCTS) {
-      expect(screen.getByText(product.name)).toBeInTheDocument();
-      expect(screen.getByText(product.tagline)).toBeInTheDocument();
+      expect(screen.getByText(product.label)).toBeInTheDocument();
+      if (product.descriptor) expect(screen.getByText(product.descriptor)).toBeInTheDocument();
     }
+    // Opening a menu we already hold is navigation knowledge, not a question (A5.2.3).
+    expect(client.createCalls).toBe(0);
+    expect(client.sent).toHaveLength(0);
   });
 
   it("opens the service choices — the six approved groups and none besides", async () => {
-    const user = await openAura(new FakeAuraClient());
+    const client = new FakeAuraClient();
+    const user = await openAura(client);
 
     await user.click(screen.getByRole("button", { name: "Services" }));
 
     expect(AURA_GUIDED_SERVICES).toHaveLength(6);
     for (const service of AURA_GUIDED_SERVICES) {
-      expect(screen.getByText(service.name)).toBeInTheDocument();
+      expect(screen.getByText(service.label)).toBeInTheDocument();
     }
+    expect(client.createCalls).toBe(0);
+    expect(client.sent).toHaveLength(0);
   });
 
   it.each(AURA_GUIDED_PRODUCTS)(
-    "selecting $name navigates to its real route and keeps Aura open",
+    "answers $label in Aura's own words, opens its real route, and asks nothing of the backend",
     async (product) => {
-      const client = new FakeAuraClient().answerWith(answer(`${product.name} connects a restaurant.`));
+      const client = new FakeAuraClient();
       const user = await openAura(client);
 
       await user.click(screen.getByRole("button", { name: "Products" }));
-      await user.click(screen.getByRole("button", { name: new RegExp(`^${product.name}`) }));
+      await user.click(screen.getByRole("button", { name: new RegExp(`^${product.label}`) }));
 
+      expect(screen.getByText(product.acknowledgement)).toBeInTheDocument();
       expect(push).toHaveBeenCalledWith(product.href);
       // Aura's experience — the dialog, the conversation — survives the navigation.
       expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
-      await waitFor(() => expect(client.sent[0]?.message).toBe(`Tell me about ${product.name}`));
+      expect(client.createCalls).toBe(0);
+      expect(client.sent).toHaveLength(0);
     },
   );
 
-  it.each(AURA_GUIDED_SERVICES)("selecting $name navigates to its real route", async (service) => {
-    const client = new FakeAuraClient().answerWith(answer("Happy to help."));
+  it.each(AURA_GUIDED_SERVICES)(
+    "answers $label in Aura's own words, opens its real route, and asks nothing of the backend",
+    async (service) => {
+      const client = new FakeAuraClient();
+      const user = await openAura(client);
+
+      await user.click(screen.getByRole("button", { name: "Services" }));
+      await user.click(screen.getByRole("button", { name: service.label }));
+
+      expect(screen.getByText(service.acknowledgement)).toBeInTheDocument();
+      expect(push).toHaveBeenCalledWith(service.href);
+      expect(client.createCalls).toBe(0);
+      expect(client.sent).toHaveLength(0);
+    },
+  );
+
+  it("answers a product question on the product's own page once the visitor asks one", async () => {
+    // The grounded conversation starts when the visitor asks for it, on the page they are standing
+    // on — rather than being spent automatically on a click that had already said where to go.
+    const product = AURA_GUIDED_PRODUCTS[0]!;
+    const client = new FakeAuraClient().answerWith(answer("It connects a restaurant."));
     const user = await openAura(client);
 
-    await user.click(screen.getByRole("button", { name: "Services" }));
-    await user.click(screen.getByRole("button", { name: service.name }));
+    await user.click(screen.getByRole("button", { name: "Products" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${product.label}`) }));
 
-    expect(push).toHaveBeenCalledWith(service.href);
-    await waitFor(() => expect(client.sent[0]?.message).toBe(`Tell me about ${service.name}`));
+    pathname.mockReturnValue(product.href);
+    await user.type(composer(), "What does it do?{Enter}");
+
+    expect(await screen.findByText("It connects a restaurant.")).toBeInTheDocument();
+    await waitFor(() => expect(client.sent[0]?.currentPath).toBe(product.href));
   });
 
   it('starts PROJECT_DISCOVERY directly for "I have a product idea", with no navigation', async () => {
@@ -313,37 +345,6 @@ describe("Aura on the website", () => {
     expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
     // Page context is the destination's, not the page the visitor asked from.
     await waitFor(() => expect(client.sent[0]?.currentPath).toBe("/about"));
-  });
-
-  it.each(["Products", "Services"])(
-    "opens the %s choices without asking the backend anything",
-    async (section) => {
-      // These two are not navigation: they open a second level in place, which is itself an
-      // immediate, visible answer to the click. Nothing is silent, and nothing is asked of a
-      // provider in order to show a menu we already have.
-      const client = new FakeAuraClient();
-      const user = await openAura(client);
-
-      await user.click(screen.getByRole("button", { name: section }));
-
-      expect(screen.getByRole("button", { name: /Back/ })).toBeInTheDocument();
-      expect(client.createCalls).toBe(0);
-      expect(client.sent).toHaveLength(0);
-    },
-  );
-
-  it("answers a chosen product with a real reply rather than an acknowledgement", async () => {
-    // A product opens its page and asks Aura about it, which is a question with a grounded answer.
-    // Prefixing that with "I've opened the page for you" would be a second bubble saying less.
-    const product = AURA_GUIDED_PRODUCTS[0]!;
-    const client = new FakeAuraClient().answerWith(answer(`${product.name} connects a restaurant.`));
-    const user = await openAura(client);
-
-    await user.click(screen.getByRole("button", { name: "Products" }));
-    await user.click(screen.getByRole("button", { name: new RegExp(`^${product.name}`) }));
-
-    expect(await screen.findByText(`${product.name} connects a restaurant.`)).toBeInTheDocument();
-    expect(push).toHaveBeenCalledWith(product.href);
   });
 
   it('dismisses the guided menu on "Ask something else", focusing the composer', async () => {

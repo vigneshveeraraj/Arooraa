@@ -5,8 +5,6 @@ import {
   AURA_GUIDED_PRODUCTS,
   AURA_GUIDED_SERVICES,
   type AuraGuidedDestination,
-  type AuraGuidedProduct,
-  type AuraGuidedService,
 } from "@/lib/aura/guided-entry";
 import styles from "./AuraGuidedEntry.module.css";
 
@@ -19,11 +17,16 @@ interface AuraGuidedEntryProps {
   withWelcome: boolean;
   onOpenSection: (section: AuraGuidedSection) => void;
   onBack: () => void;
-  onSelectProduct: (product: AuraGuidedProduct) => void;
-  onSelectService: (service: AuraGuidedService) => void;
   onStartIdea: () => void;
-  /** Opens a page and has Aura say so. The whole destination rather than its href — the words on
-   * the button and the words Aura replies with belong to the destination and travel with it. */
+  /**
+   * Opens a page and has Aura say so. The whole destination rather than its href — the words on
+   * the button and the words Aura replies with belong to the destination and travel with it.
+   *
+   * <p>One handler for every destination in this menu (A5.2.3): a product, a service, About,
+   * Careers and Contact are all the same action from the visitor's side, and were three handlers
+   * only because products and services used to ask the backend a question instead of opening a
+   * page.
+   */
   onSelectDestination: (destination: AuraGuidedDestination) => void;
   onDismiss: () => void;
 }
@@ -44,8 +47,6 @@ export function AuraGuidedEntry({
   withWelcome,
   onOpenSection,
   onBack,
-  onSelectProduct,
-  onSelectService,
   onStartIdea,
   onSelectDestination,
   onDismiss,
@@ -103,13 +104,15 @@ export function AuraGuidedEntry({
           </button>
           {AURA_GUIDED_PRODUCTS.map((product) => (
             <button
-              key={product.id}
+              key={product.href}
               type="button"
               className={styles.subChoice}
-              onClick={() => onSelectProduct(product)}
+              onClick={() => onSelectDestination(product)}
             >
-              <span className={styles.subName}>{product.name}</span>
-              <span className={styles.subTagline}>{product.tagline}</span>
+              <span className={styles.subName}>{product.label}</span>
+              {product.descriptor ? (
+                <span className={styles.subTagline}>{product.descriptor}</span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -122,12 +125,12 @@ export function AuraGuidedEntry({
           </button>
           {AURA_GUIDED_SERVICES.map((service) => (
             <button
-              key={service.id}
+              key={service.href}
               type="button"
               className={styles.subChoice}
-              onClick={() => onSelectService(service)}
+              onClick={() => onSelectDestination(service)}
             >
-              <span className={styles.subName}>{service.name}</span>
+              <span className={styles.subName}>{service.label}</span>
             </button>
           ))}
         </div>
