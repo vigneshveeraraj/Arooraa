@@ -1,0 +1,161 @@
+/*
+ * The desktop section menu. Built entirely from existing tokens — a light surface, one hairline
+ * border, the site's own small shadow and radius. No gradient, no glass, no dark panel, and no
+ * card per item: the density is meant to read as a product company's navigation, not a landing
+ * page dropped into a menu.
+ */
+
+.section {
+  position: relative;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: inherit;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0;
+  padding-block: var(--space-2);
+  cursor: pointer;
+  transition:
+    color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+
+.trigger:hover {
+  color: var(--color-text);
+}
+
+.trigger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+.triggerActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-accent);
+}
+
+.chevron {
+  inline-size: 12px;
+  block-size: 12px;
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+
+.trigger[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/*
+ * Anchored to the trigger and pulled up so its top edge meets the header's own bottom border:
+ * there is no gap for a pointer to fall through on the way in, which is the whole of why this
+ * needs no close timer. `top: 100%` measures from the list item, whose block padding already
+ * carries the trigger down to the header's edge.
+ */
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-3));
+  left: 0;
+  z-index: 70;
+  min-inline-size: 17rem;
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--container-gutter)));
+  padding: var(--space-2);
+  background: var(--color-surface-elevated);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/*
+ * The invisible bridge across the gap above. Without it the pointer crosses a few pixels of page
+ * between the trigger and the panel, the wrapper fires pointerleave, and the menu shuts under a
+ * hand that was on its way into it.
+ */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(-1 * var(--space-3));
+  inset-inline: 0;
+  block-size: var(--space-3);
+}
+
+/* The last section in the row would otherwise open past the right edge of the viewport. */
+.section:last-child .panel {
+  left: auto;
+  right: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.item:hover {
+  background: var(--color-bg-subtle);
+}
+
+.item:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -1px;
+}
+
+.name {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+}
+
+.descriptor {
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+.all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.all:hover {
+  color: var(--color-text);
+}
+
+.all:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .chevron,
+  .item {
+    transition: none;
+  }
+}
