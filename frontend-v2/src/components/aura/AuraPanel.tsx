@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AuraGuidedProduct, AuraGuidedService } from "@/lib/aura/guided-entry";
+import type {
+  AuraGuidedDestination,
+  AuraGuidedProduct,
+  AuraGuidedService,
+} from "@/lib/aura/guided-entry";
 import { describeAuraState, mergeAuraState } from "@/lib/aura/state";
 import type { AuraConversationController } from "@/lib/aura/useAuraConversation";
 import { voicePresence, type AuraVoiceController } from "@/lib/aura/voice/useAuraVoice";
@@ -187,8 +191,23 @@ export function AuraPanel({
     controller.send("I have a product idea.");
   }
 
-  function navigateOnly(href: string) {
-    onNavigate(href);
+  /**
+   * A guided choice that opens a page (A5.2.2, owner finding 2). Aura says what it is doing, and
+   * then does it — in that order, with no provider call between the two.
+   *
+   * <p>The acknowledgement is committed first because it is the response to the click; the
+   * navigation is what the response describes. Nothing here waits on a timer for the route to
+   * settle: this panel is mounted in the public layout, above the page being replaced, so the
+   * navigation does not unmount it and the message it has already committed simply stays on
+   * screen. The visitor arrives on the new page with Aura's sentence still there.
+   *
+   * <p>The destination's own path reaches the backend the ordinary way, on the next message —
+   * {@code AuraWidget} reads the live pathname, so a question asked on the new page is answered
+   * with that page's context rather than the previous one's.
+   */
+  function selectDestination(destination: AuraGuidedDestination) {
+    controller.acknowledge(destination.label, destination.acknowledgement);
+    onNavigate(destination.href);
     setGuidedOpen(false);
   }
 
@@ -356,7 +375,7 @@ export function AuraPanel({
             onSelectProduct={selectProduct}
             onSelectService={selectService}
             onStartIdea={startIdea}
-            onNavigateOnly={navigateOnly}
+            onSelectDestination={selectDestination}
             onDismiss={dismissGuidedMenu}
           />
         ) : null}

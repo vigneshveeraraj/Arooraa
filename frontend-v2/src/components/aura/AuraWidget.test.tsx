@@ -3,7 +3,11 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AuraApiClient } from "@/lib/aura/client";
 import type { AuraAnswer, AuraResult } from "@/lib/aura/types";
-import { AURA_GUIDED_PRODUCTS, AURA_GUIDED_SERVICES } from "@/lib/aura/guided-entry";
+import {
+  AURA_GUIDED_LINKS,
+  AURA_GUIDED_PRODUCTS,
+  AURA_GUIDED_SERVICES,
+} from "@/lib/aura/guided-entry";
 import { AuraWidget } from "./AuraWidget";
 
 const pathname = vi.fn(() => "/");
@@ -250,14 +254,96 @@ describe("Aura on the website", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("navigates for About/Careers/Contact without sending a message", async () => {
+  /*
+   * Guided navigation, as a visitor experiences it (A5.2.2, owner finding 2).
+   *
+   * <p>The owner clicked "About AROORAA", watched the page change, and heard nothing from Aura at
+   * all. A digital representative that performs an action for someone and then says nothing about
+   * it reads as broken — so every guided choice that opens a page now answers first, in Aura's own
+   * words, and the words are ours: no provider is asked to describe an action it did not take.
+   */
+  it.each(Object.values(AURA_GUIDED_LINKS))(
+    "answers $label in Aura's own words and then opens $href",
+    async (destination) => {
+      const client = new FakeAuraClient();
+      const user = await openAura(client);
+
+      await user.click(screen.getByRole("button", { name: destination.label }));
+
+      // What the visitor pressed, and what Aura said about it — a real sentence, not a bubble.
+      expect(screen.getByText(destination.label)).toBeInTheDocument();
+      expect(screen.getByText(destination.acknowledgement)).toBeInTheDocument();
+      expect(destination.acknowledgement.trim().length).toBeGreaterThan(0);
+      expect(push).toHaveBeenCalledWith(destination.href);
+
+      // Nothing was asked of the backend: no conversation was opened, no message was sent, and so
+      // no provider was called. The wait a visitor does not have is the point of doing it this way.
+      expect(client.createCalls).toBe(0);
+      expect(client.sent).toHaveLength(0);
+    },
+  );
+
+  it("leaves no empty bubble behind when it acknowledges a choice", async () => {
+    const user = await openAura(new FakeAuraClient());
+
+    await user.click(screen.getByRole("button", { name: "Careers" }));
+
+    const log = screen.getByRole("log", { name: "Conversation" });
+    const written = Array.from(log.querySelectorAll("p"));
+    expect(written.length).toBeGreaterThan(0);
+    for (const paragraph of written) {
+      expect(paragraph.textContent?.trim()).not.toBe("");
+    }
+  });
+
+  it("keeps what it said through the navigation, and asks the next question from the new page", async () => {
     const client = new FakeAuraClient();
     const user = await openAura(client);
 
     await user.click(screen.getByRole("button", { name: "About AROORAA" }));
+    expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
 
-    expect(push).toHaveBeenCalledWith("/about");
-    expect(client.sent).toHaveLength(0);
+    // The route change the click asked for. This widget is mounted in the public layout, above the
+    // page being replaced, so a navigation re-renders it rather than unmounting it — which is why
+    // the acknowledgement needs no timer, no storage and no replay to survive one.
+    pathname.mockReturnValue("/about");
+    await user.type(composer(), "Tell me more{Enter}");
+
+    expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+    expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
+    // Page context is the destination's, not the page the visitor asked from.
+    await waitFor(() => expect(client.sent[0]?.currentPath).toBe("/about"));
+  });
+
+  it.each(["Products", "Services"])(
+    "opens the %s choices without asking the backend anything",
+    async (section) => {
+      // These two are not navigation: they open a second level in place, which is itself an
+      // immediate, visible answer to the click. Nothing is silent, and nothing is asked of a
+      // provider in order to show a menu we already have.
+      const client = new FakeAuraClient();
+      const user = await openAura(client);
+
+      await user.click(screen.getByRole("button", { name: section }));
+
+      expect(screen.getByRole("button", { name: /Back/ })).toBeInTheDocument();
+      expect(client.createCalls).toBe(0);
+      expect(client.sent).toHaveLength(0);
+    },
+  );
+
+  it("answers a chosen product with a real reply rather than an acknowledgement", async () => {
+    // A product opens its page and asks Aura about it, which is a question with a grounded answer.
+    // Prefixing that with "I've opened the page for you" would be a second bubble saying less.
+    const product = AURA_GUIDED_PRODUCTS[0]!;
+    const client = new FakeAuraClient().answerWith(answer(`${product.name} connects a restaurant.`));
+    const user = await openAura(client);
+
+    await user.click(screen.getByRole("button", { name: "Products" }));
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${product.name}`) }));
+
+    expect(await screen.findByText(`${product.name} connects a restaurant.`)).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith(product.href);
   });
 
   it('dismisses the guided menu on "Ask something else", focusing the composer', async () => {

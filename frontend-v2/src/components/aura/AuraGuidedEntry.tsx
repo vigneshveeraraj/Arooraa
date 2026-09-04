@@ -4,6 +4,7 @@ import {
   AURA_GUIDED_LINKS,
   AURA_GUIDED_PRODUCTS,
   AURA_GUIDED_SERVICES,
+  type AuraGuidedDestination,
   type AuraGuidedProduct,
   type AuraGuidedService,
 } from "@/lib/aura/guided-entry";
@@ -21,7 +22,9 @@ interface AuraGuidedEntryProps {
   onSelectProduct: (product: AuraGuidedProduct) => void;
   onSelectService: (service: AuraGuidedService) => void;
   onStartIdea: () => void;
-  onNavigateOnly: (href: string) => void;
+  /** Opens a page and has Aura say so. The whole destination rather than its href — the words on
+   * the button and the words Aura replies with belong to the destination and travel with it. */
+  onSelectDestination: (destination: AuraGuidedDestination) => void;
   onDismiss: () => void;
 }
 
@@ -44,7 +47,7 @@ export function AuraGuidedEntry({
   onSelectProduct,
   onSelectService,
   onStartIdea,
-  onNavigateOnly,
+  onSelectDestination,
   onDismiss,
 }: AuraGuidedEntryProps) {
   return (
@@ -66,25 +69,25 @@ export function AuraGuidedEntry({
             <button
               type="button"
               className={styles.primaryChoice}
-              onClick={() => onNavigateOnly(AURA_GUIDED_LINKS.about)}
+              onClick={() => onSelectDestination(AURA_GUIDED_LINKS.about)}
             >
-              About AROORAA
+              {AURA_GUIDED_LINKS.about.label}
             </button>
           </div>
           <div className={styles.secondary}>
             <button
               type="button"
               className={styles.secondaryChoice}
-              onClick={() => onNavigateOnly(AURA_GUIDED_LINKS.careers)}
+              onClick={() => onSelectDestination(AURA_GUIDED_LINKS.careers)}
             >
-              Careers
+              {AURA_GUIDED_LINKS.careers.label}
             </button>
             <button
               type="button"
               className={styles.secondaryChoice}
-              onClick={() => onNavigateOnly(AURA_GUIDED_LINKS.contact)}
+              onClick={() => onSelectDestination(AURA_GUIDED_LINKS.contact)}
             >
-              Contact
+              {AURA_GUIDED_LINKS.contact.label}
             </button>
             <button type="button" className={styles.secondaryChoice} onClick={onDismiss}>
               Ask something else

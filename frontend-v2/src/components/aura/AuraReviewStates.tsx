@@ -7,6 +7,7 @@ import type { AuraTranscriptMessage } from "@/lib/aura/types";
 import { stubAuraVoice } from "@/lib/aura/voice/stub-controller";
 import { stubAuraBrief } from "@/lib/aura/brief/stub-controller";
 import type { AuraBrief as AuraBriefValue } from "@/lib/aura/brief/brief-client";
+import { AURA_GUIDED_LINKS } from "@/lib/aura/guided-entry";
 import { AuraLauncher } from "./AuraLauncher";
 import { AuraMark } from "./AuraMark";
 import { AuraPanel } from "./AuraPanel";
@@ -81,6 +82,16 @@ const GROUNDED_WITH_DIAGNOSTICS: AuraTranscriptMessage[] = [
 
 /** The same grounded answer, numbered — which is what lets feedback name the turn it is about. */
 const GROUNDED_NUMBERED: AuraTranscriptMessage[] = [GROUNDED[0]!, { ...GROUNDED[1]!, sequence: 3 }];
+
+/**
+ * What a guided choice that opens a page looks like once Aura has answered it (A5.2.2). The reply
+ * is deterministic — written in guided-entry.ts, not generated — so this capture is the real thing
+ * a visitor sees rather than an illustration of it.
+ */
+const NAVIGATED: AuraTranscriptMessage[] = [
+  { id: "n1", role: "user", text: AURA_GUIDED_LINKS.about.label },
+  { id: "n2", role: "aura", text: AURA_GUIDED_LINKS.about.acknowledgement },
+];
 
 /** A short project discussion, so the brief states have a conversation behind them. */
 const DISCOVERY: AuraTranscriptMessage[] = [
@@ -223,6 +234,20 @@ const STATES: ReviewState[] = [
         controller={stubController([])}
         onNavigate={() => {}}
         initialGuidedSection="services"
+      />,
+    ),
+  },
+  {
+    id: "navigation-acknowledged",
+    title: "Guided navigation — Aura says what it did",
+    note: "About, Careers and Contact open a page and say so, in fixed copy written by us. No provider call, no wait, and never an empty bubble where a reply should be.",
+    frame: panel(
+      "navigation-acknowledged",
+      <AuraPanel
+        id="review-navigation"
+        onClose={() => {}}
+        controller={stubController(NAVIGATED)}
+        onNavigate={() => {}}
       />,
     ),
   },
