@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   createAuraBriefApiClient,
   type AuraBrief,
@@ -43,6 +43,15 @@ export interface AuraBriefController {
   giveConsent(): void;
   send(conversationId: string, contact: AuraHandoffContact): void;
   dismiss(): void;
+  /**
+   * Forgets this conversation's brief entirely — the summary, the step, the error and the enquiry
+   * reference (A5.2.2). Part of the one reset a new conversation performs, see AuraPanel.
+   *
+   * <p>Distinct from {@link dismiss}, which puts a visitor back into the conversation they are
+   * still having. A brief describes a particular conversation, so once that conversation is over
+   * the summary of it is not merely hidden, it no longer applies to anything on screen.
+   */
+  reset(): void;
 }
 
 /** Below this there is nothing worth asking the backend about, so it is not asked. */
@@ -63,12 +72,21 @@ export function useAuraBrief({ client }: UseAuraBriefOptions = {}): AuraBriefCon
   const [errorField, setErrorField] = useState<string | null>(null);
   const [enquiryReference, setEnquiryReference] = useState<string | null>(null);
 
+  /**
+   * Which conversation this brief belongs to, counting resets. Every request here resumes after an
+   * await, and a summary of a conversation the visitor has left must not appear under the empty one
+   * that replaced it.
+   */
+  const epoch = useRef(0);
+
   const refresh = useCallback(
     (conversationId: string, visitorTurns: number) => {
       // Gated locally so an ordinary two-turn conversation costs no request at all. Past that the
       // backend decides, from the modes the pipeline itself recorded.
       if (visitorTurns < MIN_VISITOR_TURNS) return;
+      const turn = epoch.current;
       void api.peek(conversationId).then((result) => {
+        if (epoch.current !== turn) return;
         if (result.ok) setBrief(result.value);
       });
     },
@@ -77,11 +95,13 @@ export function useAuraBrief({ client }: UseAuraBriefOptions = {}): AuraBriefCon
 
   const summarise = useCallback(
     (conversationId: string) => {
+      const turn = epoch.current;
       setBusy(true);
       setError(null);
       void api
         .summarise(conversationId)
         .then((result) => {
+          if (epoch.current !== turn) return;
           if (!result.ok) {
             setError(result.message);
             return;
@@ -95,19 +115,26 @@ export function useAuraBrief({ client }: UseAuraBriefOptions = {}): AuraBriefCon
           }
           setStep("SUMMARY");
         })
-        .finally(() => setBusy(false));
+        .finally(() => {
+          // The reset already cleared this; setting it again would clear it on behalf of a request
+          // belonging to a conversation that no longer exists.
+          if (epoch.current !== turn) return;
+          setBusy(false);
+        });
     },
     [api],
   );
 
   const send = useCallback(
     (conversationId: string, contact: AuraHandoffContact) => {
+      const turn = epoch.current;
       setBusy(true);
       setError(null);
       setErrorField(null);
       void api
         .handOff(conversationId, contact)
         .then((result) => {
+          if (epoch.current !== turn) return;
           if (!result.ok) {
             setError(result.message);
             setErrorField(result.field ?? null);
@@ -116,7 +143,10 @@ export function useAuraBrief({ client }: UseAuraBriefOptions = {}): AuraBriefCon
           setEnquiryReference(result.value.enquiryReference);
           setStep("SENT");
         })
-        .finally(() => setBusy(false));
+        .finally(() => {
+          if (epoch.current !== turn) return;
+          setBusy(false);
+        });
     },
     [api],
   );
@@ -139,6 +169,15 @@ export function useAuraBrief({ client }: UseAuraBriefOptions = {}): AuraBriefCon
       setStep("IDLE");
       setError(null);
       setErrorField(null);
+    }, []),
+    reset: useCallback(() => {
+      epoch.current += 1;
+      setBrief(null);
+      setStep("IDLE");
+      setBusy(false);
+      setError(null);
+      setErrorField(null);
+      setEnquiryReference(null);
     }, []),
   };
 }

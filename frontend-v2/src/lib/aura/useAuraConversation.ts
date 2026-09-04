@@ -44,8 +44,32 @@ export interface AuraConversationController {
   busy: boolean;
   /** Null until the first message opens one. Voice playback needs it to name what to speak. */
   conversationId: string | null;
+  /**
+   * Which conversation this is, counting from zero and incremented by every reset (A5.2.2).
+   *
+   * <p>Two jobs, and they are the same job seen from either side of the boundary. Inside this hook
+   * it is what an answer arriving after "New" compares itself against, so a reply to a conversation
+   * the visitor has already left changes nothing on their screen. Outside it, it is what the panel
+   * keys the composer on — changing a React key discards every piece of state that component holds,
+   * which is how a draft is made unable to survive a reset without this file having to know that a
+   * composer exists.
+   */
+  epoch: number;
   send(message: string, source?: AuraMessageSource): void;
   retryLast(): void;
+  /**
+   * Adds a turn Aura handled by itself: what the visitor chose, and what Aura said about it.
+   *
+   * <p>No network call of any kind, and specifically no provider call — the reply is written by us
+   * and passed in. Used for guided navigation, where the client already knows both the choice and
+   * the destination, so asking a language model to describe an action it did not take would cost
+   * the visitor a wait and could only make the sentence less accurate.
+   */
+  acknowledge(choice: string, reply: string): void;
+  /**
+   * Ends this conversation and starts an empty one. Authoritative for everything this hook owns;
+   * the panel composes it with the voice and brief resets — see AuraPanel.
+   */
   startNewConversation(): void;
   markInputActive(active: boolean): void;
 }
@@ -73,6 +97,14 @@ export function useAuraConversation({
   const [failure, setFailure] = useState<AuraFailure | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
+  /**
+   * Which conversation is on screen. State, because the panel renders against it; a ref alongside,
+   * because a request that started before a reset has to read the current value from inside its own
+   * callback, where the state it closed over is by definition the old one.
+   */
+  const [epoch, setEpoch] = useState(0);
+  const currentEpoch = useRef(0);
+
   /** Guards against a double submit: a ref, because two clicks in one tick share a render. */
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -92,7 +124,7 @@ export function useAuraConversation({
     setTranscript((current) => [...current, { id: nextId("aura"), role: "aura", ...message }]);
   }, []);
 
-  const ensureConversation = useCallback(async (): Promise<string | null> => {
+  const ensureConversation = useCallback(async (turn: number): Promise<string | null> => {
     const existing = readStoredConversationId();
     if (existing) {
       setConversationId(existing);
@@ -100,6 +132,11 @@ export function useAuraConversation({
     }
 
     const created = await api.createConversation();
+    // "New" was pressed while this was in the air. The id belongs to a conversation that is no
+    // longer on screen, and storing it would hand the conversation that replaced it the old one's
+    // identity — the visitor would be told they had started again while still talking to the same
+    // backend conversation.
+    if (currentEpoch.current !== turn) return null;
     if (!created.ok) {
       setFailure(created);
       return null;
@@ -110,26 +147,39 @@ export function useAuraConversation({
   }, [api]);
 
   const deliver = useCallback(
-    async (text: string) => {
-      let id = await ensureConversation();
+    async (text: string, turn: number) => {
+      /*
+       * Checked after every await, and checked before anything else — including before a null id
+       * is treated as a failure, because a superseded request has not failed, it has been
+       * abandoned. Past one of these points the visitor is in a different conversation, and an
+       * answer to the previous one must not appear in it, must not put it into an error state, and
+       * must not decide whether it is busy.
+       */
+      const superseded = () => currentEpoch.current !== turn;
+
+      let id = await ensureConversation(turn);
+      if (superseded()) return;
       if (!id) {
         setState("ERROR");
         return;
       }
 
       let result = await api.sendMessage(id, text, currentPath);
+      if (superseded()) return;
 
       // The one recovery: the backend no longer knows this conversation (restarted, or its data
       // was cleared). Open a new one and send the message once more, so the visitor sees a reply
       // rather than an explanation of our persistence model.
       if (!result.ok && result.kind === "CONVERSATION_NOT_FOUND") {
         clearStoredConversationId();
-        id = await ensureConversation();
+        id = await ensureConversation(turn);
+        if (superseded()) return;
         if (!id) {
           setState("ERROR");
           return;
         }
         result = await api.sendMessage(id, text, currentPath);
+        if (superseded()) return;
       }
 
       if (!result.ok) {
@@ -157,11 +207,16 @@ export function useAuraConversation({
   const run = useCallback(
     (text: string) => {
       if (inFlight.current) return;
+      const turn = currentEpoch.current;
       inFlight.current = true;
       setBusy(true);
       setState("THINKING");
       setFailure(null);
-      void deliver(text).finally(() => {
+      void deliver(text, turn).finally(() => {
+        // The reset already cleared both of these for the conversation that replaced this one.
+        // Clearing them again here would clear them on behalf of a message the visitor has sent
+        // since — which is genuinely still in flight.
+        if (currentEpoch.current !== turn) return;
         inFlight.current = false;
         setBusy(false);
       });
@@ -194,8 +249,35 @@ export function useAuraConversation({
     run(text);
   }, [run]);
 
+  const acknowledge = useCallback((choice: string, reply: string) => {
+    // Both turns in one update, so they are rendered together and the guided menu collapses once
+    // rather than twice.
+    setTranscript((current) => [
+      ...current,
+      { id: nextId("user"), role: "user", text: choice },
+      { id: nextId("aura"), role: "aura", text: reply },
+    ]);
+    // The Spark's "just replied" pulse: Aura did reply, and this should read as the same kind of
+    // event as an answer. A failure already on screen is the more important thing to be showing,
+    // so it keeps the mark.
+    setState((current) => (current === "ERROR" ? current : "RESPONSE_READY"));
+    // Deliberately not counted as a visitor turn and deliberately not remembered as the last
+    // message. The backend has no record of this exchange, so counting it would put the brief's
+    // turn count out of step with the conversation it asks about, and "Try again" would re-send a
+    // question the visitor never asked.
+  }, []);
+
   const startNewConversation = useCallback(() => {
-    if (inFlight.current) return;
+    /*
+     * No early return when a request is in flight. "New" has to mean new even mid-request, and the
+     * epoch is what makes that safe: the reply, whenever it lands, finds itself superseded and
+     * touches nothing. The in-flight flag is cleared here so the empty conversation can be used
+     * immediately instead of waiting on a request that no longer belongs to anything on screen.
+     */
+    currentEpoch.current += 1;
+    setEpoch(currentEpoch.current);
+    inFlight.current = false;
+    setBusy(false);
     clearStoredConversationId();
     setTranscript([]);
     setFailure(null);
@@ -219,8 +301,10 @@ export function useAuraConversation({
     failure,
     busy,
     conversationId,
+    epoch,
     send,
     retryLast,
+    acknowledge,
     startNewConversation,
     markInputActive,
   };

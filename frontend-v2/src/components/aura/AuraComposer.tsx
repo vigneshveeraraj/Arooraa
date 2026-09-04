@@ -35,6 +35,8 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
   const [draftFromVoice, setDraftFromVoice] = useState(false);
 
   const transcript = voice?.transcript ?? null;
+  const consumeTranscript = voice?.consumeTranscript;
+
   if (transcript && transcript.id !== appliedTranscriptId) {
     setAppliedTranscriptId(transcript.id);
     setDraftFromVoice(true);
@@ -42,6 +44,21 @@ export function AuraComposer({ onSend, onActiveChange, busy, voice }: AuraCompos
     // recording the visitor started to finish it.
     setValue((current) => (current.trim().length > 0 ? `${current.trim()} ${transcript.text}` : transcript.text));
   }
+
+  /*
+   * Once it is in the box it is taken, and taking it removes it from the controller (A5.2.2).
+   *
+   * <p>The memory above is the composer's, and the composer is unmounted every time Aura is
+   * closed. The transcript is the voice controller's, and that lives above the lazy boundary and
+   * is not. Two things that have to agree, kept at different lifetimes: a remounted composer had
+   * no memory of having applied anything, found a transcript still waiting, and put it back in the
+   * box — which is how a spoken question the owner had already finished with reappeared after a
+   * "New" and a reopen. Consuming it makes the transcript's lifetime what it always meant: it
+   * exists until it reaches a composer, and then it does not.
+   */
+  useEffect(() => {
+    if (transcript && transcript.id === appliedTranscriptId) consumeTranscript?.();
+  }, [appliedTranscriptId, consumeTranscript, transcript]);
 
   useEffect(() => {
     const textarea = textareaRef.current;

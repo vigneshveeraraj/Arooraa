@@ -207,8 +207,10 @@ describe("saying whether an answer was any use", () => {
           failure: null,
           busy: false,
           conversationId: "c-1",
+          epoch: 0,
           send: () => {},
           retryLast: () => {},
+          acknowledge: () => {},
           startNewConversation: () => {},
           markInputActive: () => {},
         }}

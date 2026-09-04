@@ -24,6 +24,7 @@ export function stubAuraBrief(overrides: Partial<AuraBriefController> = {}): Aur
     giveConsent: () => {},
     send: () => {},
     dismiss: () => {},
+    reset: () => {},
     ...overrides,
   };
 }

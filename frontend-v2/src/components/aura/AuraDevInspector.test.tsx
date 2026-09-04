@@ -37,8 +37,10 @@ function controller(transcript: AuraTranscriptMessage[]): AuraConversationContro
     failure: null,
     busy: false,
     conversationId: "review-conversation",
+    epoch: 0,
     send: () => {},
     retryLast: () => {},
+    acknowledge: () => {},
     startNewConversation: () => {},
     markInputActive: () => {},
   };

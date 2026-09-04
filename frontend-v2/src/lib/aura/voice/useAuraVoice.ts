@@ -102,6 +102,24 @@ export interface AuraVoiceController {
   startListening(): void;
   stopListening(): void;
   cancelListening(): void;
+  /**
+   * Takes the transcript, once. Called by whatever put it in front of the visitor (A5.2.2).
+   *
+   * <p>A transcript is a delivery rather than a value: it is on its way to one composer, and once
+   * it has arrived it has no further meaning. Leaving it here after that was the cause of the
+   * owner's first A5.2.2 defect — this controller lives above the panel and survives a close, the
+   * composer does not, and a remounted composer with no memory of having applied a transcript
+   * found one still sitting here and applied it again.
+   */
+  consumeTranscript(): void;
+  /**
+   * Ends everything voice is doing and forgets everything it heard: the microphone, any playback,
+   * the transcript, the error, the timings and the replay target.
+   *
+   * <p>Part of the one reset a new conversation performs — see AuraPanel. Distinct from
+   * {@link cancelListening}, which ends a recording inside a conversation that continues.
+   */
+  reset(): void;
   setSpeakAnswers(speak: boolean): void;
   /** Explicit "say that again" — always speaks, whatever the preference says. */
   replay(): void;
@@ -188,6 +206,12 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     getSpeakAnswersServerSnapshot,
   );
 
+  /**
+   * Which voice turn is current. Incremented by {@link reset}, and compared against by everything
+   * that resumes after an await — a transcription or a synthesis that comes back to a conversation
+   * the visitor has already left must not put words in the new one's composer or start it talking.
+   */
+  const voiceEpoch = useRef(0);
   const recorder = useRef<AuraRecorderHandle | null>(null);
   const countdown = useRef<ReturnType<typeof setInterval> | null>(null);
   const levelListeners = useRef(new Set<(level: number) => void>());
@@ -230,9 +254,13 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
 
   const play = useCallback(
     async (conversationId: string) => {
+      const turn = voiceEpoch.current;
       const requestedAt = Date.now();
       const result = await api.speak(conversationId, null);
       const synthesisMs = Date.now() - requestedAt;
+      // Audio for a conversation that has since been replaced. Nothing to play, and nothing to
+      // report: the answer it belonged to is no longer on screen either.
+      if (voiceEpoch.current !== turn) return null;
       if (!result.ok) {
         // Not being able to speak is not worth interrupting a visitor over: the answer they asked
         // for is already on screen and perfectly readable. Only an explicit replay says anything,
@@ -251,6 +279,9 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
 
       setStatus("SPEAKING");
       await speaker.play(result.value);
+      // The reset stopped this playback and cleared the replay target; without the check, finishing
+      // would set both again for a conversation that is gone.
+      if (voiceEpoch.current !== turn) return null;
       setStatus((current) => (current === "SPEAKING" ? "IDLE" : current));
       setReplayTarget(conversationId);
       return null;
@@ -269,6 +300,8 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
 
     const maxSeconds = probed?.maxRecordingSeconds ?? 60;
     const startedAt = Date.now();
+    /** Captured here rather than in the callbacks below, which run after the visitor may have reset. */
+    const turn = voiceEpoch.current;
 
     // Read and written here rather than when the recording finishes, so a visitor who cancels has
     // still had their introduction and does not get it again. Both calls are individually guarded:
@@ -311,6 +344,13 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
 
         const requestedAt = Date.now();
         void api.transcribe(recording).then((result) => {
+          /*
+           * The race the owner asked about: transcription finishes after "New". The recording was
+           * genuine and the words were really said, but they were said to a conversation the
+           * visitor has closed — so they go nowhere, rather than appearing in an empty composer
+           * moments after the visitor watched the screen clear.
+           */
+          if (voiceEpoch.current !== turn) return;
           setTimings({
             recordingMs: Math.round(recording.durationMs),
             transcriptionMs: Date.now() - requestedAt,
@@ -345,6 +385,26 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     setIntroducing(false);
     setStatus("IDLE");
   }, [stopCountdown]);
+
+  const consumeTranscript = useCallback(() => setTranscript(null), []);
+
+  const reset = useCallback(() => {
+    // First, so that anything already in the air is superseded before it can resume.
+    voiceEpoch.current += 1;
+    // The handle discards what it captured and releases the microphone, so the browser's own
+    // recording indicator goes out with the conversation it belonged to.
+    recorder.current?.cancel();
+    recorder.current = null;
+    stopCountdown();
+    speaker.stop();
+    turnStartedAt.current = null;
+    setIntroducing(false);
+    setStatus("IDLE");
+    setError(null);
+    setTranscript(null);
+    setReplayTarget(null);
+    setTimings(NO_TIMINGS);
+  }, [speaker, stopCountdown]);
 
   /*
    * A backgrounded tab is not a visitor who has finished speaking, but it is a visitor who has
@@ -422,6 +482,8 @@ export function useAuraVoice({ client, capabilities }: UseAuraVoiceOptions = {})
     startListening,
     stopListening,
     cancelListening,
+    consumeTranscript,
+    reset,
     setSpeakAnswers,
     replay,
     announceAnswer,

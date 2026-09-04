@@ -105,7 +105,7 @@ export function AuraPanel({
 }: AuraPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
-  const { transcript, state, failure, busy } = controller;
+  const { transcript, state, failure, busy, epoch } = controller;
   const empty = transcript.length === 0;
 
   // One presence for the visitor to read, out of two sources — see mergeAuraState.
@@ -140,14 +140,25 @@ export function AuraPanel({
   }
 
   /**
-   * Starting again also ends anything voice is doing. A conversation is meant to survive a lot of
-   * things; a microphone that stays open once the conversation it belonged to is gone is not one
-   * of them, and the browser's own recording indicator would still be lit.
+   * The one authoritative reset (A5.2.2, owner finding 1). "New" means a genuinely new visitor
+   * conversation, and this is the only path to one.
+   *
+   * <p>Three controllers, because client state about a conversation lives in three places and all
+   * three outlive this panel: the conversation itself, the voice channel and the project brief are
+   * held above the lazy boundary in {@code AuraWidget} so that closing Aura does not throw a
+   * conversation away. Each clears its own state and supersedes its own in-flight requests, so a
+   * reply arriving after this — an answer, a transcription, a summary — finds the conversation it
+   * belonged to gone and touches nothing.
+   *
+   * <p>What the composer holds is dealt with differently, and deliberately: rather than reaching
+   * into it to blank a field, the epoch re-keys it and React discards the whole component. A
+   * draft, a transcript half-applied, the memory of whether the last one came from the microphone
+   * — none of it can outlive a reset, including state added to that file later.
    */
   function startNewConversation() {
-    voice?.cancelListening();
-    voice?.stopSpeaking();
     controller.startNewConversation();
+    voice?.reset();
+    brief?.reset();
   }
 
   function openGuidedMenu() {
@@ -197,7 +208,13 @@ export function AuraPanel({
    */
   useEffect(() => {
     panelRef.current?.querySelector<HTMLElement>("textarea")?.focus({ preventScroll: true });
-  }, []);
+    // Runs on open, and again after a reset — where it is not a nicety but the fix for a real
+    // keyboard trap: the composer is re-keyed by the epoch, so the textarea that had focus has
+    // just been unmounted, and focus would otherwise fall to the document body outside the dialog.
+    // The epoch changes only when the visitor presses New, so this is still not an effect that
+    // re-runs on ordinary renders — which was the point of the empty dependency array, and the
+    // reason the project brief's form can be typed into at all.
+  }, [epoch]);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -269,12 +286,11 @@ export function AuraPanel({
             Explore
           </button>
         ) : null}
-        <button
-          type="button"
-          className={styles.headerAction}
-          onClick={startNewConversation}
-          disabled={busy || empty}
-        >
+        {/* Available while Aura is still thinking, deliberately (A5.2.2). A visitor who has changed
+            their mind should not have to wait for an answer they no longer want, and the reset is
+            safe mid-request: the reply that lands afterwards belongs to a conversation that has
+            been superseded, and touches nothing. */}
+        <button type="button" className={styles.headerAction} onClick={startNewConversation} disabled={empty}>
           New
         </button>
         <button type="button" className={styles.close} onClick={onClose} aria-label="Close Aura">
@@ -394,7 +410,13 @@ export function AuraPanel({
           : describeAuraState(presence)}
       </p>
 
+      {/*
+        Keyed by the epoch, which is the whole of the composer's part in a reset. Everything it
+        holds — the draft, and whether that draft came from the microphone — is component state,
+        and a changed key throws the component away rather than asking it to tidy itself up.
+      */}
       <AuraComposer
+        key={epoch}
         onSend={controller.send}
         onActiveChange={controller.markInputActive}
         busy={busy}
