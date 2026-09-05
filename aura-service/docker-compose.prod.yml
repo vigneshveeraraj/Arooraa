@@ -1,0 +1,135 @@
+# Production compose for Aura — a separate file from docker-compose.yml (local dev), not an
+# override of it, for the same reason backend/docker-compose.prod.yml is separate: the two have
+# deliberately different concerns. Dev binds ports to every interface and defaults the database
+# password to "changeme"; this file binds only to localhost, publishes no database port to the
+# host at all, and requires every secret to be present in the environment with no default.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file /opt/arooraa/config/production.env up -d
+#
+# This stack is deliberately isolated from everything else on this host. Its own network, its own
+# volume, its own database credential — shared with neither the lead service, nor Marion, nor
+# Mindra, nor MESA. Nothing here reaches another stack and nothing there reaches this one.
+
+name: arooraa-aura-prod
+
+services:
+  aura-postgres:
+    # pgvector, not plain postgres: retrieval stores embeddings in a vector column and the
+    # extension has to exist before Flyway's first migration runs.
+    image: pgvector/pgvector:pg16
+    container_name: aura-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arooraa_aura
+      POSTGRES_USER: arooraa_aura_app
+      POSTGRES_PASSWORD: ${AURA_DB_PASSWORD:?AURA_DB_PASSWORD must be set}
+    volumes:
+      - arooraa_aura_pgdata:/var/lib/postgresql/data
+    networks:
+      - arooraa-aura-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arooraa_aura_app -d arooraa_aura"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Deliberately no `ports:` — only aura-service needs to reach this, over the internal Docker
+    # network by service name. Not reachable from the host or the public internet at all. The dev
+    # compose publishes 5434 for a psql session; production has no reason to.
+
+  aura-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aura-service
+    restart: unless-stopped
+    depends_on:
+      aura-postgres:
+        condition: service_healthy
+    environment:
+      AURA_DB_URL: jdbc:postgresql://aura-postgres:5432/arooraa_aura
+      AURA_DB_USERNAME: arooraa_aura_app
+      AURA_DB_PASSWORD: ${AURA_DB_PASSWORD:?AURA_DB_PASSWORD must be set}
+      SERVER_PORT: 8091
+
+      # The provider credential. Backend-only, by construction: it is read here, into a container
+      # the browser cannot reach, and never appears in anything served to a visitor. There is no
+      # NEXT_PUBLIC_* equivalent and there must never be one.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set}
+
+      # Surfaces. Each defaults off in application.yml, so every one of these is a deliberate
+      # decision recorded in the environment rather than a default nobody chose.
+      AURA_CHAT_ENABLED: ${AURA_CHAT_ENABLED:-false}
+      # Developer diagnostics (mode, evidence level, latency) — never on a visitor-facing build.
+      AURA_CHAT_DIAGNOSTICS_ENABLED: ${AURA_CHAT_DIAGNOSTICS_ENABLED:-false}
+      AURA_CHAT_PROVIDER_ENABLED: ${AURA_CHAT_PROVIDER_ENABLED:-false}
+      AURA_EMBEDDING_PROVIDER_ENABLED: ${AURA_EMBEDDING_PROVIDER_ENABLED:-false}
+      # Which vector cohort ingestion writes and retrieval searches. 1 is the stub/dev cohort and
+      # 2 is the real-provider calibration cohort the evidence thresholds were measured against —
+      # mixing them in one similarity search is exactly what this generation number prevents.
+      AURA_EMBEDDING_GENERATION: ${AURA_EMBEDDING_GENERATION:-1}
+
+      AURA_VOICE_ENABLED: ${AURA_VOICE_ENABLED:-false}
+      AURA_VOICE_TRANSCRIPTION_ENABLED: ${AURA_VOICE_TRANSCRIPTION_ENABLED:-false}
+      AURA_VOICE_SYNTHESIS_ENABLED: ${AURA_VOICE_SYNTHESIS_ENABLED:-false}
+
+      # Knowledge bootstrap. False in steady state: the corpus is loaded once, deliberately, by
+      # running this service with these two set true (see RUNBOOK.md). Leaving it on would re-run
+      # the import on every restart — idempotent, but a startup that talks to a paid API.
+      AURA_BOOTSTRAP_PUBLIC_KNOWLEDGE: ${AURA_BOOTSTRAP_PUBLIC_KNOWLEDGE:-false}
+      AURA_BOOTSTRAP_SOURCE_DIR: ${AURA_BOOTSTRAP_SOURCE_DIR:-knowledge-seed}
+      AURA_BOOTSTRAP_APPROVED_BY: ${AURA_BOOTSTRAP_APPROVED_BY:-production-bootstrap@arooraa.com}
+      AURA_BOOTSTRAP_EXIT_AFTER: ${AURA_BOOTSTRAP_EXIT_AFTER:-false}
+
+      # Abuse and cost controls. On by default in application.yml and stated again here, because
+      # this is the deployment where they start mattering.
+      AURA_PROTECTION_ENABLED: ${AURA_PROTECTION_ENABLED:-true}
+      # True only because Nginx sits in front and SETS X-Forwarded-For from CF-Connecting-IP
+      # rather than appending to whatever the client sent (see ops/nginx/aura.conf.template). With
+      # a proxy that appends, this would let every caller pick a fresh identity per request and
+      # the rate limiter would count nothing.
+      AURA_PROTECTION_TRUST_PROXY_HEADERS: ${AURA_PROTECTION_TRUST_PROXY_HEADERS:-false}
+
+      # Knowledge-gap collection stays on; the read API stays off. Exposing what Aura could not
+      # answer is a separate decision from noticing it, and the endpoint 404s without a token
+      # regardless.
+      AURA_INSIGHTS_ENABLED: ${AURA_INSIGHTS_ENABLED:-true}
+      AURA_INSIGHTS_API_ENABLED: ${AURA_INSIGHTS_API_ENABLED:-false}
+
+      # Project discovery works without this; only the final step — creating a real enquiry
+      # through the existing public Start Project endpoint — depends on it.
+      AURA_DISCOVERY_HANDOFF_ENABLED: ${AURA_DISCOVERY_HANDOFF_ENABLED:-false}
+      AURA_DISCOVERY_START_PROJECT_BASE_URL: ${AURA_DISCOVERY_START_PROJECT_BASE_URL:-}
+
+      # Visitor messages are never written to the log.
+      AURA_RAW_PROMPT_LOGGING_ENABLED: ${AURA_RAW_PROMPT_LOGGING_ENABLED:-false}
+
+      # No CORS configuration is registered when this is empty, which is the correct production
+      # value: the browser reaches Aura through Nginx on the site's own origin, so no request is
+      # ever cross-origin. A value here would only be needed to let a browser call :8091 directly,
+      # which production deliberately does not allow.
+      AURA_CORS_ALLOWED_ORIGINS: ${AURA_CORS_ALLOWED_ORIGINS:-}
+    ports:
+      # Localhost-only — Nginx reverse-proxies to this. Binding 0.0.0.0 here would put the chat
+      # API, and the provider spend behind it, on the public internet with no proxy in front.
+      - "127.0.0.1:8091:8091"
+    networks:
+      - arooraa-aura-net
+    healthcheck:
+      # The runtime image (eclipse-temurin JRE) has no curl or wget, only bash — this uses bash's
+      # own /dev/tcp to make a real HTTP request rather than adding packages to the image just to
+      # health-check it. Same approach as the lead service.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8091 && printf 'GET /actuator/health HTTP/1.0\r\n\r\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # Aura starts slower than the lead service: Flyway runs, and the retrieval layer warms up.
+      start_period: 120s
+
+networks:
+  arooraa-aura-net:
+    name: arooraa-aura-net
+
+volumes:
+  arooraa_aura_pgdata:
+    name: arooraa_aura_pgdata
