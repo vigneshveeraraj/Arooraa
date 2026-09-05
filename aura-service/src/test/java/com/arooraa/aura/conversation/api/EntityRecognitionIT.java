@@ -147,6 +147,100 @@ class EntityRecognitionIT {
         return response.list("sources").size();
     }
 
+    // --- A5.2.4: short natural product questions ------------------------------------------------
+
+    /**
+     * The owner asked "mesa uses?" on AROORAA's own website and was answered about the open-source
+     * graphics library.
+     *
+     * <p>What follows asserts the <em>invariant</em> rather than the wording, because this suite
+     * runs on {@code StubEmbeddingProvider} and the owner's failure was a real-provider one: the
+     * stub's bag-of-words similarity happily matches "mesa uses?" to the MESA documents, so it
+     * cannot reproduce the miss. What it can hold permanently is the thing that was actually
+     * broken — that a question in this shape names a subject, and that the subject survives to the
+     * routing decision instead of being lost on the way to a generic answer.
+     */
+    @Test
+    void aShortNaturalProductQuestionNamesItsSubject() {
+        HttpTestClient.Response response = say(openConversation(), "mesa uses?");
+
+        assertEquals("[MESA]", diagnostic(response, "recognisedEntities"),
+                "the A5.2.4 finding: 'mesa uses?' named no subject, so nothing downstream knew what it was about");
+        assertEquals("GROUNDED_QA", diagnostic(response, "mode"));
+        assertTrue(sourceCount(response) > 0, "a question about our product should reach our documents");
+    }
+
+    /**
+     * The classification invariant the owner asked for, stated as a regression assertion: once the
+     * resolver has confidently identified a public entity, that subject must still be there when
+     * routing decides what kind of turn this is. Losing it is precisely how a MESA question became
+     * a general-knowledge answer about something else.
+     */
+    @Test
+    void aResolvedSubjectRemainsAvailableToTheRoutingDecision() {
+        for (String asked : List.of("mesa uses?", "MESA uses?", "mesa use?", "what is mesa used for?",
+                "what does mesa do?", "mesa useful?", "mesa useful for restaurant?",
+                "how does mesa help restaurants?", "meesa uses?", "meso uses?",
+                "MESA enna use?", "mesa ethuku use?", "mesa restaurant-ku epdi useful?",
+                "meesa enna pannum?")) {
+            HttpTestClient.Response response = say(openConversation(), asked);
+
+            assertEquals("[MESA]", diagnostic(response, "recognisedEntities"), asked);
+            String mode = diagnostic(response, "mode");
+            assertFalse("GENERAL_CONSULTING".equals(mode) || "OUT_OF_SCOPE".equals(mode) || "SOCIAL".equals(mode),
+                    asked + " kept its subject but still routed to " + mode);
+        }
+    }
+
+    /**
+     * Recognition alone was not the whole defect. Retrieval can legitimately come back empty, and
+     * the no-evidence rule used to tell the model that general knowledge was fully available — which
+     * is exactly the licence it took to answer about the graphics library. So when the subject is
+     * one of ours, the prompt has to say so.
+     */
+    @Test
+    void thePromptStatesWhoseProductTheQuestionIsAbout() {
+        say(openConversation(), "mesa uses?");
+
+        String prompt = CHAT.lastSystemPrompt();
+        assertTrue(prompt.contains("What they are asking about"), prompt);
+        assertTrue(prompt.contains("MESA"), "the recognised subject should be named in the prompt");
+        assertTrue(prompt.contains("the only thing that name"),
+                "the prompt should close the door on the same name meaning something else");
+    }
+
+    /**
+     * The negative controls, from the outside. The resolver's own unit test covers the vocabulary;
+     * this asserts that nothing downstream re-resolves what the resolver declined.
+     *
+     * <p>Deliberately an assertion about the recognised subject and not about source count: the
+     * lexical arm of hybrid retrieval matches the literal token "mesa" whoever meant it, which is
+     * retrieval behaviour that predates this milestone and that A5.2.4 does not touch.
+     */
+    @Test
+    void anEverydayUseOfAnEverydayWordNamesNoSubjectOfOurs() {
+        for (String asked : List.of("I want a mesa in my dining room", "The mesa is beautiful",
+                "We saw a mesa in Arizona", "Tell me about mesa landforms", "I need a dining table",
+                "miso soup", "the mess in my kitchen", "that was a messy release")) {
+            assertEquals("[]", diagnostic(say(openConversation(), asked), "recognisedEntities"), asked);
+        }
+    }
+
+    /**
+     * Confidentiality still wins, in the new short phrasing too. Recognising MESA here makes the
+     * probe legible as a probe; it does not make any of it answerable.
+     */
+    @Test
+    void aConfidentialityProbeStillWinsInTheShortPhrasing() {
+        HttpTestClient.Response response = say(openConversation(), "What database does mesa use internally?");
+
+        assertEquals("[MESA]", diagnostic(response, "recognisedEntities"));
+        assertEquals("INTERNAL_BOUNDARY", diagnostic(response, "mode"));
+        assertEquals(0, sourceCount(response));
+        assertFalse(CHAT.lastSystemPrompt().contains("Approved material"),
+                "a boundary turn must never be given corpus material");
+    }
+
     // --- the finding ----------------------------------------------------------------------------
 
     @Test

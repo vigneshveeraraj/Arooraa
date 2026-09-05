@@ -4,6 +4,8 @@ import com.arooraa.aura.conversation.domain.ConversationMode;
 import com.arooraa.aura.conversation.domain.Language;
 import com.arooraa.aura.conversation.domain.ConversationTone;
 
+import java.util.List;
+
 /**
  * The runtime policy text Aura operates under — its identity, personality, confidentiality
  * boundary, grounding rules and register guidance.
@@ -96,7 +98,8 @@ public final class AuraPolicy {
     }
 
     public static PromptSection grounding(ConversationMode mode, String organisation, boolean groundingAllowed,
-                                           boolean mustQualify, boolean forbidArooraaFactualClaims) {
+                                           boolean mustQualify, boolean forbidArooraaFactualClaims,
+                                           boolean subjectIsOurs) {
         // A greeting is the one turn where "you have no approved information on that" would be an
         // absurd thing to say. Nothing was looked up because nothing was asked, so the rule is
         // simply: claim nothing, and say hello like a person.
@@ -107,6 +110,30 @@ public final class AuraPolicy {
                     """.formatted(organisation));
         }
         if (forbidArooraaFactualClaims) {
+            // A5.2.4. The general-knowledge latitude below is correct for a turn with no subject of
+            // ours in it, and was exactly wrong for "mesa uses?": told to make no AROORAA claim but
+            // that general knowledge was fully available, the model answered about the open-source
+            // graphics library — obeying both sentences it had been given.
+            //
+            // So when the subject has been recognised as ours, this turn has no general-world
+            // fallback to reach for. There is one honest answer available and it is "I do not have
+            // that yet". Note what this does not do: it withholds no approved material and relaxes
+            // no boundary. It removes a licence to substitute a different subject.
+            if (subjectIsOurs) {
+                return new PromptSection("What you may claim", """
+                        You have no approved %s information for this turn, so you must not state any
+                        %s-specific fact — no capabilities, customers, numbers, dates, pricing,
+                        technologies or commitments, however plausible they sound.
+
+                        Say plainly that you do not have approved information about it yet, and
+                        offer what you genuinely can do next.
+
+                        The subject named above is one of ours, so general knowledge does not stand
+                        in for the material you are missing. Do not answer about anything else in
+                        the world that shares its name, and do not describe what a product like it
+                        might plausibly do. "I do not have that yet" is the whole answer.
+                        """.formatted(organisation, organisation));
+            }
             return new PromptSection("What you may claim", """
                     You have no approved %s information for this turn, so you must not state any
                     %s-specific fact — no capabilities, customers, numbers, dates, pricing,
@@ -137,6 +164,38 @@ public final class AuraPolicy {
         return new PromptSection("What you may claim", """
                 Use general knowledge freely here, and keep %s out of it as a factual subject.
                 """.formatted(organisation));
+    }
+
+    /**
+     * What the visitor is asking about, when we know (A5.2.4).
+     *
+     * <p>The owner asked "mesa uses?" and Aura answered about the open-source graphics library —
+     * confidently, with no sources, and offering to say more. Nothing was lying: retrieval had
+     * found nothing, and the no-evidence rule below explicitly leaves general knowledge available.
+     * With no statement anywhere that the subject was AROORAA's product, the model reached for the
+     * only other thing the word could mean.
+     *
+     * <p>So when an approved name has been recognised, the prompt says so, and closes the two doors
+     * that let a different meaning through: answering about the other thing, and asking which one
+     * they meant. A visitor on AROORAA's own website who types one of AROORAA's own product names
+     * has not asked an ambiguous question.
+     *
+     * <p>This fixes the <em>subject</em> and never the permission. It grants no grounding, weakens
+     * no boundary and adds no fact — if there is nothing approved to say about the product, the
+     * honest answer is that we do not have that yet, which is what the rules below already require.
+     */
+    public static PromptSection recognisedSubject(List<String> entities, String organisation) {
+        String named = String.join(" and ", entities);
+        return new PromptSection("What they are asking about", """
+                They are asking about %s's %s. On this website that is the only thing that name
+                means, whatever else it may refer to elsewhere in the world.
+
+                Do not answer about anything else that happens to share the name, and do not ask
+                which one they mean. If you have no approved material about %s, say plainly that
+                you do not have approved information about it yet and offer what you genuinely can
+                do next — never a general-knowledge answer about a different subject with the same
+                name.
+                """.formatted(organisation, named, named));
     }
 
     public static PromptSection mode(ConversationMode mode, String organisation) {

@@ -40,7 +40,7 @@ class PromptComposerTest {
     private ComposedPrompt compose(ConversationMode mode, GenerationDecision decision, List<Evidence> evidence,
                                     ConversationContext context, String currentPath, String message) {
         return composer.compose(AssistantProfileResolver.AROORAA_WEBSITE, mode, Language.ENGLISH,
-                ConversationTone.CURIOUS, decision, evidence, context, currentPath, message);
+                ConversationTone.CURIOUS, decision, evidence, context, currentPath, message, List.of());
     }
 
     @Test
@@ -137,7 +137,7 @@ class PromptComposerTest {
     void theLanguageSectionFollowsTheVisitor() {
         ComposedPrompt tanglish = composer.compose(AssistantProfileResolver.AROORAA_WEBSITE,
                 ConversationMode.GROUNDED_QA, Language.TANGLISH, ConversationTone.CASUAL, GROUNDED,
-                List.of(), ConversationContext.empty(), null, "AROORAA enna company?");
+                List.of(), ConversationContext.empty(), null, "AROORAA enna company?", List.of());
 
         assertTrue(tanglish.systemText().contains("Tanglish"));
         assertFalse(tanglish.systemText().contains("Reply in English."));
@@ -149,7 +149,7 @@ class PromptComposerTest {
 
         ComposedPrompt prompt = composer.compose(AssistantProfileResolver.AROORAA_WEBSITE,
                 ConversationMode.PROJECT_DISCOVERY, Language.ENGLISH, ConversationTone.FRUSTRATED, noHumour,
-                List.of(), ConversationContext.empty(), null, "This is the third tool that has failed us.");
+                List.of(), ConversationContext.empty(), null, "This is the third tool that has failed us.", List.of());
 
         assertTrue(prompt.systemText().contains("no jokes, no emoji"));
     }
@@ -199,5 +199,70 @@ class PromptComposerTest {
 
         assertTrue(prompt.systemText().contains("As an AI language model"));
         assertTrue(prompt.systemText().contains("Never"));
+    }
+
+    // --- A5.2.4: the subject is ours, so the world's other meaning is not available ---------------
+
+    private ComposedPrompt composeAbout(List<String> entities, ConversationMode mode,
+                                         GenerationDecision decision, List<Evidence> evidence) {
+        return composer.compose(AssistantProfileResolver.AROORAA_WEBSITE, mode, Language.ENGLISH,
+                ConversationTone.CURIOUS, decision, evidence, ConversationContext.empty(), null,
+                "mesa uses?", entities);
+    }
+
+    @Test
+    void aRecognisedSubjectIsNamedBeforeTheClaimRulesRatherThanAfterThem() {
+        ComposedPrompt prompt = composeAbout(List.of("MESA"), ConversationMode.GROUNDED_QA, GROUNDED, List.of());
+
+        String text = prompt.systemText();
+        assertTrue(text.contains("What they are asking about"), text);
+        assertTrue(text.indexOf("What they are asking about") < text.indexOf("What you may claim"),
+                "the turn should know its subject before it is told what it may say about it");
+    }
+
+    @Test
+    void noSubjectMeansNoSubjectSection() {
+        ComposedPrompt prompt = composeAbout(List.of(), ConversationMode.GROUNDED_QA, GROUNDED, List.of());
+
+        assertFalse(prompt.systemText().contains("What they are asking about"));
+    }
+
+    /**
+     * The A5.2.4 defect in one assertion. "mesa uses?" retrieved nothing, and the no-evidence rule
+     * told the model that general engineering knowledge was fully available — so it answered about
+     * the open-source graphics library, obeying every instruction it had been given. When the
+     * subject is one of ours, that latitude is withdrawn.
+     */
+    @Test
+    void anEmptySearchForOneOfOurOwnProductsLeavesNoGeneralWorldAnswerToFallBackOn() {
+        ComposedPrompt prompt = composeAbout(List.of("MESA"), ConversationMode.GROUNDED_QA, NO_CLAIMS, List.of());
+
+        String text = prompt.systemText();
+        assertFalse(text.contains("General engineering knowledge"),
+                "this is the sentence the model followed into the graphics library");
+        assertTrue(text.contains("general knowledge does not stand"), text);
+        assertTrue(text.contains("the world that shares its name"), text);
+        assertTrue(text.contains("do not have approved information about it yet"),
+                "the honest answer must still be offered");
+    }
+
+    @Test
+    void aTurnWithNoSubjectOfOursKeepsItsGeneralKnowledge() {
+        // The withdrawal above is scoped to our own names. A visitor asking about their own stack
+        // still gets an assistant that knows things.
+        ComposedPrompt prompt = composeAbout(List.of(), ConversationMode.GENERAL_CONSULTING, NO_CLAIMS, List.of());
+
+        assertTrue(prompt.systemText().contains("General engineering knowledge"));
+    }
+
+    @Test
+    void namingTheSubjectGrantsNoGroundingOfItsOwn() {
+        // The subject section states what the question is about and nothing about what may be
+        // claimed: no evidence means no evidence, recognised name or not.
+        ComposedPrompt prompt = composeAbout(List.of("MESA"), ConversationMode.GROUNDED_QA, NO_CLAIMS,
+                List.of(evidence("10-mesa", "MESA", "Overview", "MESA connects ordering and kitchen.")));
+
+        assertFalse(prompt.systemText().contains("Approved material"),
+                "a no-claims turn is given no corpus text however well we know the subject");
     }
 }

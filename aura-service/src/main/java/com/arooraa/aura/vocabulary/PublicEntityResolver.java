@@ -97,7 +97,35 @@ public class PublicEntityResolver {
             "arooraa", "aura", "company",
             "product", "products", "platform", "app", "application", "software", "system",
             "solution", "solutions", "feature", "features", "pricing", "price", "cost", "demo",
-            "integrate", "integration", "works", "work", "use case", "customers", "clients");
+            "integrate", "integration", "works", "work", "use case", "customers", "clients",
+            // A5.2.4. "What is this thing for?", in the words visitors actually use — the owner's
+            // "mesa uses?" scored 0.55 and stopped, because the vocabulary above could ask what
+            // something *is* and how it *works* but had no way to ask what it is *for*. Whole words
+            // only, so "used" never matches inside "useddiscussion" and "use" never matches "user".
+            "use", "uses", "used", "useful", "usage", "purpose", "benefit", "benefits",
+            // Tanglish, and the only entry here that is not English. Visitors code-switch mid
+            // sentence — "MESA enna use?" already lands on "use" above — so this exists for the one
+            // shape that carries its verb in Tamil instead: "mesa enna pannum?", what does it do.
+            "pannum");
+
+    /**
+     * Words that mean the visitor is talking about the ordinary-world sense of a word we happen to
+     * have registered — a mesa is a landform before it is ours, and an aurora is a light in the sky.
+     *
+     * <p>A veto rather than a score, and it applies to
+     * {@link PublicEntity.Certainty#EVERYDAY} spellings only: "meesa" is ours whatever surrounds it,
+     * but "mesa" in a clause about landforms is not, however product-shaped the rest of the sentence
+     * looks. Without this, "Tell me about mesa landforms" resolved to MESA — the intent phrase "tell
+     * me about" supplied the support, and nothing was looking at what the sentence was plainly about.
+     *
+     * <p>Deliberately narrow: only the not-us meanings of the four everyday spellings, and nothing
+     * that our own products could ever be described with. "Table", "dining" and "restaurant" are
+     * conspicuously absent — MESA is restaurant software, so those are our words too.
+     */
+    private static final List<String> ORDINARY_WORLD = List.of(
+            "landform", "landforms", "plateau", "plateaus", "butte", "buttes",
+            "geology", "geological", "arizona",
+            "borealis", "australis");
 
     /**
      * @param text the visitor's words, spoken or typed
@@ -183,9 +211,7 @@ public class PublicEntityResolver {
             PublicEntityAliasRegistry.Match match = found.get();
             int from = words.get(index).start();
             int to = words.get(index + length - 1).end();
-            boolean supported = alreadyNamed.contains(match.entity().canonicalName())
-                    || namesThisPage(pageSubject, match.entity())
-                    || clauseAsksAboutAnEntity(text, from, to);
+            boolean supported = supported(text, from, to, match, pageSubject, alreadyNamed);
             double confidence = score(match) + (supported ? CONTEXTUAL_SUPPORT : 0);
             if (confidence < RESOLVES_AT) {
                 return null;
@@ -193,6 +219,26 @@ public class PublicEntityResolver {
             return new Resolved(match.entity().canonicalName(), length, confidence);
         }
         return null;
+    }
+
+    /**
+     * Whether the sentence around this candidate says it is one of ours.
+     *
+     * <p>Three ways to earn support and one way to lose it. The veto is checked first and only for
+     * everyday spellings, because it is answering a different question from the other three: they
+     * ask "is this clause about a product?", it asks "is this clause about something else that
+     * shares the name?" — and a clause can look like both at once, which is exactly what "tell me
+     * about mesa landforms" is.
+     */
+    private static boolean supported(String text, int from, int to, PublicEntityAliasRegistry.Match match,
+                                      String pageSubject, Set<String> alreadyNamed) {
+        if (match.certainty() == PublicEntity.Certainty.EVERYDAY
+                && clauseNamesTheOrdinaryWorld(text, from, to)) {
+            return false;
+        }
+        return alreadyNamed.contains(match.entity().canonicalName())
+                || namesThisPage(pageSubject, match.entity())
+                || clauseAsksAboutAnEntity(text, from, to);
     }
 
     private static double score(PublicEntityAliasRegistry.Match match) {
@@ -217,6 +263,13 @@ public class PublicEntityResolver {
         int end = clauseEnd(text, to);
         String around = text.substring(start, from) + " " + text.substring(to, end);
         return TextSignals.containsAny(TextSignals.normalize(around), ENTITY_INTENT);
+    }
+
+    /** Whether the clause holding this candidate names the word's own ordinary-world meaning. */
+    private static boolean clauseNamesTheOrdinaryWorld(String text, int from, int to) {
+        String around = text.substring(clauseStart(text, from), from)
+                + " " + text.substring(to, clauseEnd(text, to));
+        return TextSignals.containsAny(TextSignals.normalize(around), ORDINARY_WORLD);
     }
 
     private static int clauseStart(String text, int from) {

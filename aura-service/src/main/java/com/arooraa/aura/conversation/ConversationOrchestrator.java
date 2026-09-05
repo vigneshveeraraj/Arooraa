@@ -26,6 +26,7 @@ import com.arooraa.aura.conversation.pipeline.RetrievalPlanner;
 import com.arooraa.aura.conversation.pipeline.SafeResponses;
 import com.arooraa.aura.conversation.pipeline.ScopeDecision;
 import com.arooraa.aura.conversation.pipeline.ScopeClassifier;
+import com.arooraa.aura.conversation.pipeline.SubjectOnlyQuery;
 import com.arooraa.aura.conversation.profile.AssistantProfileDefinition;
 import com.arooraa.aura.conversation.profile.AssistantProfileResolver;
 import com.arooraa.aura.conversation.repository.AuraConversationRepository;
@@ -224,8 +225,15 @@ public class ConversationOrchestrator {
         // The retrieval query is contextualized when 3.5 fired above; the visitor's own message
         // (stored, and what the model sees as the user's turn) is never touched.
         RetrievalDecision retrievalDecision = retrievalPlanner.decide(scope);
+        // 7.5 (A5.2.4). "mesa uses?" is a subject and nothing else. Searched literally it embeds
+        // mostly filler and lands on the evidence gate's floor, so it is searched for as what it
+        // asks about instead — the same repair 3.5 makes for "tell me more about this", for the
+        // same reason. Anything with content of its own is left exactly as the visitor wrote it;
+        // see SubjectOnlyQuery for why that restraint is the whole safety of this.
+        String retrievalQuery = SubjectOnlyQuery.contextualize(
+                pageContext.retrievalQuery(), entities.canonicalNames());
         RetrievalResult retrieval = retrievalDecision.retrieve()
-                ? retrievalService.retrieve(new RetrievalRequest(pageContext.retrievalQuery(), profile.profile(), profile.channel()))
+                ? retrievalService.retrieve(new RetrievalRequest(retrievalQuery, profile.profile(), profile.channel()))
                 : RetrievalResult.noEvidence(message);
 
         // 9. Generation policy: what this turn may claim.
@@ -233,7 +241,7 @@ public class ConversationOrchestrator {
 
         // 10. Prompt/policy composition.
         ComposedPrompt prompt = promptComposer.compose(profile, mode, language, tone, decision,
-                retrieval.evidence(), context, currentPath, message);
+                retrieval.evidence(), context, currentPath, message, entities.canonicalNames());
 
         // 11. Generation, with every failure path ending in something Aura would plausibly say.
         String generated;

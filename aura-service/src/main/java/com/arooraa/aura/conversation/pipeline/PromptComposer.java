@@ -45,7 +45,8 @@ public class PromptComposer {
                                    List<Evidence> evidence,
                                    ConversationContext context,
                                    String currentPath,
-                                   String userMessage) {
+                                   String userMessage,
+                                   List<String> recognisedEntities) {
         String organisation = profile.organisation();
 
         List<PromptSection> policySections = new ArrayList<>();
@@ -54,8 +55,14 @@ public class PromptComposer {
         policySections.add(AuraPolicy.personality(tone, decision.humourAllowed()));
         policySections.add(AuraPolicy.confidentiality(organisation));
         policySections.add(AuraPolicy.mode(mode, organisation));
+        // Before the grounding rules, so "this is about MESA" is established before the turn is
+        // told what it may claim about it — including when the answer is that it has nothing.
+        boolean subjectIsOurs = recognisedEntities != null && !recognisedEntities.isEmpty();
+        if (subjectIsOurs) {
+            policySections.add(AuraPolicy.recognisedSubject(recognisedEntities, organisation));
+        }
         policySections.add(AuraPolicy.grounding(mode, organisation, decision.groundingAllowed(),
-                decision.mustQualify(), decision.forbidArooraaFactualClaims()));
+                decision.mustQualify(), decision.forbidArooraaFactualClaims(), subjectIsOurs));
         policySections.add(AuraPolicy.language(language));
         if (currentPath != null && !currentPath.isBlank()) {
             policySections.add(pageContextSection(currentPath));

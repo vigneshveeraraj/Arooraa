@@ -106,6 +106,111 @@ class PublicEntityResolverTest {
         }
     }
 
+    /**
+     * A5.2.4. The owner asked "mesa uses?" on AROORAA's own website and Aura answered about the
+     * open-source graphics library.
+     *
+     * <p>The vocabulary could ask what something <em>is</em> and how it <em>works</em>, but had no
+     * way to ask what it is <em>for</em> — so an everyday spelling with no support scored 0.55
+     * against a 0.75 threshold and stopped. Visitors do not write grammatical sentences, and
+     * "mesa uses?" is the shape a real person types.
+     */
+    @Nested
+    class Asking_what_something_is_for {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "mesa uses?", "MESA uses?", "mesa use?", "what is mesa used for?", "what does mesa do?",
+            "mesa useful?", "mesa useful for restaurant?", "how does mesa help restaurants?",
+            "mesa usage?", "what is the purpose of mesa?", "mesa benefits?"
+        })
+        void reach_the_product_however_the_visitor_phrases_it(String asked) {
+            assertThat(resolver.resolve(asked).canonicalNames())
+                    .describedAs(asked)
+                    .containsExactly("MESA");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"meesa uses?", "meso uses?"})
+        void reach_it_from_a_misheard_spelling_too(String asked) {
+            assertThat(resolver.resolve(asked).canonicalNames())
+                    .describedAs(asked)
+                    .containsExactly("MESA");
+        }
+
+        /**
+         * No phrase table for any of this. Every one of these carries its intent in the English
+         * word the visitor code-switched into — "use", "useful" — except the last, which is why
+         * "pannum" is the single Tamil verb in the vocabulary.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "MESA enna use?", "mesa ethuku use?", "mesa restaurant-ku epdi useful?",
+            "mesa enna pannum?", "meesa enna pannum?"
+        })
+        void reach_it_in_tamil_and_tanglish(String asked) {
+            assertThat(resolver.resolve(asked).canonicalNames())
+                    .describedAs(asked)
+                    .containsExactly("MESA");
+        }
+
+        @Test
+        void reach_the_rest_of_the_approved_vocabulary_the_same_way() {
+            assertThat(resolver.resolve("mindra uses?").canonicalNames()).containsExactly("Mindra");
+            assertThat(resolver.resolve("smart mirror use?").canonicalNames()).containsExactly("Smart Mirror");
+            assertThat(resolver.resolve("Arooraa Smart Home useful for?").canonicalNames())
+                    .containsExactly("Arooraa Smart Home");
+            assertThat(resolver.resolve("what arooraa does?").canonicalNames()).containsExactly("AROORAA");
+        }
+
+        @Test
+        void still_recognise_the_subject_of_a_confidentiality_probe() {
+            // Recognition makes the boundary stricter, never weaker: this now reads as the probe it
+            // is. What happens next is the confidentiality classifier's decision, not this one's.
+            assertThat(resolver.resolve("What database does mesa use internally?").canonicalNames())
+                    .containsExactly("MESA");
+        }
+    }
+
+    /**
+     * A5.2.4, the other half: an everyday spelling has an everyday meaning, and a clause can look
+     * like a product question and be about something else entirely.
+     *
+     * <p>"Tell me about mesa landforms" resolved to MESA before this milestone — the intent phrase
+     * supplied the support and nothing was reading what the sentence was plainly about.
+     */
+    @Nested
+    class Words_whose_ordinary_meaning_is_named_outright {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "Tell me about mesa landforms", "what is a mesa landform used for?",
+            "tell me about the mesa plateau", "how does a mesa butte form?",
+            "what is mesa arizona used for?", "tell me about the aurora borealis"
+        })
+        void are_left_alone_however_product_shaped_the_rest_of_the_clause_looks(String asked) {
+            assertThat(resolver.resolve(asked).changed()).describedAs(asked).isFalse();
+        }
+
+        @Test
+        void does_not_veto_a_spelling_that_could_only_be_ours() {
+            // "meesa" is ours whatever surrounds it — the veto is for words that are already
+            // ordinary words, not for spellings nobody types by accident.
+            assertThat(resolver.resolve("Tell me about meesa landforms").canonicalNames())
+                    .containsExactly("MESA");
+        }
+
+        @Test
+        void does_not_veto_our_own_domain_vocabulary() {
+            // MESA is restaurant software, so tables, dining and restaurants are our words too —
+            // the veto names only meanings that could never be ours.
+            assertThat(resolver.resolve("is mesa useful for table reservations?").canonicalNames())
+                    .containsExactly("MESA");
+            assertThat(resolver.resolve("mesa useful for a dining room concept?").canonicalNames())
+                    .containsExactly("MESA");
+        }
+    }
+
     @Nested
     class Words_that_are_also_ordinary_words {
 
