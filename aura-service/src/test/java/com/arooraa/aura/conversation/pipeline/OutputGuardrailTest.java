@@ -28,9 +28,9 @@ class OutputGuardrailTest {
             new ChatProperties(true, false, 12, 6000, 400, 3, 0.6, 600));
 
     private static final GenerationDecision GROUNDED =
-            new GenerationDecision(true, false, false, true, true);
+            new GenerationDecision(true, false, false, true, true, false);
     private static final GenerationDecision NO_CLAIMS =
-            new GenerationDecision(false, false, true, false, false);
+            new GenerationDecision(false, false, true, false, false, false);
 
     @Test
     void anOrdinaryAnswerPassesUntouched() {

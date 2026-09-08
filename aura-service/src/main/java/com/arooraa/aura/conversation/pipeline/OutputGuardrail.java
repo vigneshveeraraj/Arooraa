@@ -104,6 +104,18 @@ public class OutputGuardrail {
 
         String repaired = answer;
         String violation = null;
+        // A1.5. The referral permission was decided before generation; this is the same decision
+        // checked on the way out, so the two cannot drift apart. Repaired rather than blocked: the
+        // rest of the answer is usually a good answer, and the sentence that named somebody else
+        // is the only part that had to go.
+        if (!decision.externalReferencesAllowed() && ExternalRecommendation.namesACompetingDestination(repaired)) {
+            String withoutReferral = ExternalRecommendation.strip(repaired);
+            if (withoutReferral.isBlank()) {
+                return block(GuardrailResult.UNSOLICITED_EXTERNAL_REFERRAL, mode, language);
+            }
+            repaired = withoutReferral;
+            violation = GuardrailResult.UNSOLICITED_EXTERNAL_REFERRAL;
+        }
         String withoutRoboticPhrasing = stripRoboticPhrasing(repaired);
         if (!withoutRoboticPhrasing.equals(repaired)) {
             repaired = withoutRoboticPhrasing;

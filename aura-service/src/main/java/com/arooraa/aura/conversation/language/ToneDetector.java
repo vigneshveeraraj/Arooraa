@@ -22,7 +22,8 @@ public class ToneDetector {
     /** Situations where levity is never appropriate, regardless of how the message is phrased. */
     private static final List<String> SERIOUS = List.of(
             "security", "breach", "hacked", "vulnerability", "incident", "outage", "down",
-            "data loss", "lost data", "legal", "lawsuit", "sue", "contract dispute", "refund",
+            "data loss", "lost data", "lost our data", "lost my data", "losing data",
+            "legal", "lawsuit", "sue", "contract dispute", "refund",
             "complaint", "escalate", "urgent", "emergency", "critical", "gdpr", "compliance",
             "leaked", "fraud", "scam");
 
@@ -30,7 +31,13 @@ public class ToneDetector {
             "frustrated", "frustrating", "annoyed", "annoying", "angry", "fed up", "terrible",
             "horrible", "useless", "worst", "hate", "waste of time", "not working", "doesn t work",
             "does not work", "broken", "still failing", "again and again", "disappointed", "poor",
-            "slow and", "tired of");
+            "slow and", "tired of",
+            // A1.5. Real complaints from the behaviour catalog that none of the above caught: the
+            // words people actually use are about what happened, not about how they feel.
+            "failed us", "has failed", "have failed", "let us down", "let me down",
+            "i am done", "i m done", "given up", "gave up", "third time", "fourth time",
+            "nobody has replied", "no one has replied", "no response", "still waiting",
+            "keeps happening", "every time");
 
     private static final List<String> CONFUSED = List.of(
             "confused", "confusing", "don t understand", "do not understand", "didn t understand",

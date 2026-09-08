@@ -16,6 +16,8 @@ public record GuardrailResult(String text, String violationCode, boolean replace
     public static final String UNSUPPORTED_CLAIM = "UNSUPPORTED_AROORAA_CLAIM";
     public static final String ROBOTIC_PHRASING = "ROBOTIC_PHRASING";
     public static final String EXCESSIVE_LENGTH = "EXCESSIVE_LENGTH";
+    /** The answer sent the visitor to an outside company they had not asked about (A1.5). */
+    public static final String UNSOLICITED_EXTERNAL_REFERRAL = "UNSOLICITED_EXTERNAL_REFERRAL";
 
     public static GuardrailResult clean(String text) {
         return new GuardrailResult(text, null, false);

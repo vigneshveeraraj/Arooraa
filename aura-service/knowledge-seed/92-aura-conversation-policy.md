@@ -14,6 +14,32 @@ source: AROORAA AURA Phase A0/A1 milestone brief (conversation modes, product tr
 
 # Aura — Conversation Policy
 
+## Policy precedence (A1.5)
+
+Frozen. When two rules pull in different directions, the higher one wins, every time:
+
+1. **Safety and confidentiality**
+2. **Legal and commercial authority**
+3. **AROORAA knowledge truth**
+4. **AROORAA business routing**
+5. **Conversation intent**
+6. **Personality, tone and humour**
+
+A playful personality rule can never override confidentiality. A lead-conversion objective can
+never override visitor consent. Being helpful is never a reason to promise something Aura cannot
+promise.
+
+Levels 1 and 2 are not left to the model: confidentiality is a deterministic classifier that runs
+before generation, the referral permission is a flag the guardrail re-checks afterwards, and the
+evidence permissions both instruct generation and validate it. Levels 3–6 are stated in the prompt
+(`AuraPolicy.precedence`) for the turns where two instructions could both plausibly apply and
+something has to give.
+
+### Response actions (A1.5)
+
+Alongside the mode — *what the turn is about* — every turn carries an action: *what it should do*.
+`ANSWER`, `CLARIFY`, `DISCOVER`, `CONSULT`. See `96-aura-business-routing-policy`.
+
 ## Conversation modes (design contract for a future classifier — not built in A0/A1)
 
 Aura is designed so it can eventually classify/route a turn into internal modes: `GROUNDED_QA`,

@@ -26,6 +26,9 @@ import com.arooraa.aura.conversation.pipeline.RetrievalPlanner;
 import com.arooraa.aura.conversation.pipeline.SafeResponses;
 import com.arooraa.aura.conversation.pipeline.ScopeDecision;
 import com.arooraa.aura.conversation.pipeline.ScopeClassifier;
+import com.arooraa.aura.conversation.pipeline.BusinessRoutingResolver;
+import com.arooraa.aura.conversation.pipeline.ExternalRecommendation;
+import com.arooraa.aura.conversation.domain.ResponseAction;
 import com.arooraa.aura.conversation.pipeline.SubjectOnlyQuery;
 import com.arooraa.aura.conversation.profile.AssistantProfileDefinition;
 import com.arooraa.aura.conversation.profile.AssistantProfileResolver;
@@ -88,6 +91,7 @@ public class ConversationOrchestrator {
     private final ScopeClassifier scopeClassifier;
     private final PageAwareScopeResolver pageAwareScopeResolver;
     private final DiscoveryContinuityResolver discoveryContinuityResolver;
+    private final BusinessRoutingResolver businessRoutingResolver;
     private final LanguageDetector languageDetector;
     private final ToneDetector toneDetector;
     private final ConversationContextLoader contextLoader;
@@ -112,6 +116,7 @@ public class ConversationOrchestrator {
                                      ScopeClassifier scopeClassifier,
                                      PageAwareScopeResolver pageAwareScopeResolver,
                                      DiscoveryContinuityResolver discoveryContinuityResolver,
+                                    BusinessRoutingResolver businessRoutingResolver,
                                      LanguageDetector languageDetector,
                                      ToneDetector toneDetector,
                                      ConversationContextLoader contextLoader,
@@ -135,6 +140,7 @@ public class ConversationOrchestrator {
         this.scopeClassifier = scopeClassifier;
         this.pageAwareScopeResolver = pageAwareScopeResolver;
         this.discoveryContinuityResolver = discoveryContinuityResolver;
+        this.businessRoutingResolver = businessRoutingResolver;
         this.languageDetector = languageDetector;
         this.toneDetector = toneDetector;
         this.contextLoader = contextLoader;
@@ -211,6 +217,15 @@ public class ConversationOrchestrator {
         // names nothing on its own either — so a project discussion keeps being one. Runs after 3.5
         // so that a page-anchored question mid-discussion is still answered about the page.
         scope = discoveryContinuityResolver.resolve(scope, conversation.getId());
+        // 3.7 (A1.5). "Can you help me guide how to code?" matched no phrase in any list and fell
+        // through to GENERAL_CONSULTING, where it was answered as a tutoring request complete with
+        // three external learning platforms. Nobody had established whether this person wanted to
+        // learn or wanted something built. This asks, and only ever narrows that same fallback.
+        BusinessRoutingResolver.Routing routing = businessRoutingResolver.resolve(scope.mode(), understood);
+        if (routing.mode() != scope.mode()) {
+            scope = new ScopeDecision(routing.mode(), scope.confidentiality(), scope.mentionsOrganisationSubject());
+        }
+        ResponseAction action = routing.action();
         ConversationMode mode = scope.mode();
         Language language = languageDetector.detect(message);
         ConversationTone tone = toneDetector.detect(message);
@@ -237,11 +252,14 @@ public class ConversationOrchestrator {
                 : RetrievalResult.noEvidence(message);
 
         // 9. Generation policy: what this turn may claim.
-        GenerationDecision decision = generationPolicy.decide(mode, retrieval.evidenceLevel(), tone);
+        // Naming an outside platform is unlocked only by the visitor asking for one.
+        boolean askedForResources = ExternalRecommendation.requestedBy(message);
+        GenerationDecision decision = generationPolicy.decide(mode, retrieval.evidenceLevel(), tone,
+                askedForResources);
 
         // 10. Prompt/policy composition.
         ComposedPrompt prompt = promptComposer.compose(profile, mode, language, tone, decision,
-                retrieval.evidence(), context, currentPath, message, entities.canonicalNames());
+                retrieval.evidence(), context, currentPath, message, entities.canonicalNames(), action);
 
         // 11. Generation, with every failure path ending in something Aura would plausibly say.
         String generated;

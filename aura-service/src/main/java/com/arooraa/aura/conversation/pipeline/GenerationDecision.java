@@ -14,11 +14,18 @@ package com.arooraa.aura.conversation.pipeline;
  *        stops "a system like this could use caching" from becoming "AROORAA uses Redis"
  * @param humourAllowed light humour is appropriate here (see {@code ConversationTone})
  * @param includeSources the response may carry public source references
+ * @param externalReferencesAllowed the answer may name an outside commercial destination — a
+ *        teaching platform, a freelancer marketplace, an agency, a competing product. False
+ *        almost always, and true only when the visitor explicitly asked to be pointed somewhere.
+ *        This is the rule that stops "help me learn to code" being answered with a list of other
+ *        companies; see {@link ExternalRecommendation} for why it is a permission rather than a
+ *        line in the prompt
  */
 public record GenerationDecision(
         boolean groundingAllowed,
         boolean mustQualify,
         boolean forbidArooraaFactualClaims,
         boolean humourAllowed,
-        boolean includeSources) {
+        boolean includeSources,
+        boolean externalReferencesAllowed) {
 }

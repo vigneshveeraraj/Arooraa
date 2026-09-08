@@ -5,6 +5,7 @@ import com.arooraa.aura.conversation.domain.ConversationMode;
 import com.arooraa.aura.conversation.domain.ConversationTone;
 import com.arooraa.aura.conversation.domain.Language;
 import com.arooraa.aura.conversation.domain.MessageRole;
+import com.arooraa.aura.conversation.domain.ResponseAction;
 import com.arooraa.aura.conversation.policy.AuraPolicy;
 import com.arooraa.aura.conversation.policy.PromptSection;
 import com.arooraa.aura.conversation.profile.AssistantProfileDefinition;
@@ -46,14 +47,21 @@ public class PromptComposer {
                                    ConversationContext context,
                                    String currentPath,
                                    String userMessage,
-                                   List<String> recognisedEntities) {
+                                   List<String> recognisedEntities,
+                                   ResponseAction action) {
         String organisation = profile.organisation();
 
         List<PromptSection> policySections = new ArrayList<>();
         policySections.add(AuraPolicy.identity(organisation));
+        // Stated once, near the top: when two rules below disagree, this is which one yields.
+        policySections.add(AuraPolicy.precedence(organisation));
         policySections.add(profileSection(profile));
         policySections.add(AuraPolicy.personality(tone, decision.humourAllowed()));
         policySections.add(AuraPolicy.confidentiality(organisation));
+        // Precedence rule 2 ("what you are not authorised to promise") — stated unconditionally,
+        // because unlike routing/externalReferences nothing upstream decides in advance whether a
+        // turn is going to ask about price, delivery dates or a contract.
+        policySections.add(AuraPolicy.commercialAuthority(organisation));
         policySections.add(AuraPolicy.mode(mode, organisation));
         // Before the grounding rules, so "this is about MESA" is established before the turn is
         // told what it may claim about it — including when the answer is that it has nothing.
@@ -61,8 +69,15 @@ public class PromptComposer {
         if (subjectIsOurs) {
             policySections.add(AuraPolicy.recognisedSubject(recognisedEntities, organisation));
         }
+        // What this turn is FOR, before what it may claim — a turn that should be asking a
+        // question rather than answering one needs to know that first (A1.5).
+        PromptSection routing = AuraPolicy.routing(action, organisation);
+        if (routing != null) {
+            policySections.add(routing);
+        }
         policySections.add(AuraPolicy.grounding(mode, organisation, decision.groundingAllowed(),
                 decision.mustQualify(), decision.forbidArooraaFactualClaims(), subjectIsOurs));
+        policySections.add(AuraPolicy.externalReferences(decision.externalReferencesAllowed(), organisation));
         policySections.add(AuraPolicy.language(language));
         if (currentPath != null && !currentPath.isBlank()) {
             policySections.add(pageContextSection(currentPath));

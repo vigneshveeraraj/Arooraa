@@ -5,6 +5,7 @@ import com.arooraa.aura.conversation.domain.ConversationMode;
 import com.arooraa.aura.conversation.domain.ConversationTone;
 import com.arooraa.aura.conversation.domain.Language;
 import com.arooraa.aura.conversation.domain.MessageRole;
+import com.arooraa.aura.conversation.domain.ResponseAction;
 import com.arooraa.aura.conversation.profile.AssistantProfileResolver;
 import com.arooraa.aura.provider.ChatMessage;
 import com.arooraa.aura.retrieval.Evidence;
@@ -27,9 +28,9 @@ class PromptComposerTest {
             new ChatProperties(true, false, 12, 6000, 2000, 3, 0.6, 600));
 
     private static final GenerationDecision GROUNDED =
-            new GenerationDecision(true, false, false, true, true);
+            new GenerationDecision(true, false, false, true, true, false);
     private static final GenerationDecision NO_CLAIMS =
-            new GenerationDecision(false, false, true, false, false);
+            new GenerationDecision(false, false, true, false, false, false);
 
     private static Evidence evidence(String slug, String title, String heading, String text) {
         return new Evidence(UUID.randomUUID(), slug, title, UUID.randomUUID(), 1, "AROORAA_PUBLIC",
@@ -40,7 +41,8 @@ class PromptComposerTest {
     private ComposedPrompt compose(ConversationMode mode, GenerationDecision decision, List<Evidence> evidence,
                                     ConversationContext context, String currentPath, String message) {
         return composer.compose(AssistantProfileResolver.AROORAA_WEBSITE, mode, Language.ENGLISH,
-                ConversationTone.CURIOUS, decision, evidence, context, currentPath, message, List.of());
+                ConversationTone.CURIOUS, decision, evidence, context, currentPath, message, List.of(),
+                ResponseAction.ANSWER);
     }
 
     @Test
@@ -137,7 +139,7 @@ class PromptComposerTest {
     void theLanguageSectionFollowsTheVisitor() {
         ComposedPrompt tanglish = composer.compose(AssistantProfileResolver.AROORAA_WEBSITE,
                 ConversationMode.GROUNDED_QA, Language.TANGLISH, ConversationTone.CASUAL, GROUNDED,
-                List.of(), ConversationContext.empty(), null, "AROORAA enna company?", List.of());
+                List.of(), ConversationContext.empty(), null, "AROORAA enna company?", List.of(), ResponseAction.ANSWER);
 
         assertTrue(tanglish.systemText().contains("Tanglish"));
         assertFalse(tanglish.systemText().contains("Reply in English."));
@@ -145,11 +147,12 @@ class PromptComposerTest {
 
     @Test
     void humourIsExplicitlySuppressedWhenThePolicySaysSo() {
-        GenerationDecision noHumour = new GenerationDecision(true, false, false, false, true);
+        GenerationDecision noHumour = new GenerationDecision(true, false, false, false, true, false);
 
         ComposedPrompt prompt = composer.compose(AssistantProfileResolver.AROORAA_WEBSITE,
                 ConversationMode.PROJECT_DISCOVERY, Language.ENGLISH, ConversationTone.FRUSTRATED, noHumour,
-                List.of(), ConversationContext.empty(), null, "This is the third tool that has failed us.", List.of());
+                List.of(), ConversationContext.empty(), null, "This is the third tool that has failed us.", List.of(),
+                ResponseAction.ANSWER);
 
         assertTrue(prompt.systemText().contains("no jokes, no emoji"));
     }
@@ -207,7 +210,7 @@ class PromptComposerTest {
                                          GenerationDecision decision, List<Evidence> evidence) {
         return composer.compose(AssistantProfileResolver.AROORAA_WEBSITE, mode, Language.ENGLISH,
                 ConversationTone.CURIOUS, decision, evidence, ConversationContext.empty(), null,
-                "mesa uses?", entities);
+                "mesa uses?", entities, ResponseAction.ANSWER);
     }
 
     @Test
@@ -264,5 +267,24 @@ class PromptComposerTest {
 
         assertFalse(prompt.systemText().contains("Approved material"),
                 "a no-claims turn is given no corpus text however well we know the subject");
+    }
+
+    // --- A1.5 follow-up: commercial authority --------------------------------------------------
+
+    @Test
+    void everyTurnCarriesTheCommercialAuthorityBoundary() {
+        // Unlike routing/externalReferences, nothing decides in advance whether a turn is going to
+        // ask "how much will this cost?" — it can arrive from any mode — so unlike those two this
+        // has to be present unconditionally, not only when some upstream stage predicted it.
+        ComposedPrompt onATrivialQuestion = compose(ConversationMode.SOCIAL, NO_CLAIMS, List.of(),
+                ConversationContext.empty(), null, "hey aura");
+        ComposedPrompt onADiscoveryTurn = compose(ConversationMode.PROJECT_DISCOVERY, NO_CLAIMS, List.of(),
+                ConversationContext.empty(), null, "How much will my application cost?");
+
+        for (ComposedPrompt prompt : List.of(onATrivialQuestion, onADiscoveryTurn)) {
+            String text = prompt.systemText();
+            assertTrue(text.contains("quote a price"), text);
+            assertTrue(text.contains("confirmation from our team"), text);
+        }
     }
 }
