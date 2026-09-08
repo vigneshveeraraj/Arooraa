@@ -211,6 +211,9 @@
  * A sheet, not a shrunken panel. It leaves the top of the page visible so the site is obviously
  * still there and one tap away, uses dvh so the mobile keyboard shortens the sheet rather than
  * pushing the composer off-screen, and keeps its own safe-area padding.
+ *
+ * This is also the layout AuraWidget's internal-navigation collapse behaviour keys off — see
+ * AURA_COMPACT_BREAKPOINT_PX in lib/aura/useAuraCompactViewport.ts. Keep both at 600px.
  */
 @media (max-width: 600px) {
   .panel {

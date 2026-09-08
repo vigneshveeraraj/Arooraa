@@ -100,6 +100,26 @@ async function openAura(client: AuraApiClient) {
   return user;
 }
 
+/**
+ * Same as {@link openAura}, but also hands back a way to force AuraWidget to re-render without any
+ * user interaction — needed only by the pathname-confirmed-collapse tests below.
+ *
+ * <p>`usePathname` here is a plain mocked function, not the reactive subscription the real
+ * `next/navigation` provides, so changing what it will return next (`pathname.mockReturnValue(...)`)
+ * does nothing on its own — nothing re-renders AuraWidget just because a function it calls would now
+ * answer differently. `rerender` stands in for the real router's own re-render, the same way a
+ * message send already incidentally does in the older "keeps what it said through the navigation"
+ * test below — but doing it explicitly here, rather than by typing a message, is what keeps these
+ * tests about the collapse itself and not about something else that happens to trigger a re-render.
+ */
+async function openAuraWithRerender(client: AuraApiClient) {
+  const user = userEvent.setup();
+  const view = render(<AuraWidget client={client} />);
+  await user.click(screen.getByRole("button", { name: "Ask Aura" }));
+  await screen.findByRole("dialog", { name: /Aura/ });
+  return { user, rerender: () => view.rerender(<AuraWidget client={client} />) };
+}
+
 function composer() {
   return screen.getByRole("textbox", { name: "Message Aura" });
 }
@@ -112,6 +132,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 describe("Aura on the website", () => {
@@ -369,6 +390,207 @@ describe("Aura on the website", () => {
     expect(screen.getByRole("button", { name: "Products" })).toBeInTheDocument();
     // The prior turns are still there — reopening the menu does not clear the conversation.
     expect(screen.getByText("Hi Aura")).toBeInTheDocument();
+  });
+
+  // --- responsive collapse on internal navigation -----------------------------------------------
+
+  /**
+   * jsdom has no layout engine and no real answer for `matchMedia` — vitest.setup.ts polyfills it to
+   * always report "not compact" so the rest of the suite can go on assuming a wide viewport. Tests
+   * in this section override that polyfill for the one query useAuraCompactViewport asks: whether
+   * the panel is narrower than AURA_COMPACT_BREAKPOINT_PX (600px, matching AuraPanel's own sheet
+   * breakpoint).
+   */
+  function stubViewport(compact: boolean) {
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({
+          matches: compact,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+        }) as MediaQueryList,
+    );
+  }
+
+  describe("on a compact viewport", () => {
+    /**
+     * Drives the destination-specific click(s) a guided choice needs (products/services sit one
+     * level under a group button; fixed links are one click from the guided root), leaving pathname
+     * confirmation to the caller — every test below needs a different moment for that.
+     */
+    async function selectGuidedDestination(
+      user: ReturnType<typeof userEvent.setup>,
+      destination: { label: string; href: string },
+      group: "Products" | "Services" | null,
+    ) {
+      if (group) await user.click(screen.getByRole("button", { name: group }));
+      await user.click(screen.getByRole("button", { name: new RegExp(`^${destination.label}`) }));
+    }
+
+    it.each(AURA_GUIDED_PRODUCTS)(
+      "requests navigation but does not collapse until the pathname confirms $label",
+      async (product) => {
+        stubViewport(true);
+        const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+        await selectGuidedDestination(user, product, "Products");
+
+        // The click asked the router to navigate — nothing here can yet know whether it will
+        // actually land, so the panel must still be exactly as it was.
+        expect(push).toHaveBeenCalledWith(product.href);
+        expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+
+        // Only once `pathname` itself reports the destination — the same signal a real route change
+        // would produce — does the panel collapse.
+        pathname.mockReturnValue(product.href);
+        rerender();
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      },
+    );
+
+    it.each(AURA_GUIDED_SERVICES)(
+      "requests navigation but does not collapse until the pathname confirms $label",
+      async (service) => {
+        stubViewport(true);
+        const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+        await selectGuidedDestination(user, service, "Services");
+
+        expect(push).toHaveBeenCalledWith(service.href);
+        expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+
+        pathname.mockReturnValue(service.href);
+        rerender();
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      },
+    );
+
+    it.each(Object.values(AURA_GUIDED_LINKS))(
+      "requests navigation but does not collapse until the pathname confirms $label",
+      async (destination) => {
+        stubViewport(true);
+        const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+        await selectGuidedDestination(user, destination, null);
+
+        expect(push).toHaveBeenCalledWith(destination.href);
+        expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+
+        pathname.mockReturnValue(destination.href);
+        rerender();
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      },
+    );
+
+    it("never collapses at all if the pathname never becomes the requested destination", async () => {
+      // A stalled or redirected navigation — router.push was called, but the route never actually
+      // becomes /careers. This is the case a plain try/catch around push could not distinguish from
+      // success; the pathname check can, because it looks at what actually happened, not at whether
+      // the request to navigate merely didn't throw.
+      stubViewport(true);
+      const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+      await user.click(screen.getByRole("button", { name: "Careers" }));
+      expect(push).toHaveBeenCalledWith(AURA_GUIDED_LINKS.careers.href);
+
+      // Re-render several times with the pathname left exactly where it started — nothing here ever
+      // reports the destination as current.
+      rerender();
+      rerender();
+      rerender();
+
+      expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+    });
+
+    it("returns focus to the launcher, which stays available, once collapsed", async () => {
+      stubViewport(true);
+      const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+      await user.click(screen.getByRole("button", { name: "Careers" }));
+      pathname.mockReturnValue(AURA_GUIDED_LINKS.careers.href);
+      rerender();
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.getByRole("button", { name: "Ask Aura" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Ask Aura" })).toHaveFocus();
+    });
+
+    it("keeps the conversation intact across the collapse and restores it on reopen", async () => {
+      stubViewport(true);
+      const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+      await user.click(screen.getByRole("button", { name: "About AROORAA" }));
+      expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
+
+      pathname.mockReturnValue(AURA_GUIDED_LINKS.about.href);
+      rerender();
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: "Ask Aura" }));
+
+      expect(await screen.findByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+      expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
+    });
+
+    it("is aware of the destination page once reopened, not the page the visitor navigated from", async () => {
+      const client = new FakeAuraClient().answerWith(answer("It connects a restaurant."));
+      const product = AURA_GUIDED_PRODUCTS[0]!;
+      stubViewport(true);
+      const { user, rerender } = await openAuraWithRerender(client);
+
+      await selectGuidedDestination(user, product, "Products");
+      pathname.mockReturnValue(product.href);
+      rerender();
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: "Ask Aura" }));
+      await screen.findByRole("dialog", { name: /Aura/ });
+      await user.type(composer(), "What does it do?{Enter}");
+
+      await waitFor(() => expect(client.sent[0]?.currentPath).toBe(product.href));
+    });
+
+    it("does not collapse when the navigation request itself throws, leaving Aura exactly as it was", async () => {
+      stubViewport(true);
+      push.mockImplementationOnce(() => {
+        throw new Error("navigation blocked");
+      });
+      const { user, rerender } = await openAuraWithRerender(new FakeAuraClient());
+
+      await user.click(screen.getByRole("button", { name: "Careers" }));
+
+      expect(push).toHaveBeenCalledWith(AURA_GUIDED_LINKS.careers.href);
+      // Nothing was armed for this navigation — even reporting the destination as current now
+      // (as if by coincidence) must not collapse a panel that never asked to watch for it.
+      pathname.mockReturnValue(AURA_GUIDED_LINKS.careers.href);
+      rerender();
+      expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+    });
+  });
+
+  describe("on a wide viewport", () => {
+    it("keeps Aura open, with its conversation intact, after internal navigation", async () => {
+      const client = new FakeAuraClient();
+      stubViewport(false);
+      const user = await openAura(client);
+
+      await user.click(screen.getByRole("button", { name: "About AROORAA" }));
+
+      expect(push).toHaveBeenCalledWith(AURA_GUIDED_LINKS.about.href);
+      expect(screen.getByRole("dialog", { name: /Aura/ })).toBeInTheDocument();
+      expect(screen.getByText(AURA_GUIDED_LINKS.about.acknowledgement)).toBeInTheDocument();
+
+      // And the destination is page context for the very next message, same as a compact viewport.
+      pathname.mockReturnValue("/about");
+      await user.type(composer(), "Tell me more{Enter}");
+      await waitFor(() => expect(client.sent[0]?.currentPath).toBe("/about"));
+    });
   });
 
   // --- page awareness --------------------------------------------------------------------------

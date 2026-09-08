@@ -15,3 +15,24 @@ import { configure } from "@testing-library/react";
  * overrides that were accumulating in the Aura tests one flake at a time.
  */
 configure({ asyncUtilTimeout: 5_000 });
+
+/*
+ * jsdom implements no layout engine, so it has no real answer for `window.matchMedia` and leaves it
+ * undefined — anything that calls it (useAuraCompactViewport, at the moment) throws in every test
+ * unless something defines it first. Defaulting every query to non-matching preserves the assumption
+ * the whole suite was already written against (a wide/desktop viewport) without any test needing to
+ * know this polyfill exists; a test that actually cares about a narrow viewport overrides
+ * `window.matchMedia` itself, scoped to that test.
+ */
+if (typeof window.matchMedia !== "function") {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }) as MediaQueryList;
+}

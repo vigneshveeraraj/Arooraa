@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import type { AuraApiClient } from "@/lib/aura/client";
 import { useAuraConversation, type AuraMessageSource } from "@/lib/aura/useAuraConversation";
+import { useAuraCompactViewport } from "@/lib/aura/useAuraCompactViewport";
 import { mergeAuraState } from "@/lib/aura/state";
 import { useAuraVoice, voicePresence } from "@/lib/aura/voice/useAuraVoice";
 import type { AuraVoiceApiClient } from "@/lib/aura/voice/voice-client";
@@ -63,6 +64,10 @@ export function AuraWidget({ client, voiceClient, briefClient, feedbackClient }:
   const voice = useAuraVoice({ client: voiceClient });
   const brief = useAuraBrief({ client: briefClient });
   const feedback = useMemo(() => feedbackClient ?? createAuraFeedbackClient(), [feedbackClient]);
+  // Whether the panel is currently the full-viewport sheet (see AuraPanel.module.css) rather than
+  // the bounded side panel — the same layout switch decides whether internal navigation should
+  // collapse Aura below, since only the sheet actually covers the destination it just opened.
+  const isCompactViewport = useAuraCompactViewport();
 
   // Both of the things that happen when an answer lands, fired as one event the moment it does
   // rather than noticed later by watching the transcript grow. Speaking has to follow a spoken
@@ -98,14 +103,70 @@ export function AuraWidget({ client, voiceClient, briefClient, feedbackClient }:
     [controller.conversationId, feedback],
   );
 
+  /**
+   * The destination of a compact-viewport navigation that has been requested but not yet confirmed.
+   *
+   * <p>`router.push` in the App Router gives no completion signal — it does not return a promise
+   * that resolves once the route has actually changed, and nothing here can safely say "the
+   * navigation succeeded" the instant it is called. So this records what was asked for instead, and
+   * the effect below is the actual confirmation: it watches the live `pathname` this component
+   * already re-renders with on every route change, and only collapses once that pathname genuinely
+   * becomes the requested one. If it never does — a blocked navigation, a redirect elsewhere,
+   * anything — nothing here ever fires, and Aura stays open with nothing to explain.
+   */
+  const [pendingCompactCollapseHref, setPendingCompactCollapseHref] = useState<string | null>(null);
+
   const close = useCallback(() => {
     // Closing the panel ends anything voice is doing. A conversation survives a close and is
     // meant to; a microphone that stays open, or an answer that keeps talking to a page the
     // visitor has moved on from, is a different thing entirely.
     voice.cancelListening();
     voice.stopSpeaking();
+    setPendingCompactCollapseHref(null);
     setOpen(false);
   }, [voice]);
+
+  /**
+   * Internal navigation triggered from inside the panel — the guided menu today, any future
+   * in-panel action that opens an AROORAA route tomorrow. All of it is the site's own routes
+   * (`AURA_GUIDED_LINKS`/products/services), never an external URL, so there is nothing here to
+   * separate from external-link handling — Aura has no other kind of navigation to guard against.
+   *
+   * <p>On the compact/sheet layout the panel would otherwise sit on top of the page it just opened,
+   * hiding it — so this arms the pending-collapse effect above rather than closing outright; see
+   * that effect for why. The conversation lives in `controller`, above this component's own
+   * open/closed state, so collapsing loses nothing once it does happen: reopening shows the same
+   * messages, and the next one sent already carries the new `pathname` (read live, below). On the
+   * side-panel layout the destination is already visible beside the panel, so nothing closes.
+   *
+   * <p>`router.push` is still wrapped in try/catch: a synchronous throw means no navigation was even
+   * requested, so there is nothing to wait for and nothing should be armed.
+   */
+  const handleNavigate = useCallback(
+    (href: string) => {
+      try {
+        router.push(href);
+      } catch {
+        return;
+      }
+      if (isCompactViewport) setPendingCompactCollapseHref(href);
+    },
+    [router, isCompactViewport],
+  );
+
+  // The confirmation half of the pending collapse above: fires only once `pathname` — which
+  // Next.js already re-renders this component with on every completed route change — actually
+  // matches the destination that was requested. A navigation that stalls, fails, or lands somewhere
+  // else (a redirect) simply never matches, and this never runs, and the panel never closes.
+  // Syncing from the router (an external system) rather than computing during render — the
+  // sanctioned effect pattern per react-hooks/set-state-in-effect's own guidance — because closing
+  // also has to cancel a live voice session, which is a real side effect, not a pure state update.
+  useEffect(() => {
+    if (pendingCompactCollapseHref !== null && pathname === pendingCompactCollapseHref) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      close();
+    }
+  }, [pathname, pendingCompactCollapseHref, close]);
 
   // The browser's back button should dismiss an open panel rather than leaving the visitor on a
   // different page with a conversation still floating over it.
@@ -140,7 +201,7 @@ export function AuraWidget({ client, voiceClient, briefClient, feedbackClient }:
           onClose={close}
           controller={controller}
           devDiagnostics={devDiagnostics}
-          onNavigate={router.push}
+          onNavigate={handleNavigate}
           voice={voice}
           brief={brief}
           onRate={rate}
