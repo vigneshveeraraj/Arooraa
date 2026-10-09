@@ -1,0 +1,342 @@
+.visual {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 28px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.85), rgba(235, 243, 255, 0.7));
+  box-shadow:
+    0 40px 80px -48px rgba(11, 27, 63, 0.45),
+    0 0 0 1px rgba(31, 91, 214, 0.06);
+}
+
+/* ---------- Browser window: the business website ---------- */
+
+.browser {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 40px -26px rgba(11, 27, 63, 0.45);
+}
+
+.browserBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--c-border);
+  background: #f6f8fc;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d5dcea;
+}
+
+.address {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--c-border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+.address svg {
+  color: var(--c-whatsapp);
+}
+
+.page {
+  display: grid;
+  gap: 16px;
+  padding: 16px 18px 20px;
+}
+
+.siteNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.siteLogo {
+  width: 64px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--c-navy), #34497a);
+}
+
+.siteLinks {
+  display: flex;
+  gap: 8px;
+}
+
+.siteLinks i {
+  width: 28px;
+  height: 6px;
+  border-radius: 3px;
+  background: #dfe5f0;
+}
+
+.siteHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.siteCopy {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.siteTag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eaf1ff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-blue);
+}
+
+.line {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: #dfe6f3;
+}
+
+.lineXl {
+  width: 100%;
+  height: 14px;
+  background: var(--c-navy);
+}
+
+.lineLg {
+  width: 78%;
+  height: 14px;
+  background: var(--c-navy);
+}
+
+.lineSm {
+  width: 88%;
+}
+
+.siteButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.siteWhatsapp,
+.siteEnquire {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.siteWhatsapp {
+  background: var(--c-whatsapp);
+  color: #fff;
+}
+
+.siteEnquire {
+  box-shadow: inset 0 0 0 1px var(--c-border-strong);
+  color: var(--c-navy);
+}
+
+.siteArt svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.siteCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.siteCards span {
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f3f6fc, #eaf0fa);
+  box-shadow: inset 0 0 0 1px var(--c-border);
+}
+
+/* ---------- Connector from the website to the flow ---------- */
+
+.stem {
+  width: 2px;
+  height: 22px;
+  background: linear-gradient(180deg, var(--c-border-strong), var(--c-blue));
+}
+
+/* ---------- Growth flow ---------- */
+
+.flow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The line joining the four step icons. */
+.flow::before {
+  content: "";
+  position: absolute;
+  top: 23px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--c-blue), #0ea5e9, var(--c-whatsapp));
+  background-size: 200% 100%;
+  opacity: 0.55;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.stepIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 6px;
+  border-radius: 15px;
+  background: #fff;
+  color: var(--c-blue);
+  box-shadow:
+    0 10px 22px -14px rgba(11, 27, 63, 0.55),
+    inset 0 0 0 1px rgba(31, 91, 214, 0.16);
+}
+
+.step:last-child .stepIcon {
+  background: linear-gradient(140deg, #1f5bd6, #3b82f6);
+  color: #fff;
+  box-shadow: 0 12px 24px -12px rgba(31, 91, 214, 0.8);
+}
+
+.step strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--c-navy);
+}
+
+.step small {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--c-muted);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Phones: drop the secondary website details and step sub-labels. */
+@media (max-width: 479px) {
+  .siteCards,
+  .siteLinks,
+  .step small {
+    display: none;
+  }
+
+  .page {
+    padding: 14px;
+  }
+
+  .stepIcon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+
+  .flow::before {
+    top: 20px;
+  }
+
+  .step strong {
+    font-size: 0.74rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .flow::before {
+    animation: flow 4s linear infinite;
+  }
+
+  .stepIcon {
+    animation: pop 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .step:nth-child(2) .stepIcon {
+    animation-delay: 0.15s;
+  }
+
+  .step:nth-child(3) .stepIcon {
+    animation-delay: 0.3s;
+  }
+
+  .step:nth-child(4) .stepIcon {
+    animation-delay: 0.45s;
+  }
+}
+
+@keyframes flow {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

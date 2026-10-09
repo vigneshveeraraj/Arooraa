@@ -1,0 +1,50 @@
+/* Desktop only: below 1024px the sticky header already keeps a WhatsApp button on
+   screen, and a floating one there covered hero and card text on phones. */
+.float {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .float {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 56px;
+    padding: 0 22px 0 18px;
+    border-radius: 999px;
+    background: var(--c-whatsapp);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow:
+      0 16px 32px -12px rgba(15, 125, 67, 0.7),
+      0 0 0 4px rgba(255, 255, 255, 0.9);
+    transition: background-color 0.2s ease;
+  }
+
+  .float:hover {
+    background: var(--c-whatsapp-hover);
+  }
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .float {
+    animation: arrive 0.5s 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,169 @@
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* ---------- Featured: website development ---------- */
+
+.featured {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(28px, 4vw, 40px);
+  border-radius: 24px;
+  background:
+    radial-gradient(80% 70% at 100% 0%, rgba(96, 165, 250, 0.35), transparent 70%),
+    linear-gradient(150deg, #0f2557 0%, #163a85 60%, #1f5bd6 100%);
+  color: #fff;
+  box-shadow: 0 30px 60px -36px rgba(11, 27, 63, 0.7);
+}
+
+.featuredHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.featuredIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.featuredTag {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.featured h3 {
+  margin: 28px 0 0;
+  font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.featured > p {
+  max-width: 520px;
+  margin: 12px 0 0;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.points {
+  display: grid;
+  gap: 12px;
+  margin: auto 0 0;
+  padding: 28px 0 0;
+  list-style: none;
+}
+
+.points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.points svg {
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ---------- Standard service cards ---------- */
+
+.card {
+  padding: 28px;
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.card:hover {
+  border-color: rgba(31, 91, 214, 0.25);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card h3 {
+  margin: 20px 0 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--c-navy);
+}
+
+.card p {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--c-body);
+}
+
+/* Phones: tighter cards so the five services don't stretch the page. */
+@media (max-width: 639px) {
+  .card {
+    padding: 22px;
+  }
+
+  .card h3 {
+    margin-top: 14px;
+  }
+}
+
+/* Tablet: featured card full width, then 2 + 2 + one full-width card. */
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .featured {
+    grid-column: 1 / -1;
+  }
+
+  .points {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Desktop: featured card fills a 2×2 block; the five cards complete the 3-column grid. */
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .featured {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .card:last-child {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card:hover {
+    transform: translateY(-3px);
+  }
+}

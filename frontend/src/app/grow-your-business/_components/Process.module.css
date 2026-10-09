@@ -1,0 +1,70 @@
+.steps {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  padding: 28px;
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.number {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #1f5bd6, #3b82f6);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 0 0 6px #eaf1ff;
+}
+
+.step h3 {
+  margin: 22px 0 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--c-navy);
+}
+
+.step p {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--c-body);
+}
+
+@media (min-width: 640px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop: one row, with a line joining the step numbers. */
+@media (min-width: 1024px) {
+  .steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .steps::before {
+    content: "";
+    position: absolute;
+    top: 52px;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(31, 91, 214, 0.15), rgba(31, 91, 214, 0.45), rgba(31, 91, 214, 0.15));
+  }
+}
