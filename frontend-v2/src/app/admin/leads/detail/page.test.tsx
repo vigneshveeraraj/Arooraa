@@ -25,7 +25,7 @@ const GUIDED_DETAIL = {
   customerName: "vignesh veeraraj",
   companyOrRestaurant: null,
   email: "vignesh@example.com",
-  phone: "+918760223447",
+  phone: "+918220503447",
   cityOrCountry: "India",
   submittedFields: {
     "Submission type": "Guided",

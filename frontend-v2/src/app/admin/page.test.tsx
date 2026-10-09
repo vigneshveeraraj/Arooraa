@@ -73,7 +73,7 @@ describe("AdminDashboardPage", () => {
               customerName: "Vignesh Veeraraj",
               companyOrRestaurant: null,
               email: "vignesh@example.com",
-              phone: "+918760223447",
+              phone: "+918220503447",
               cityOrCountry: "India",
               status: "NEW",
               createdAt: "2026-08-30T03:38:33Z",

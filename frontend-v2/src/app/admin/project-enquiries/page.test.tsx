@@ -20,7 +20,7 @@ const ENQUIRY_ONE = {
   customerName: "Vignesh Veeraraj",
   companyOrRestaurant: null,
   email: "vignesh.veeraraj@example.com",
-  phone: "+918760223447",
+  phone: "+918220503447",
   cityOrCountry: "India",
   status: "NEW",
   createdAt: "2026-08-30T03:38:33Z",
@@ -97,7 +97,7 @@ describe("AdminProjectEnquiriesPage", () => {
     expect(await screen.findByText("ARO-2026-000017")).toBeInTheDocument();
     expect(screen.getByText("Vignesh Veeraraj")).toBeInTheDocument();
     expect(screen.getByText("vignesh.…@example.com · +91••••••••47")).toBeInTheDocument();
-    expect(screen.queryByText("+918760223447")).not.toBeInTheDocument();
+    expect(screen.queryByText("+918220503447")).not.toBeInTheDocument();
     expect(screen.getByText("New Product")).toBeInTheDocument();
   });
 
