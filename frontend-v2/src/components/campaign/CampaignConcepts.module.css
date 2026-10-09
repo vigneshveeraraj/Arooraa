@@ -1,0 +1,119 @@
+.section {
+  padding-block: var(--cg-section-space);
+  scroll-margin-top: 72px;
+  background: var(--cg-paper-warm);
+}
+
+.inner {
+  width: min(var(--cg-max), 100% - 2 * var(--cg-gutter));
+  margin-inline: auto;
+}
+
+.concept {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.concept + .concept {
+  border-top: 1px solid #e7e3d9;
+}
+
+.number {
+  margin: 0;
+  font-size: clamp(3rem, 2.4rem + 2vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px #c3bba8;
+}
+
+.type {
+  margin: 18px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cg-brand);
+}
+
+.copy h3 {
+  margin: 10px 0 0;
+  font-size: clamp(1.6rem, 1.35rem + 0.8vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--cg-ink);
+}
+
+.description {
+  margin: 14px 0 0;
+  line-height: 1.75;
+  color: var(--cg-body);
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.features li {
+  padding: 8px 14px;
+  border: 1px solid #e3ddcf;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--cg-ink-2);
+}
+
+.disclaimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 0;
+  font-size: 0.82rem;
+  color: var(--cg-muted);
+}
+
+.infoIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.visual {
+  margin: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .concept {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: 64px;
+    padding: 56px 0;
+  }
+
+  /* Alternate the copy side; the phone always stays to the right of its browser so it
+     never covers the concept site's headline. */
+  .flip {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  }
+
+  .flip .copy {
+    order: 2;
+  }
+}
