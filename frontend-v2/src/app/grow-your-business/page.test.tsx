@@ -41,7 +41,7 @@ describe("/grow-your-business", () => {
   it("points every WhatsApp and call link at the official number", () => {
     const { container } = render(<GrowYourBusinessPage />);
     const whatsapp = [...container.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"]')];
-    expect(whatsapp.length).toBeGreaterThanOrEqual(5);
+    expect(whatsapp.length).toBeGreaterThanOrEqual(4);
     for (const link of whatsapp) {
       expect(link.getAttribute("href")).toMatch(WHATSAPP);
       expect(link).toHaveAttribute("target", "_blank");
@@ -52,6 +52,14 @@ describe("/grow-your-business", () => {
     }
     expect(container.textContent).toContain("+91 82205 03447");
     expect(container.textContent).not.toMatch(/8760|87602/);
+  });
+
+  it("leads with Get a Free Consultation and Talk to Our Team, both opening the consultation form", () => {
+    render(<GrowYourBusinessPage />);
+    expect(screen.getByRole("link", { name: /Get a Free Consultation/ })).toHaveAttribute("href", "#contact");
+    expect(screen.getByRole("link", { name: "Talk to Our Team" })).toHaveAttribute("href", "#contact");
+    const form = within(document.getElementById("contact")!);
+    expect(form.getByRole("group", { name: "உங்களுக்கு என்ன தேவை?" })).toBeInTheDocument();
   });
 
   it("links into the English site only through its live routes", () => {
@@ -111,6 +119,18 @@ describe("/grow-your-business", () => {
     const text = container.textContent ?? "";
     expect(text).not.toMatch(/\d+\s*%|\d+\+/);
     expect(text).not.toMatch(/★|\bratings?\b|testimonial/i);
+  });
+
+  it("publishes no prices — pricing is shared only on enquiry", () => {
+    const { container } = render(<GrowYourBusinessPage />);
+    const whatsappText = [...container.querySelectorAll<HTMLAnchorElement>('a[href*="wa.me"]')].map((link) =>
+      decodeURIComponent(new URL(link.href).searchParams.get("text") ?? ""),
+    );
+    const og = metadata.openGraph as { title: string; description: string };
+    const PRICE = /₹|\bRs\.?\s*\d|\bINR\b|ரூ|\d{1,3}(,\d{2,3})+|\d\s*\/-|\b\d{4,6}\b/i;
+    for (const text of [container.textContent, String(metadata.description), og.title, og.description, ...whatsappText]) {
+      expect(plain(text).replaceAll("+91 82205 03447", "").replace(/© \d{4}/, "")).not.toMatch(PRICE);
+    }
   });
 
   it("ships campaign SEO metadata with a canonical URL and a share image that exists", () => {

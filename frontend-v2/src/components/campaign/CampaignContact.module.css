@@ -9,10 +9,19 @@
 
 .grid {
   display: grid;
-  gap: 40px;
-  align-items: center;
+  grid-template-areas: "intro" "form" "direct";
+  gap: 32px;
+  align-items: start;
   width: min(var(--cg-max), 100% - 2 * var(--cg-gutter));
   margin-inline: auto;
+}
+
+.intro {
+  grid-area: intro;
+}
+
+.form {
+  grid-area: form;
 }
 
 .eyebrow {
@@ -42,12 +51,19 @@
 }
 
 .panel {
+  grid-area: direct;
   display: grid;
   gap: 12px;
   padding: clamp(20px, 3vw, 28px);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.06);
+}
+
+.directLabel {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .whatsapp {
@@ -118,7 +134,9 @@
 
 @media (min-width: 1024px) {
   .grid {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: 64px;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    grid-template-areas: "intro form" "direct form";
+    grid-template-rows: auto 1fr;
+    gap: 32px 64px;
   }
 }

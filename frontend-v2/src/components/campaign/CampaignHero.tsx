@@ -27,13 +27,13 @@ export function CampaignHero() {
             {HERO.lead}
           </p>
           <div className={styles.ctas}>
-            <a className={styles.whatsapp} href={CAMPAIGN_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
-              <CampaignIcon name="whatsapp" className={styles.ctaIcon} />
-              <span lang="ta">{HERO.whatsappLabel}</span>
-            </a>
-            <a className={styles.ghost} href="#concepts">
-              <span lang="ta">{HERO.conceptsLabel}</span>
+            <a className={styles.primary} href="#contact">
+              {HERO.consultationLabel}
               <CampaignIcon name="arrowRight" className={styles.ctaIcon} />
+            </a>
+            <a className={styles.ghost} href={CAMPAIGN_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <CampaignIcon name="whatsapp" className={`${styles.ctaIcon} ${styles.waIcon}`} />
+              <span lang="ta">{HERO.whatsappLabel}</span>
             </a>
           </div>
           <p className={styles.call}>

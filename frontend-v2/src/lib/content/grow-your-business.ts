@@ -53,7 +53,7 @@ export const CAMPAIGN_SITE_LINKS = [
   { label: "Services", href: "/services", description: "Our full range of engineering services" },
   { label: "Products", href: "/products", description: "MESA, Mindra and our other products" },
   { label: "Our Work", href: "/our-work", description: "Product and engineering case studies" },
-  { label: "Main Website", href: "/", description: "AROORAA Technologies (English)" },
+  { label: "Main Website", href: "/", description: "AROORAA Technologies" },
 ] as const;
 
 export const HERO = {
@@ -64,8 +64,8 @@ export const HERO = {
   lead: keepSuffix(
     "Professional Website, AI மற்றும் Automation மூலம் உங்கள் Business-க்கு அதிக Enquiries, நல்ல Customer Experience மற்றும் திறமையான Operations உருவாக்க உதவுகிறோம்.",
   ),
+  consultationLabel: "Get a Free Consultation",
   whatsappLabel: keepSuffix("WhatsApp-ல் பேசலாம்"),
-  conceptsLabel: "Website concepts பாருங்கள்",
   callPrompt: "அல்லது நேரடியாக அழைக்கவும்:",
   assurances: ["Business-focused approach", "Secure development", "Practical solutions"],
   caption:
@@ -238,8 +238,12 @@ export const WHY_AROORAA = {
   ] satisfies { icon: CampaignIconName; title: string; description: string }[],
 } as const;
 
+/** The header's call to action — scrolls to the consultation form. */
+export const TALK_TO_TEAM_LABEL = "Talk to Our Team";
+
 export const CONTACT_SECTION = {
   eyebrow: "Free Consultation",
+  directLabel: "நேரடியாக பேச விரும்புகிறீர்களா?",
   title: keepSuffix("உங்கள் Business-க்கு அடுத்த step எடுக்கலாமா?"),
   lead: keepSuffix(
     "உங்கள் requirements பற்றி பேசலாம். Website, AI அல்லது Automation — உங்கள் Business-க்கு பொருத்தமான approach-ஐ கண்டுபிடிப்போம்.",

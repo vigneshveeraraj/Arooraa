@@ -1,12 +1,13 @@
 import { CAMPAIGN_CONTACT, CONTACT_SECTION, HERO } from "@/lib/content/grow-your-business";
 import { CampaignIcon } from "./CampaignIcon";
+import { CampaignLeadForm } from "./CampaignLeadForm";
 import styles from "./CampaignContact.module.css";
 
 export function CampaignContact() {
   return (
     <section id="contact" className={styles.section} aria-labelledby="contact-title">
       <div className={styles.grid}>
-        <div>
+        <div className={styles.intro}>
           <p className={styles.eyebrow}>{CONTACT_SECTION.eyebrow}</p>
           <h2 id="contact-title" lang="ta">
             {CONTACT_SECTION.title}
@@ -15,7 +16,13 @@ export function CampaignContact() {
             {CONTACT_SECTION.lead}
           </p>
         </div>
+        <div className={styles.form}>
+          <CampaignLeadForm locale="ta" />
+        </div>
         <div className={styles.panel}>
+          <p className={styles.directLabel} lang="ta">
+            {CONTACT_SECTION.directLabel}
+          </p>
           <a className={styles.whatsapp} href={CAMPAIGN_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
             <CampaignIcon name="whatsapp" className={styles.waIcon} />
             <span lang="ta">{HERO.whatsappLabel}</span>

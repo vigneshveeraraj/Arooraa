@@ -71,8 +71,8 @@
   min-height: 44px;
   padding: 0 18px;
   border-radius: 999px;
-  background: var(--cg-whatsapp);
-  box-shadow: 0 10px 22px -12px rgba(15, 125, 67, 0.8);
+  background: var(--cg-brand);
+  box-shadow: 0 10px 22px -12px rgba(31, 79, 216, 0.8);
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
@@ -80,7 +80,7 @@
 }
 
 .cta:hover {
-  background: var(--cg-whatsapp-hover);
+  background: #1a43b8;
 }
 
 .ctaIcon {
@@ -178,7 +178,7 @@
 }
 
 /* Phones: a lighter bar so the logo, WhatsApp and the menu read as one balanced row.
-   WhatsApp stays the only coloured element; the hero right below carries the full CTA. */
+   The CTA stays the only coloured element; the hero right below carries the full CTAs. */
 @media (max-width: 559px) {
   .bar {
     min-height: 64px;

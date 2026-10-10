@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/layout/BrandLogo";
-import { CAMPAIGN_CONTACT, CAMPAIGN_PAGE_LINKS, CAMPAIGN_SITE_LINKS, HERO } from "@/lib/content/grow-your-business";
+import { CAMPAIGN_CONTACT, CAMPAIGN_PAGE_LINKS, CAMPAIGN_SITE_LINKS, HERO, TALK_TO_TEAM_LABEL } from "@/lib/content/grow-your-business";
 import { CampaignIcon } from "./CampaignIcon";
 import styles from "./CampaignHeader.module.css";
 
@@ -12,7 +12,8 @@ const DESKTOP_QUERY = "(min-width: 1024px)";
 
 /**
  * The campaign's own header: the real AROORAA logo (the main site's BrandLogo), section
- * links, a link back to the English site, and an always-visible WhatsApp button.
+ * links, a link back to the English site, and an always-visible "Talk to Our Team" button
+ * that opens the consultation form (direct WhatsApp and call stay in the menu).
  *
  * Links into the English site use prefetch={false}: a campaign visitor has not asked for
  * those pages, so they are not fetched in the background on a mobile connection.
@@ -63,9 +64,8 @@ export function CampaignHeader() {
         </nav>
 
         <div className={styles.actions}>
-          <a className={styles.cta} href={CAMPAIGN_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <CampaignIcon name="whatsapp" className={styles.ctaIcon} />
-            WhatsApp
+          <a className={styles.cta} href="#contact">
+            {TALK_TO_TEAM_LABEL}
           </a>
           <button
             ref={toggleRef}
