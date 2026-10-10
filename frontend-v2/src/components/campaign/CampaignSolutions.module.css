@@ -166,11 +166,6 @@
     align-items: start;
   }
 
-  .featured {
-    position: sticky;
-    top: 104px;
-  }
-
   .list li {
     grid-template-columns: 48px 52px minmax(0, 1fr);
     padding: 30px 8px;

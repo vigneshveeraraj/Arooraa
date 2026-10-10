@@ -172,17 +172,18 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .hero .laptop {
-    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
   }
 
   .hero .phone {
-    animation: rise 0.9s 0.15s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: rise 0.9s 0.15s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
   }
 }
 
+/* Movement only — no opacity. The resting state is always fully visible, so the
+   devices never depend on the animation running (paused tabs, capture tools, etc.). */
 @keyframes rise {
   from {
-    opacity: 0;
     transform: translateY(24px);
   }
 }

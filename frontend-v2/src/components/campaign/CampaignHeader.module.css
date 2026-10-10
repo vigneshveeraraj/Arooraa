@@ -177,6 +177,31 @@
   color: var(--cg-ink);
 }
 
+/* Phones: a lighter bar so the logo, WhatsApp and the menu read as one balanced row.
+   WhatsApp stays the only coloured element; the hero right below carries the full CTA. */
+@media (max-width: 559px) {
+  .bar {
+    min-height: 64px;
+    gap: 12px;
+  }
+
+  .cta {
+    min-height: 40px;
+    padding: 0 14px;
+    box-shadow: none;
+    font-size: 0.9rem;
+  }
+
+  .cta .ctaIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .menu {
+    max-height: calc(100dvh - 64px);
+  }
+}
+
 @media (min-width: 560px) {
   .menuContact {
     grid-template-columns: 1fr 1fr;

@@ -142,6 +142,69 @@ describe("campaign photography", () => {
   });
 });
 
+describe("campaign motion", () => {
+  // Every stylesheet and component that renders on /grow-your-business.
+  const CAMPAIGN_DIRS = [path.join(SRC, "components", "campaign"), path.join(SRC, "app", "grow-your-business")];
+
+  function campaignSources(extension: RegExp): { file: string; source: string }[] {
+    return CAMPAIGN_DIRS.flatMap((dir) =>
+      fs
+        .readdirSync(dir, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile() && extension.test(entry.name) && !entry.name.includes(".test."))
+        .map((entry) => path.join(entry.parentPath, entry.name)),
+    ).map((file) => ({ file: path.relative(SRC, file), source: fs.readFileSync(file, "utf8") }));
+  }
+
+  // The body of each @keyframes rule, found by brace matching since its frames nest one level.
+  function keyframeBlocks(css: string): { name: string; body: string }[] {
+    const blocks: { name: string; body: string }[] = [];
+    for (const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+      let depth = 1;
+      let end = match.index + match[0].length;
+      while (depth > 0 && end < css.length) {
+        if (css[end] === "{") depth++;
+        if (css[end] === "}") depth--;
+        end++;
+      }
+      blocks.push({ name: match[1]!, body: css.slice(match.index + match[0].length, end - 1) });
+    }
+    return blocks;
+  }
+
+  it("animates movement only, so nothing is invisible if an animation never runs", () => {
+    // Regression: the hero devices and annotations faded in from opacity 0, so paused tabs,
+    // background renders and screenshot tools caught them blank.
+    const stylesheets = campaignSources(/\.css$/);
+    const keyframes = stylesheets.flatMap(({ file, source }) => keyframeBlocks(source).map((block) => ({ file, ...block })));
+    expect(keyframes.map(({ name }) => name)).toEqual(expect.arrayContaining(["rise", "pop"]));
+    for (const { file, name, body } of keyframes) {
+      expect(body, `${file} @keyframes ${name}`).not.toMatch(/\b(opacity|visibility)\s*:/);
+    }
+    for (const { file, source } of stylesheets) {
+      for (const [declaration] of source.matchAll(/animation\s*:[^;]+;/g)) {
+        expect(declaration, file).not.toMatch(/\b(forwards|both)\b/);
+      }
+    }
+  });
+
+  it("shows every section without waiting for a scroll-triggered reveal", () => {
+    // Content below the fold must already be visible when it scrolls in — no observers,
+    // scroll timelines or hidden-until-revealed resting states.
+    for (const { file, source } of campaignSources(/\.tsx?$/)) {
+      expect(source, file).not.toMatch(/IntersectionObserver|addEventListener\(\s*["']scroll["']|onScroll/);
+    }
+    for (const { file, source } of campaignSources(/\.css$/)) {
+      expect(source, file).not.toMatch(/animation-timeline|view-timeline|scroll-timeline|\bview\(\)|\bscroll\(\)/);
+      expect(source, file).not.toMatch(/opacity\s*:\s*0(\.0*)?\s*[;}]|visibility\s*:\s*hidden/);
+    }
+
+    render(<GrowYourBusinessPage />);
+    for (const section of screen.getByRole("main").querySelectorAll("section")) {
+      expect(section).toBeVisible();
+    }
+  });
+});
+
 describe("one-way navigation", () => {
   // The campaign may link to the English site; nothing in the English site links back.
   const CAMPAIGN_FILES = [path.join("components", "campaign"), path.join("lib", "content", "grow-your-business.ts")];
