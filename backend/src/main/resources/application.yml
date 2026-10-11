@@ -103,6 +103,37 @@ arooraa:
     worker:
       cadence-seconds: ${AROORAA_CONTACT_NOTIFICATIONS_CADENCE_SECONDS:10}
       batch-size: ${AROORAA_CONTACT_NOTIFICATIONS_BATCH_SIZE:20}
+  # Low-friction consultation form (POST /api/v1/lead-captures, frontend-v2/docs/lead-capture.md).
+  # Independent rate limiting from every other public endpoint. enabled=false answers 404.
+  lead-capture:
+    enabled: ${AROORAA_LEAD_CAPTURE_ENABLED:true}
+    rate-limit:
+      max-requests: ${AROORAA_LEAD_CAPTURE_RATE_LIMIT_MAX_REQUESTS:5}
+      window-minutes: ${AROORAA_LEAD_CAPTURE_RATE_LIMIT_WINDOW_MINUTES:10}
+  # The scripted bilingual lead conversation. There is NO WhatsApp channel yet — that needs Meta
+  # WhatsApp Cloud API onboarding and credentials (see the doc above). Until then the only way
+  # to drive it is this local simulator: off by default, and also refused unless a token of 24+
+  # characters is set and sent as X-Simulator-Token. Never enable in production.
+  lead-conversation:
+    simulator:
+      enabled: ${AROORAA_LEAD_CONVERSATION_SIMULATOR_ENABLED:false}
+      token: ${AROORAA_LEAD_CONVERSATION_SIMULATOR_TOKEN:}
+  # Optional local model that helps *understand* replies the deterministic rules can't place.
+  # It only picks from a closed set and never writes a customer-facing message. provider "none"
+  # (default) = rules only; "ollama" = a local Ollama at base-url. Any failure, timeout or
+  # out-of-range answer falls back to the rules.
+  lead-assistant:
+    model:
+      provider: ${AROORAA_LEAD_ASSISTANT_MODEL_PROVIDER:none}
+      base-url: ${AROORAA_LEAD_ASSISTANT_MODEL_BASE_URL:http://localhost:11434}
+      name: ${AROORAA_LEAD_ASSISTANT_MODEL_NAME:qwen3-vl:4b-instruct}
+      fallback-name: ${AROORAA_LEAD_ASSISTANT_MODEL_FALLBACK_NAME:}
+      connect-timeout-ms: ${AROORAA_LEAD_ASSISTANT_MODEL_CONNECT_TIMEOUT_MS:1000}
+      timeout-ms: ${AROORAA_LEAD_ASSISTANT_MODEL_TIMEOUT_MS:4000}
+      keep-alive: ${AROORAA_LEAD_ASSISTANT_MODEL_KEEP_ALIVE:30m}
+      failure-threshold: ${AROORAA_LEAD_ASSISTANT_MODEL_FAILURE_THRESHOLD:3}
+      cooldown-seconds: ${AROORAA_LEAD_ASSISTANT_MODEL_COOLDOWN_SECONDS:60}
+      warm-up-on-startup: ${AROORAA_LEAD_ASSISTANT_MODEL_WARM_UP_ON_STARTUP:true}
   admin:
     bootstrap-email: ${AROORAA_ADMIN_BOOTSTRAP_EMAIL:}
     bootstrap-password: ${AROORAA_ADMIN_BOOTSTRAP_PASSWORD:}

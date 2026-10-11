@@ -39,6 +39,11 @@ public class SecurityConfig {
             "/api/v1/project-enquiries/**",
             "/api/v1/careers/**",
             "/api/v1/contact/**",
+            "/api/v1/lead-captures/**",
+            // Local development only, off by default and token-gated — see LeadConversationSimulatorController.
+            // There is deliberately no WhatsApp webhook path here: none exists until Meta Cloud API
+            // onboarding is done (frontend-v2/docs/lead-capture.md).
+            "/api/v1/lead-conversations/simulator/**",
             "/actuator/health",
     };
 
@@ -76,6 +81,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/v1/demo-requests/**", configuration);
         source.registerCorsConfiguration("/api/v1/careers/**", configuration);
         source.registerCorsConfiguration("/api/v1/contact/**", configuration);
+        source.registerCorsConfiguration("/api/v1/lead-captures/**", configuration);
         return source;
     }
 

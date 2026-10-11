@@ -1,5 +1,7 @@
 package com.arooraa.leads.web;
 
+import com.arooraa.leads.capture.exception.FeatureDisabledException;
+import com.arooraa.leads.capture.exception.LeadCaptureIdempotencyConflictException;
 import com.arooraa.leads.careers.exception.InvalidResumeException;
 import com.arooraa.leads.careers.exception.RecruitmentIdempotencyConflictException;
 import com.arooraa.leads.careers.exception.RecruitmentValidationException;
@@ -81,6 +83,19 @@ public class GlobalExceptionHandler {
         log.warn("contact-message rejected reason=IDEMPOTENCY_CONFLICT");
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("IDEMPOTENCY_CONFLICT", ex.getMessage(), Map.of()));
+    }
+
+    @ExceptionHandler(LeadCaptureIdempotencyConflictException.class)
+    public ResponseEntity<ErrorResponse> handleLeadCaptureIdempotencyConflict(LeadCaptureIdempotencyConflictException ex) {
+        log.warn("lead-capture rejected reason=IDEMPOTENCY_CONFLICT");
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("IDEMPOTENCY_CONFLICT", ex.getMessage(), Map.of()));
+    }
+
+    @ExceptionHandler(FeatureDisabledException.class)
+    public ResponseEntity<ErrorResponse> handleFeatureDisabled(FeatureDisabledException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("NOT_FOUND", ex.getMessage(), Map.of()));
     }
 
     @ExceptionHandler(RecruitmentValidationException.class)
