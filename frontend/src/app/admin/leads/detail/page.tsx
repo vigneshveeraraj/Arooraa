@@ -18,9 +18,15 @@ import {
   updateStatus,
   addNote,
 } from "@/lib/admin/api";
-import type { AdminLeadDetail, LeadType } from "@/lib/admin/types";
+import { LEAD_TYPE_LABELS, isLeadType, type AdminLeadDetail, type LeadType } from "@/lib/admin/types";
 import panelStyles from "@/components/admin/lead-detail/panels.module.css";
 import styles from "./page.module.css";
+
+const DETAILS_TITLES: Record<LeadType, string> = {
+  PROJECT_ENQUIRY: "Submitted Requirement",
+  MESA_DEMO: "Demo Request Details",
+  LEAD_CAPTURE: "Consultation Request",
+};
 
 export default function AdminLeadDetailPage() {
   return (
@@ -41,7 +47,7 @@ export default function AdminLeadDetailPage() {
 function DetailContent() {
   const searchParams = useSearchParams();
   const rawType = searchParams.get("type");
-  const type: LeadType | null = rawType === "PROJECT_ENQUIRY" || rawType === "MESA_DEMO" ? rawType : null;
+  const type: LeadType | null = isLeadType(rawType) ? rawType : null;
   const id = searchParams.get("id");
 
   const [detail, setDetail] = useState<AdminLeadDetail | null>(null);
@@ -109,10 +115,10 @@ function DetailContent() {
       <div className={styles.header}>
         <div>
           <p className={styles.reference}>{detail.referenceNumber}</p>
-          <h1 className={styles.heading}>{detail.customerName}</h1>
+          <h1 className={styles.heading}>{detail.customerName ?? "Name not provided"}</h1>
         </div>
         <div className={styles.headerMeta}>
-          <span className={styles.typeTag}>{detail.leadType === "PROJECT_ENQUIRY" ? "Project Enquiry" : "MESA Demo"}</span>
+          <span className={styles.typeTag}>{LEAD_TYPE_LABELS[detail.leadType] ?? detail.leadType}</span>
           <LeadStatusBadge status={detail.status} />
         </div>
       </div>
@@ -134,7 +140,7 @@ function DetailContent() {
             <dl className={styles.dl}>
               <div>
                 <dt>Name</dt>
-                <dd>{detail.customerName}</dd>
+                <dd>{detail.customerName ?? "Not provided"}</dd>
               </div>
               {detail.companyOrRestaurant && (
                 <div>
@@ -169,7 +175,7 @@ function DetailContent() {
 
           <section className={panelStyles.panel}>
             <h2 className={panelStyles.panelTitle}>
-              {detail.leadType === "PROJECT_ENQUIRY" ? "Submitted Requirement" : "Demo Request Details"}
+              {DETAILS_TITLES[detail.leadType] ?? "Details"}
             </h2>
             <dl className={styles.dl}>
               {Object.entries(detail.submittedFields).map(([label, value]) => (

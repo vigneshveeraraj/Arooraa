@@ -13,6 +13,9 @@ import com.arooraa.leads.admin.leads.exception.LeadNotFoundException;
 import com.arooraa.leads.admin.leads.repository.LeadActivityRepository;
 import com.arooraa.leads.admin.leads.repository.LeadManagementRepository;
 import com.arooraa.leads.admin.leads.repository.LeadNoteRepository;
+import com.arooraa.leads.capture.domain.LeadCapture;
+import com.arooraa.leads.capture.domain.LeadCaptureStatus;
+import com.arooraa.leads.capture.repository.LeadCaptureRepository;
 import com.arooraa.leads.domain.LeadStatus;
 import com.arooraa.leads.project.domain.EnquiryStatus;
 import com.arooraa.leads.project.domain.ProjectEnquiry;
@@ -35,7 +38,7 @@ import java.util.UUID;
 /**
  * Owns every admin write path (status, follow-up, assignment, estimated value, lost
  * reason, notes) and records the matching activity row atomically in the same
- * transaction. Domain-table status stays on demo_requests/project_enquiries; everything
+ * transaction. Domain-table status stays on demo_requests/project_enquiries/lead_captures; everything
  * else lives in lead_management, keyed by (lead_type, lead_id) — see LeadManagement.
  */
 @Service
@@ -49,6 +52,7 @@ public class LeadManagementService {
 
     private final DemoRequestRepository demoRequestRepository;
     private final ProjectEnquiryRepository projectEnquiryRepository;
+    private final LeadCaptureRepository leadCaptureRepository;
     private final LeadManagementRepository leadManagementRepository;
     private final LeadNoteRepository leadNoteRepository;
     private final LeadActivityRepository leadActivityRepository;
@@ -56,12 +60,14 @@ public class LeadManagementService {
 
     public LeadManagementService(DemoRequestRepository demoRequestRepository,
                                   ProjectEnquiryRepository projectEnquiryRepository,
+                                  LeadCaptureRepository leadCaptureRepository,
                                   LeadManagementRepository leadManagementRepository,
                                   LeadNoteRepository leadNoteRepository,
                                   LeadActivityRepository leadActivityRepository,
                                   AdminUserRepository adminUserRepository) {
         this.demoRequestRepository = demoRequestRepository;
         this.projectEnquiryRepository = projectEnquiryRepository;
+        this.leadCaptureRepository = leadCaptureRepository;
         this.leadManagementRepository = leadManagementRepository;
         this.leadNoteRepository = leadNoteRepository;
         this.leadActivityRepository = leadActivityRepository;
@@ -100,6 +106,7 @@ public class LeadManagementService {
         String oldStatus = switch (leadType) {
             case PROJECT_ENQUIRY -> updateProjectEnquiryStatus(leadId, newStatus, expectedVersion);
             case MESA_DEMO -> updateDemoRequestStatus(leadId, newStatus, expectedVersion);
+            case LEAD_CAPTURE -> updateLeadCaptureStatus(leadId, newStatus, expectedVersion);
         };
 
         if (lostReason != null) {
@@ -134,6 +141,24 @@ public class LeadManagementService {
         entity.updateStatus(LeadStatus.valueOf(newStatus));
         try {
             demoRequestRepository.saveAndFlush(entity);
+        } catch (ObjectOptimisticLockingFailureException conflict) {
+            throw new LeadManagementConflictException(CONFLICT_MESSAGE);
+        }
+        return oldStatus;
+    }
+
+    /**
+     * lead_captures.version also moves when the scripted conversation saves an answer, so an
+     * admin editing a stale copy while the customer is mid-conversation gets the same 409.
+     */
+    private String updateLeadCaptureStatus(UUID leadId, String newStatus, Long expectedVersion) {
+        LeadCapture entity = leadCaptureRepository.findById(leadId)
+                .orElseThrow(() -> new LeadNotFoundException("Lead capture not found"));
+        checkVersion(expectedVersion, entity.getVersion());
+        String oldStatus = entity.getStatus().name();
+        entity.updateStatus(LeadCaptureStatus.valueOf(newStatus));
+        try {
+            leadCaptureRepository.saveAndFlush(entity);
         } catch (ObjectOptimisticLockingFailureException conflict) {
             throw new LeadManagementConflictException(CONFLICT_MESSAGE);
         }
@@ -212,6 +237,7 @@ public class LeadManagementService {
         boolean exists = switch (leadType) {
             case PROJECT_ENQUIRY -> projectEnquiryRepository.existsById(leadId);
             case MESA_DEMO -> demoRequestRepository.existsById(leadId);
+            case LEAD_CAPTURE -> leadCaptureRepository.existsById(leadId);
         };
         if (!exists) {
             throw new LeadNotFoundException("Lead not found");

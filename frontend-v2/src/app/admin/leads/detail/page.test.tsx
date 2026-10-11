@@ -288,4 +288,200 @@ describe("AdminLeadDetailPage", () => {
     const activityPanel = (await screen.findByText("Activity History")).closest("div")!;
     expect(within(activityPanel).getByText(/Status changed: NEW → CONTACTED/)).toBeInTheDocument();
   });
+
+  it("keeps the MESA demo flat section titled Submitted Details", async () => {
+    mockSearch = `type=MESA_DEMO&id=${MESA_DETAIL.id}`;
+    vi.stubGlobal("fetch", mockAuthAnd(MESA_DETAIL));
+
+    render(
+      <AdminAuthProvider>
+        <AdminLeadDetailPage />
+      </AdminAuthProvider>,
+    );
+
+    expect(await screen.findByText("Submitted Details")).toBeInTheDocument();
+    expect(screen.queryByText("Consultation Request")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Priya Sharma" })).toBeInTheDocument();
+  });
+
+  describe("a LEAD_CAPTURE lead", () => {
+    // Lead captures arrive with null identity fields; nothing may be invented in their place.
+    const CAPTURE_DETAIL = {
+      ...MESA_DETAIL,
+      id: "cccccccc-3333-3333-3333-333333333333",
+      leadType: "LEAD_CAPTURE",
+      referenceNumber: "LC-7Q2M9X",
+      status: "NEW",
+      leadVersion: 3,
+      customerName: null,
+      companyOrRestaurant: null,
+      email: null,
+      phone: "+919840012345",
+      cityOrCountry: null,
+      submittedFields: {
+        Requirement: "Ai Automation",
+        "Preferred language": "Tamil",
+        "Preferred call time": "Evening",
+        "Consent given": "Yes",
+        "Consent source": "Web Form",
+        Source: "Website",
+      },
+      managementInfo: { ...MESA_DETAIL.managementInfo, version: 5 },
+    };
+
+    /** Stateful backend for the capture: mutations succeed and notes are echoed back on reload. */
+    function mockCaptureBackend() {
+      const notes: { id: string; adminName: string; note: string; createdAt: string }[] = [];
+      return vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? "GET";
+        if (url.includes("/auth/session")) return mockResponse(200, { id: "admin-1", email: "owner@arooraa.test", displayName: "Owner" });
+        if (url.includes("/users")) return mockResponse(200, [{ id: "admin-1", email: "owner@arooraa.test", displayName: "Owner" }]);
+        if (method === "POST" && url.includes("/notes")) {
+          const body = JSON.parse(init!.body as string);
+          const note = { id: "note-1", adminName: "Owner", note: body.note, createdAt: "2026-08-03T10:00:00Z" };
+          notes.push(note);
+          return mockResponse(201, note);
+        }
+        if (method === "PATCH") return mockResponse(204, null);
+        if (url.endsWith(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}`)) return mockResponse(200, { ...CAPTURE_DETAIL, notes: [...notes] });
+        return mockResponse(404, {});
+      });
+    }
+
+    beforeEach(() => {
+      mockSearch = `type=LEAD_CAPTURE&id=${CAPTURE_DETAIL.id}`;
+    });
+
+    it("accepts type=LEAD_CAPTURE and fetches the capture detail endpoint", async () => {
+      const fetchMock = mockCaptureBackend();
+      vi.stubGlobal("fetch", fetchMock);
+
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+
+      expect(await screen.findByText("LC-7Q2M9X")).toBeInTheDocument();
+      expect(screen.queryByText("Missing lead reference.")).not.toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}`),
+        expect.anything(),
+      );
+    });
+
+    it("renders requirement, phone, language, call time and consent without inventing a name or email", async () => {
+      vi.stubGlobal("fetch", mockCaptureBackend());
+
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+
+      expect(await screen.findByText("LC-7Q2M9X")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Name not provided" })).toBeInTheDocument();
+      expect(screen.getByText("Name").closest("div")).toHaveTextContent("Not provided");
+      expect(screen.getByText("Lead Capture")).toBeInTheDocument();
+      expect(screen.queryByText("MESA Demo")).not.toBeInTheDocument();
+      expect(screen.getByText("Consultation Request")).toBeInTheDocument();
+      expect(screen.queryByText("Submitted Details")).not.toBeInTheDocument();
+      expect(screen.getByText("+919840012345")).toBeInTheDocument();
+      expect(screen.getByText("Ai Automation")).toBeInTheDocument();
+      expect(screen.getByText("Tamil")).toBeInTheDocument();
+      expect(screen.getByText("Evening")).toBeInTheDocument();
+      expect(screen.getByText("Web Form")).toBeInTheDocument();
+      expect(screen.queryByText("Email")).not.toBeInTheDocument();
+      expect(screen.queryByText("Restaurant")).not.toBeInTheDocument();
+      expect(screen.queryByText("City")).not.toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("null");
+      expect(screen.getByRole("link", { name: "← Back to leads" })).toHaveAttribute("href", "/admin/leads");
+    });
+
+    it("sends status and note changes to the LEAD_CAPTURE endpoints with the lead version", async () => {
+      const fetchMock = mockCaptureBackend();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const user = userEvent.setup();
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+      await screen.findByText("LC-7Q2M9X");
+
+      await user.selectOptions(screen.getByLabelText("Current status"), "CONTACTED");
+      await user.click(screen.getByRole("button", { name: "Update status" }));
+
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}/status`),
+          expect.objectContaining({ method: "PATCH", body: expect.stringContaining('"expectedVersion":3') }),
+        ),
+      );
+
+      await user.type(screen.getByLabelText("Add a note"), "Prefers a call after 6pm.");
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+
+      expect(await screen.findByText("Prefers a call after 6pm.")).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}/notes`),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+
+    it("sends follow-up, assignment and estimated-value changes to the LEAD_CAPTURE endpoints with the management version", async () => {
+      const fetchMock = mockCaptureBackend();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const user = userEvent.setup();
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+      await screen.findByText("LC-7Q2M9X");
+      await screen.findByText("Owner", { selector: "option" });
+
+      await user.type(screen.getByLabelText("Next follow-up"), "2026-09-01T10:00");
+      await user.click(screen.getByRole("button", { name: "Save follow-up" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}/follow-up`),
+          expect.objectContaining({ method: "PATCH", body: expect.stringContaining('"expectedVersion":5') }),
+        ),
+      );
+
+      await user.selectOptions(screen.getByLabelText("Assigned to"), "admin-1");
+      await user.click(screen.getByRole("button", { name: "Save assignment" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}/assignment`),
+          expect.objectContaining({ method: "PATCH", body: expect.stringContaining('"expectedVersion":5') }),
+        ),
+      );
+
+      await user.type(screen.getByLabelText("Estimated value"), "50000");
+      await user.click(screen.getByRole("button", { name: "Save estimated value" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${CAPTURE_DETAIL.id}/estimated-value`),
+          expect.objectContaining({ method: "PATCH" }),
+        ),
+      );
+    });
+  });
+
+  it("rejects an unknown lead type in the query string", async () => {
+    mockSearch = `type=SOMETHING_ELSE&id=${MESA_DETAIL.id}`;
+    vi.stubGlobal("fetch", mockAuthAnd(MESA_DETAIL));
+
+    render(
+      <AdminAuthProvider>
+        <AdminLeadDetailPage />
+      </AdminAuthProvider>,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Missing lead reference.");
+  });
 });

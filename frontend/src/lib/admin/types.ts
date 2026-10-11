@@ -1,4 +1,20 @@
-export type LeadType = "PROJECT_ENQUIRY" | "MESA_DEMO";
+export const LEAD_TYPES = ["PROJECT_ENQUIRY", "MESA_DEMO", "LEAD_CAPTURE"] as const;
+
+/**
+ * LEAD_CAPTURE is the low-friction consultation form (requirement + phone + consent). It never
+ * has a name, email, company or city — those fields arrive as null and must not be filled in.
+ */
+export type LeadType = (typeof LEAD_TYPES)[number];
+
+export function isLeadType(value: string | null): value is LeadType {
+  return value !== null && (LEAD_TYPES as readonly string[]).includes(value);
+}
+
+export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
+  PROJECT_ENQUIRY: "Project Enquiry",
+  MESA_DEMO: "MESA Demo",
+  LEAD_CAPTURE: "Lead Capture",
+};
 
 export interface AdminSession {
   id: string;
@@ -10,7 +26,8 @@ export interface AdminLeadSummary {
   id: string;
   leadType: LeadType;
   referenceNumber: string;
-  customerName: string;
+  /** Null for LEAD_CAPTURE rows. */
+  customerName: string | null;
   companyOrRestaurant: string | null;
   email: string | null;
   phone: string | null;
@@ -21,7 +38,7 @@ export interface AdminLeadSummary {
   assignedTo: string | null;
   estimatedValue: number | null;
   estimatedValueCurrency: string | null;
-  /** W3.2D — project-enquiry-only list fields, null for MESA_DEMO rows. */
+  /** W3.2D list fields, null for MESA_DEMO rows. LEAD_CAPTURE rows use direction for the requirement. */
   maskedPhone: string | null;
   direction: string | null;
   preferredContactMethod: string | null;
@@ -72,7 +89,8 @@ export interface AdminLeadDetail {
   status: string;
   leadVersion: number;
   createdAt: string;
-  customerName: string;
+  /** Null for LEAD_CAPTURE leads. */
+  customerName: string | null;
   companyOrRestaurant: string | null;
   email: string | null;
   phone: string | null;
@@ -94,6 +112,8 @@ export interface DashboardSummary {
   negotiation: number;
   won: number;
   lost: number;
+  /** Included in totalNewLeads. Optional so an older backend without it still renders. */
+  newLeadCaptures?: number;
 }
 
 export interface AdminUserSummary {

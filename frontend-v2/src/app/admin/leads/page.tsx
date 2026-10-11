@@ -6,11 +6,18 @@ import { RequireAdmin } from "@/components/admin/RequireAdmin";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { LeadsTable } from "@/components/admin/LeadsTable";
 import { fetchLeads, type LeadListParams } from "@/lib/admin/api";
-import { LEAD_STATUSES, type AdminLeadSummary, type LeadType } from "@/lib/admin/types";
+import { LEAD_STATUSES, isLeadType, type AdminLeadSummary, type LeadType } from "@/lib/admin/types";
 import { humanizeStatus } from "@/components/admin/StatusPill";
 import styles from "@/components/admin/shared/AdminListControls.module.css";
 
 const PAGE_SIZE = 20;
+
+const TYPE_FILTER_LABELS: Record<LeadType | "", string> = {
+  "": "All",
+  PROJECT_ENQUIRY: "Project",
+  MESA_DEMO: "MESA",
+  LEAD_CAPTURE: "Lead Capture",
+};
 
 function resolveTimezone(): string {
   try {
@@ -39,7 +46,7 @@ function LeadsListContent() {
   const initialLeadType = searchParams.get("leadType");
 
   const [leadType, setLeadType] = useState<LeadType | "">(
-    initialLeadType === "PROJECT_ENQUIRY" || initialLeadType === "MESA_DEMO" ? initialLeadType : "",
+    isLeadType(initialLeadType) ? initialLeadType : "",
   );
   const [status, setStatus] = useState("");
   const [followUp, setFollowUp] = useState<LeadListParams["followUp"] | "">("");
@@ -95,7 +102,7 @@ function LeadsListContent() {
 
       <div className={styles.filters}>
         <div className={styles.typeFilter}>
-          {(["", "PROJECT_ENQUIRY", "MESA_DEMO"] as const).map((option) => (
+          {(["", "PROJECT_ENQUIRY", "MESA_DEMO", "LEAD_CAPTURE"] as const).map((option) => (
             <button
               key={option || "all"}
               type="button"
@@ -105,7 +112,7 @@ function LeadsListContent() {
                 setLeadType(option);
               }}
             >
-              {option === "" ? "All" : option === "PROJECT_ENQUIRY" ? "Project" : "MESA"}
+              {TYPE_FILTER_LABELS[option]}
             </button>
           ))}
         </div>

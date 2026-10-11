@@ -117,4 +117,91 @@ describe("AdminDashboardPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/something went wrong/i);
   });
+
+  it("shows the new lead capture subtotal next to the existing per-type subtotals", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/auth/session")) return mockResponse(200, { id: "1", email: "o@x.test", displayName: "Owner" });
+      if (url.includes("/dashboard")) return mockResponse(200, { ...SUMMARY, totalNewLeads: 23, newLeadCaptures: 11 });
+      if (url.includes("/leads")) return mockResponse(200, { content: [], page: { size: 10, number: 0, totalElements: 0, totalPages: 0 } });
+      return mockResponse(404, {});
+    });
+
+    render(
+      <AdminAuthProvider>
+        <AdminDashboardPage />
+      </AdminAuthProvider>,
+    );
+
+    const label = await screen.findByText("New Lead Captures");
+    expect(label.parentElement).toHaveTextContent("11");
+    expect(screen.getByText("New Project Enquiries").parentElement).toHaveTextContent("3");
+    expect(screen.getByText("New MESA Demo Requests").parentElement).toHaveTextContent("9");
+    // totalNewLeads is shown exactly as the backend sent it (it already includes captures).
+    expect(screen.getByText("New Leads").parentElement).toHaveTextContent("23");
+  });
+
+  it("still renders when an older backend omits newLeadCaptures", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/auth/session")) return mockResponse(200, { id: "1", email: "o@x.test", displayName: "Owner" });
+      if (url.includes("/dashboard")) return mockResponse(200, SUMMARY);
+      if (url.includes("/leads")) return mockResponse(200, { content: [], page: { size: 10, number: 0, totalElements: 0, totalPages: 0 } });
+      return mockResponse(404, {});
+    });
+
+    render(
+      <AdminAuthProvider>
+        <AdminDashboardPage />
+      </AdminAuthProvider>,
+    );
+
+    const label = await screen.findByText("New Lead Captures");
+    expect(label.parentElement).toHaveTextContent("0");
+    expect(label.parentElement).not.toHaveTextContent("undefined");
+    expect(screen.getByText("New Leads").parentElement).toHaveTextContent("4");
+  });
+
+  it("shows a recent lead capture as a lead capture with no invented name", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/auth/session")) return mockResponse(200, { id: "1", email: "o@x.test", displayName: "Owner" });
+      if (url.includes("/dashboard")) return mockResponse(200, { ...SUMMARY, newLeadCaptures: 1 });
+      if (url.includes("/leads")) {
+        return mockResponse(200, {
+          content: [
+            {
+              id: "33333333-3333-3333-3333-333333333333",
+              leadType: "LEAD_CAPTURE",
+              referenceNumber: "LC-7Q2M9X",
+              customerName: null,
+              companyOrRestaurant: null,
+              email: null,
+              phone: "+919840012345",
+              cityOrCountry: null,
+              status: "NEW",
+              createdAt: "2026-08-30T03:38:33Z",
+              followUpAt: null,
+              assignedTo: null,
+              estimatedValue: null,
+              estimatedValueCurrency: null,
+              maskedPhone: "+91••••••••45",
+              direction: "Website",
+              preferredContactMethod: null,
+            },
+          ],
+          page: { size: 10, number: 0, totalElements: 1, totalPages: 1 },
+        });
+      }
+      return mockResponse(404, {});
+    });
+
+    render(
+      <AdminAuthProvider>
+        <AdminDashboardPage />
+      </AdminAuthProvider>,
+    );
+
+    const row = (await screen.findByText("LC-7Q2M9X")).closest("tr")!;
+    expect(row).toHaveTextContent("Lead Capture");
+    expect(row).toHaveTextContent("No name · Website");
+    expect(row).not.toHaveTextContent("MESA");
+  });
 });

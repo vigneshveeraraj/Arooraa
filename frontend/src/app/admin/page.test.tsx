@@ -44,6 +44,7 @@ function routeFetch(url: string): Response {
       negotiation: 0,
       won: 4,
       lost: 1,
+      newLeadCaptures: 7,
     });
   }
   if (url.includes("/leads")) {
@@ -77,5 +78,47 @@ describe("AdminDashboardPage", () => {
     expect(screen.getByText("5")).toBeInTheDocument(); // totalNewLeads
     expect(screen.getByText("Arun Kumar")).toBeInTheDocument();
     expect(screen.getByText("ARO-2026-000001")).toBeInTheDocument();
+  });
+
+  it("shows the new lead capture subtotal next to the existing per-type subtotals", async () => {
+    render(
+      <AdminAuthProvider>
+        <AdminDashboardPage />
+      </AdminAuthProvider>,
+    );
+
+    const label = await screen.findByText("New Lead Captures");
+    expect(label.parentElement).toHaveTextContent("7");
+    expect(screen.getByText("New MESA Demo Requests").parentElement).toHaveTextContent("2");
+    expect(screen.getByText("New Project Enquiries").parentElement).toHaveTextContent("3");
+  });
+
+  it("still renders when an older backend omits newLeadCaptures", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/dashboard")) {
+        return mockResponse(200, {
+          totalNewLeads: 5,
+          newProjectEnquiries: 3,
+          newMesaDemoRequests: 2,
+          followUpsDueToday: 1,
+          overdueFollowUps: 0,
+          qualified: 2,
+          proposalSent: 1,
+          negotiation: 0,
+          won: 4,
+          lost: 1,
+        });
+      }
+      return routeFetch(url);
+    });
+    render(
+      <AdminAuthProvider>
+        <AdminDashboardPage />
+      </AdminAuthProvider>,
+    );
+
+    const label = await screen.findByText("New Lead Captures");
+    expect(label.parentElement).toHaveTextContent("0");
+    expect(label.parentElement).not.toHaveTextContent("undefined");
   });
 });

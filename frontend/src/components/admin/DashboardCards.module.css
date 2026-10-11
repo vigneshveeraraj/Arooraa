@@ -37,7 +37,7 @@
 
 .splitGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -67,6 +67,9 @@
 @media (max-width: 960px) {
   .grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .splitGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

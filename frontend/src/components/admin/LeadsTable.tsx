@@ -1,7 +1,13 @@
 import Link from "next/link";
-import type { AdminLeadSummary } from "@/lib/admin/types";
+import type { AdminLeadSummary, LeadType } from "@/lib/admin/types";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import styles from "./LeadsTable.module.css";
+
+const TYPE_LABELS: Record<LeadType, string> = {
+  PROJECT_ENQUIRY: "Project",
+  MESA_DEMO: "MESA Demo",
+  LEAD_CAPTURE: "Lead Capture",
+};
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -37,8 +43,12 @@ export function LeadsTable({ leads }: { leads: AdminLeadSummary[] }) {
           {leads.map((lead) => (
             <tr key={`${lead.leadType}-${lead.id}`}>
               <td data-label="Reference">{lead.referenceNumber}</td>
-              <td data-label="Type">{lead.leadType === "PROJECT_ENQUIRY" ? "Project" : "MESA Demo"}</td>
-              <td data-label="Customer">{lead.customerName}</td>
+              <td data-label="Type">{TYPE_LABELS[lead.leadType] ?? lead.leadType}</td>
+              {/* Lead captures collect no name; show what they need instead, never an invented name. */}
+              <td data-label="Customer">
+                {lead.customerName ??
+                  (lead.leadType === "LEAD_CAPTURE" && lead.direction ? `No name · ${lead.direction}` : "—")}
+              </td>
               <td data-label="Company / Restaurant">{lead.companyOrRestaurant ?? "—"}</td>
               <td data-label="Status">
                 <LeadStatusBadge status={lead.status} />

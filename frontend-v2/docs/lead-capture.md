@@ -63,6 +63,32 @@ Response `201 { "leadReference": "LC-7Q2M9X" }`. The reference must be **opaque*
 sequential, and not derived from the phone number. It is the only identifier that ever appears in a
 WhatsApp URL. Also store `preferredLanguage` (null at creation). The WhatsApp conversation sets it.
 
+### Admin visibility
+
+Saved captures show up in the existing lead admin (`frontend/`, `/api/v1/admin/leads`) as lead type
+`LEAD_CAPTURE`, next to `PROJECT_ENQUIRY` and `MESA_DEMO`. They are never shown as MESA leads.
+
+- **List** (`?leadType=LEAD_CAPTURE`, plus the usual status/follow-up filters): search matches the
+  `LC-` reference, the phone number and the business type. Each row shows the masked phone and the
+  requirement (as `direction`). There is no name, email, company or city, so `customerName`, `email`,
+  `companyOrRestaurant` and `cityOrCountry` are `null`. The fields stay in the response so older
+  clients keep working. The UI shows "No name · <requirement>".
+- **Detail** (`/api/v1/admin/leads/LEAD_CAPTURE/{id}`, signed-in admins only): reference, full phone,
+  requirement, business type, preferred call time, preferred language, page language, whether a
+  handoff was requested, consent (given, source, timestamp, exact text), country code, source,
+  source page, referrer and UTM fields. The IP hash, idempotency key and request fingerprint are
+  never returned.
+- **Workflow**: status (stored on `lead_captures.status`), follow-up, assignment, estimated value,
+  lost reason, notes and the activity trail all use the shared admin endpoints, with the same
+  `expectedVersion` optimistic locking and CSRF rules. `lead_captures.version` also changes when the
+  scripted conversation saves an answer, so an admin editing a stale copy gets a 409 and reloads.
+- **Dashboard**: `totalNewLeads`, the pipeline counts and the due-today/overdue follow-up counts
+  include captures. `newLeadCaptures` is a new field in the response. `newProjectEnquiries` and
+  `newMesaDemoRequests` are unchanged.
+
+No migration was needed. The admin tables' `lead_type` columns (V4) are `VARCHAR(20)` with no CHECK
+constraint, and `LEAD_CAPTURE` is 12 characters long.
+
 ## WhatsApp conversation (scaffolding only, blocked)
 
 Click-to-chat cannot reply by itself. An automated first response needs the **WhatsApp Business

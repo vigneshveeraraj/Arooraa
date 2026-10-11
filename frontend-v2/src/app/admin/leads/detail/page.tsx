@@ -20,8 +20,15 @@ import {
   updateStatus,
   addNote,
 } from "@/lib/admin/api";
-import type { AdminLeadDetail, LeadType } from "@/lib/admin/types";
+import { LEAD_TYPE_LABELS, isLeadType, type AdminLeadDetail, type LeadType } from "@/lib/admin/types";
 import styles from "./page.module.css";
+
+/** Title of the flat submitted-fields card. PROJECT_ENQUIRY renders grouped sections instead. */
+const FLAT_DETAILS_TITLES: Record<LeadType, string> = {
+  PROJECT_ENQUIRY: "Submitted Details",
+  MESA_DEMO: "Submitted Details",
+  LEAD_CAPTURE: "Consultation Request",
+};
 
 /**
  * Reuses the existing query-param route shape (?type=&id=), not a
@@ -41,7 +48,8 @@ export default function AdminLeadDetailPage() {
 }
 
 function customerSectionRows(detail: AdminLeadDetail) {
-  const rows: { label: string; value: string }[] = [{ label: "Name", value: detail.customerName }];
+  // Lead captures collect no name — say so rather than inventing one.
+  const rows: { label: string; value: string }[] = [{ label: "Name", value: detail.customerName ?? "Not provided" }];
   if (detail.companyOrRestaurant) {
     rows.push({ label: detail.leadType === "PROJECT_ENQUIRY" ? "Company" : "Restaurant", value: detail.companyOrRestaurant });
   }
@@ -60,7 +68,7 @@ function customerSectionRows(detail: AdminLeadDetail) {
 function DetailContent() {
   const searchParams = useSearchParams();
   const rawType = searchParams.get("type");
-  const type: LeadType | null = rawType === "PROJECT_ENQUIRY" || rawType === "MESA_DEMO" ? rawType : null;
+  const type: LeadType | null = isLeadType(rawType) ? rawType : null;
   const id = searchParams.get("id");
 
   const [detail, setDetail] = useState<AdminLeadDetail | null>(null);
@@ -129,10 +137,10 @@ function DetailContent() {
       <div className={styles.header}>
         <div>
           <p className={styles.reference}>{detail.referenceNumber}</p>
-          <h1 className={`text-h2 ${styles.heading}`}>{detail.customerName}</h1>
+          <h1 className={`text-h2 ${styles.heading}`}>{detail.customerName ?? "Name not provided"}</h1>
         </div>
         <div className={styles.headerMeta}>
-          <span className={styles.typeTag}>{isProjectEnquiry ? "Project Enquiry" : "MESA Demo"}</span>
+          <span className={styles.typeTag}>{LEAD_TYPE_LABELS[detail.leadType] ?? detail.leadType}</span>
           <StatusPill status={detail.status} />
           <span className={styles.createdAt}>Created {new Date(detail.createdAt).toLocaleString()}</span>
         </div>
@@ -154,7 +162,12 @@ function DetailContent() {
 
           {isProjectEnquiry
             ? grouped!.sections.map((section) => <DetailSectionCard key={section.title} {...section} />)
-            : flatFields.length > 0 && <DetailSectionCard title="Submitted Details" rows={flatFields} />}
+            : flatFields.length > 0 && (
+                <DetailSectionCard
+                  title={FLAT_DETAILS_TITLES[detail.leadType] ?? "Submitted Details"}
+                  rows={flatFields}
+                />
+              )}
         </div>
 
         <div>

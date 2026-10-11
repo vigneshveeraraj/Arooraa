@@ -2,11 +2,18 @@ package com.arooraa.leads.admin.leads.service;
 
 import com.arooraa.leads.admin.auth.repository.AdminUserRepository;
 import com.arooraa.leads.admin.leads.domain.LeadType;
+import com.arooraa.leads.admin.leads.exception.LeadNotFoundException;
 import com.arooraa.leads.admin.leads.repository.LeadActivityRepository;
 import com.arooraa.leads.admin.leads.repository.LeadManagementRepository;
 import com.arooraa.leads.admin.leads.repository.LeadNoteRepository;
 import com.arooraa.leads.admin.leads.web.dto.AdminLeadDetail;
 import com.arooraa.leads.admin.leads.web.dto.AdminLeadSummary;
+import com.arooraa.leads.capture.domain.LeadCapture;
+import com.arooraa.leads.capture.domain.LeadCaptureStatus;
+import com.arooraa.leads.capture.domain.LeadLanguage;
+import com.arooraa.leads.capture.domain.LeadRequirement;
+import com.arooraa.leads.capture.domain.PreferredCallTime;
+import com.arooraa.leads.capture.repository.LeadCaptureRepository;
 import org.springframework.data.domain.Page;
 import com.arooraa.leads.project.domain.BudgetRange;
 import com.arooraa.leads.project.domain.EngagementModel;
@@ -25,17 +32,25 @@ import com.arooraa.leads.repository.DemoRequestRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -47,13 +62,17 @@ import static org.mockito.Mockito.when;
 class AdminLeadQueryServiceTest {
 
     private ProjectEnquiryRepository projectEnquiryRepository;
+    private DemoRequestRepository demoRequestRepository;
+    private LeadCaptureRepository leadCaptureRepository;
+    private LeadManagementRepository leadManagementRepository;
     private AdminLeadQueryService service;
 
     @BeforeEach
     void setUp() {
-        DemoRequestRepository demoRequestRepository = mock(DemoRequestRepository.class);
+        demoRequestRepository = mock(DemoRequestRepository.class);
         projectEnquiryRepository = mock(ProjectEnquiryRepository.class);
-        LeadManagementRepository leadManagementRepository = mock(LeadManagementRepository.class);
+        leadCaptureRepository = mock(LeadCaptureRepository.class);
+        leadManagementRepository = mock(LeadManagementRepository.class);
         LeadNoteRepository leadNoteRepository = mock(LeadNoteRepository.class);
         LeadActivityRepository leadActivityRepository = mock(LeadActivityRepository.class);
         AdminUserRepository adminUserRepository = mock(AdminUserRepository.class);
@@ -63,7 +82,7 @@ class AdminLeadQueryServiceTest {
         when(leadNoteRepository.findByLeadTypeAndLeadIdOrderByCreatedAtAsc(any(), any())).thenReturn(List.of());
         when(leadActivityRepository.findByLeadTypeAndLeadIdOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
 
-        service = new AdminLeadQueryService(demoRequestRepository, projectEnquiryRepository,
+        service = new AdminLeadQueryService(demoRequestRepository, projectEnquiryRepository, leadCaptureRepository,
                 leadManagementRepository, leadNoteRepository, leadActivityRepository, adminUserRepository,
                 dayWindowResolver);
     }
@@ -189,7 +208,8 @@ class AdminLeadQueryServiceTest {
         when(demoRequestRepository.search(any(), any(), any(), any())).thenReturn(List.of(demo));
 
         AdminLeadQueryService demoService = new AdminLeadQueryService(demoRequestRepository, projectEnquiryRepository,
-                leadManagementRepository, leadNoteRepository, leadActivityRepository, adminUserRepository, dayWindowResolver);
+                mock(LeadCaptureRepository.class), leadManagementRepository, leadNoteRepository, leadActivityRepository,
+                adminUserRepository, dayWindowResolver);
 
         Page<AdminLeadSummary> page = demoService.list(LeadType.MESA_DEMO, null, null, null, null, 0, 20);
         AdminLeadSummary summary = page.getContent().get(0);
@@ -197,5 +217,125 @@ class AdminLeadQueryServiceTest {
         assertNull(summary.maskedPhone());
         assertNull(summary.direction());
         assertNull(summary.preferredContactMethod());
+    }
+
+    // ---- LEAD_CAPTURE ----
+
+    private static LeadCapture webCapture() {
+        return LeadCapture.fromWebForm("LC-7Q2M9X", LeadRequirement.AI_AUTOMATION, "+919840012345",
+                "I agree that AROORAA may contact me on this number about this enquiry.", LeadLanguage.TA,
+                new LeadCapture.Attribution("/ta/grow-your-business", null, "google", null, "tn-growth", null),
+                "hashed-ip");
+    }
+
+    private static LeadCapture mockedCapture(Instant createdAt) {
+        LeadCapture capture = mock(LeadCapture.class);
+        when(capture.getId()).thenReturn(UUID.randomUUID());
+        when(capture.getLeadReference()).thenReturn("LC-ABCDEF");
+        when(capture.getPhone()).thenReturn("+919840012345");
+        when(capture.getRequirement()).thenReturn(LeadRequirement.WEBSITE);
+        when(capture.getStatus()).thenReturn(LeadCaptureStatus.NEW);
+        when(capture.getCreatedAt()).thenReturn(createdAt);
+        return capture;
+    }
+
+    @Test
+    void leadCaptureDetailShowsRequirementPhoneLanguageConsentAndSourceWithoutInventingIdentity() {
+        LeadCapture capture = webCapture();
+        capture.choosePreferredLanguage(LeadLanguage.EN);
+        capture.answerPreferredCallTime(PreferredCallTime.EVENING);
+        when(leadCaptureRepository.findById(capture.getId())).thenReturn(Optional.of(capture));
+
+        AdminLeadDetail detail = service.detail(LeadType.LEAD_CAPTURE, capture.getId());
+
+        assertEquals(LeadType.LEAD_CAPTURE, detail.leadType());
+        assertEquals("LC-7Q2M9X", detail.referenceNumber());
+        assertEquals("NEW", detail.status());
+        assertEquals("+919840012345", detail.phone(), "the detail view shows the real number, like other lead types");
+        assertNull(detail.customerName(), "a capture has no name; it must not be invented");
+        assertNull(detail.email(), "a capture has no email; it must not be invented");
+        assertNull(detail.companyOrRestaurant());
+        assertNull(detail.cityOrCountry());
+
+        Map<String, String> fields = detail.submittedFields();
+        assertEquals("Ai Automation", fields.get("Requirement"));
+        assertEquals("English", fields.get("Preferred language"));
+        assertEquals("Tamil", fields.get("Page language"));
+        assertEquals("Evening", fields.get("Preferred call time"));
+        assertEquals("Yes", fields.get("Consent given"));
+        assertEquals("Web Form", fields.get("Consent source"));
+        assertEquals("I agree that AROORAA may contact me on this number about this enquiry.", fields.get("Consent text"));
+        assertTrue(fields.containsKey("Consent recorded at"));
+        assertEquals("Website", fields.get("Source"));
+        assertEquals("/ta/grow-your-business", fields.get("Source page"));
+        assertEquals("tn-growth", fields.get("UTM campaign"));
+        assertFalse(fields.containsKey("Referrer"), "absent attribution is omitted, not shown blank");
+        assertFalse(fields.containsKey("Business type"));
+        assertTrue(fields.values().stream().noneMatch(v -> v.contains("hashed-ip")), "ip hash must never be exposed");
+    }
+
+    @Test
+    void leadCaptureDetailOmitsUnansweredConversationFields() {
+        LeadCapture capture = webCapture();
+        when(leadCaptureRepository.findById(capture.getId())).thenReturn(Optional.of(capture));
+
+        Map<String, String> fields = service.detail(LeadType.LEAD_CAPTURE, capture.getId()).submittedFields();
+
+        assertFalse(fields.containsKey("Preferred language"), "null until the customer chooses in the conversation");
+        assertFalse(fields.containsKey("Preferred call time"));
+        assertEquals("No", fields.get("Handoff to a person requested"));
+    }
+
+    @Test
+    void missingLeadCaptureIsNotFound() {
+        UUID missing = UUID.randomUUID();
+        when(leadCaptureRepository.findById(missing)).thenReturn(Optional.empty());
+
+        assertThrows(LeadNotFoundException.class, () -> service.detail(LeadType.LEAD_CAPTURE, missing));
+    }
+
+    @Test
+    void listReturnsACaptureWithNullIdentityAMaskedPhoneAndTheRequirementAsDirection() {
+        LeadCapture capture = mockedCapture(Instant.now());
+        when(leadManagementRepository.findByLeadTypeInAndLeadIdIn(any(), any())).thenReturn(List.of());
+        when(leadCaptureRepository.search(any(), any(), any())).thenReturn(List.of(capture));
+
+        Page<AdminLeadSummary> page = service.list(LeadType.LEAD_CAPTURE, null, null, null, null, 0, 20);
+        AdminLeadSummary summary = page.getContent().get(0);
+
+        assertEquals(LeadType.LEAD_CAPTURE, summary.leadType());
+        assertEquals("LC-ABCDEF", summary.referenceNumber());
+        assertNull(summary.customerName());
+        assertNull(summary.email());
+        assertNull(summary.companyOrRestaurant());
+        assertEquals("+91••••••••45", summary.maskedPhone());
+        assertEquals("Website", summary.direction());
+        assertNull(summary.preferredContactMethod());
+    }
+
+    @Test
+    void typeFilterKeepsCapturesIsolatedFromOtherLeadTypes() {
+        LeadCapture capture = mockedCapture(Instant.now());
+        when(leadManagementRepository.findByLeadTypeInAndLeadIdIn(any(), any())).thenReturn(List.of());
+        when(leadCaptureRepository.search(any(), any(), any())).thenReturn(List.of(capture));
+        when(projectEnquiryRepository.search(any(), any(), any())).thenReturn(List.of(legacyEnquiry()));
+
+        service.list(LeadType.LEAD_CAPTURE, null, null, null, null, 0, 20);
+        verify(projectEnquiryRepository, never()).search(any(), any(), any());
+        verify(demoRequestRepository, never()).search(any(), any(), any(), any());
+
+        service.list(LeadType.PROJECT_ENQUIRY, null, null, null, null, 0, 20);
+        service.list(LeadType.MESA_DEMO, null, null, null, null, 0, 20);
+        verify(leadCaptureRepository, times(1)).search(any(), any(), any());
+    }
+
+    @Test
+    void statusFilterAndSearchArePassedToTheCaptureQuery() {
+        when(leadManagementRepository.findByLeadTypeInAndLeadIdIn(any(), any())).thenReturn(List.of());
+        when(leadCaptureRepository.search(any(), any(), any())).thenReturn(List.of());
+
+        service.list(null, "CONTACTED", "  LC-7Q2  ", null, null, 0, 20);
+
+        verify(leadCaptureRepository).search(eq(LeadCaptureStatus.CONTACTED), eq("%lc-7q2%"), any());
     }
 }

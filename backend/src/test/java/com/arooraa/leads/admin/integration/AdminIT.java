@@ -39,7 +39,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -645,6 +647,297 @@ class AdminIT {
         assertTrue(((Number) response.getBody().get("newProjectEnquiries")).longValue() >= 1);
         assertTrue(((Number) response.getBody().get("newMesaDemoRequests")).longValue() >= 1);
         assertTrue(((Number) response.getBody().get("totalNewLeads")).longValue() >= 2);
+    }
+
+    // ---- Lead captures (POST /api/v1/lead-captures) in the admin ----
+    //
+    // Created through the real public endpoint, not seeded, so the whole path from the consultation
+    // form to the admin workflow is exercised. A capture has no name/email by design.
+
+    private static final String CAPTURE_CONSENT = "I agree that AROORAA may contact me on this number about this enquiry.";
+
+    private String randomMobile() {
+        return String.format("+9198%08d", (int) (Math.random() * 100_000_000));
+    }
+
+    /** Distinct client IP per call, so the capture endpoint's per-IP rate limit never interferes. */
+    private String submitLeadCapture(String phone, String requirement) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("requirement", requirement);
+        body.put("phone", phone);
+        body.put("countryCode", "IN");
+        body.put("consent", true);
+        body.put("consentText", CAPTURE_CONSENT);
+        body.put("sourceLocale", "ta");
+        body.put("source", "WEBSITE");
+        body.put("sourcePage", "/ta/grow-your-business");
+        body.put("utmCampaign", "tn-growth");
+        body.put("website", "");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Forwarded-For", "10.70." + (int) (Math.random() * 250) + "." + (int) (1 + Math.random() * 250));
+        // Deliberately no cookies or CSRF token: the public endpoint must stay exempt.
+        ResponseEntity<Map> response = restTemplate.exchange(baseUrl() + "/api/v1/lead-captures",
+                HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        return (String) response.getBody().get("leadReference");
+    }
+
+    private UUID captureIdFor(String reference) {
+        return jdbcTemplate.queryForObject("select id from lead_captures where lead_reference = ?", UUID.class, reference);
+    }
+
+    @Test
+    void leadCaptureFromThePublicFormIsListedAndSearchableWithNoInventedIdentity() {
+        String phone = randomMobile();
+        String reference = submitLeadCapture(phone, "AI_AUTOMATION");
+        UUID id = captureIdFor(reference);
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<Map> byReference = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?leadType=LEAD_CAPTURE&search=" + reference + "&page=0&size=20", null, Map.class);
+        assertEquals(HttpStatus.OK, byReference.getStatusCode());
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) byReference.getBody().get("content");
+        Map<String, Object> row = rows.stream().filter(l -> id.toString().equals(l.get("id"))).findFirst().orElseThrow();
+
+        assertEquals("LEAD_CAPTURE", row.get("leadType"));
+        assertEquals(reference, row.get("referenceNumber"));
+        assertEquals("NEW", row.get("status"));
+        assertEquals("Ai Automation", row.get("direction"), "the requirement is shown as the direction");
+        // Existing response fields stay present for old clients, but are null — never invented.
+        for (String identityField : List.of("customerName", "email", "companyOrRestaurant", "cityOrCountry")) {
+            assertTrue(row.containsKey(identityField), "field must stay in the response: " + identityField);
+            assertNull(row.get(identityField), identityField + " must be null for a capture");
+        }
+        assertNotNull(row.get("maskedPhone"));
+        assertTrue(row.get("maskedPhone").toString().contains("•"));
+        assertNotEquals(phone, row.get("maskedPhone"));
+
+        // Search also matches the (normalised) phone number, and the reference case-insensitively.
+        ResponseEntity<Map> byPhone = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?search=" + phone.substring(3) + "&page=0&size=200", null, Map.class);
+        assertTrue(((List<Map<String, Object>>) byPhone.getBody().get("content")).stream()
+                .anyMatch(l -> id.toString().equals(l.get("id"))));
+        ResponseEntity<Map> lowerCaseRef = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?search=" + reference.toLowerCase(java.util.Locale.ROOT) + "&page=0&size=200", null, Map.class);
+        assertTrue(((List<Map<String, Object>>) lowerCaseRef.getBody().get("content")).stream()
+                .anyMatch(l -> id.toString().equals(l.get("id"))));
+
+        // Status filter applies to captures too.
+        ResponseEntity<Map> wonOnly = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?leadType=LEAD_CAPTURE&status=WON&search=" + reference + "&page=0&size=20", null, Map.class);
+        assertTrue(((List<?>) wonOnly.getBody().get("content")).isEmpty());
+    }
+
+    @Test
+    void leadCaptureDetailShowsRequirementPhoneLanguageConsentAndSourceButNoInternalColumns() {
+        String phone = randomMobile();
+        String reference = submitLeadCapture(phone, "WEBSITE");
+        UUID id = captureIdFor(reference);
+        String ipHash = jdbcTemplate.queryForObject("select ip_hash from lead_captures where id = ?", String.class, id);
+        LoggedInSession session = loginAsNewAdmin();
+
+        ResponseEntity<String> raw = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads/LEAD_CAPTURE/" + id, null, String.class);
+        assertEquals(HttpStatus.OK, raw.getStatusCode());
+        String lowered = raw.getBody().toLowerCase(java.util.Locale.ROOT);
+        assertFalse(lowered.contains("iphash"));
+        assertFalse(raw.getBody().contains(ipHash), "the ip hash value must never be exposed");
+        assertFalse(lowered.contains("idempotency"));
+        assertFalse(lowered.contains("fingerprint"));
+
+        ResponseEntity<Map> detail = session.call(HttpMethod.GET,
+                "/api/v1/admin/leads/LEAD_CAPTURE/" + id, null, Map.class);
+        Map<String, Object> body = detail.getBody();
+        assertEquals("LEAD_CAPTURE", body.get("leadType"));
+        assertEquals(reference, body.get("referenceNumber"));
+        assertEquals(phone, body.get("phone"), "the authenticated detail view shows the real number");
+        assertTrue(body.containsKey("customerName"));
+        assertNull(body.get("customerName"), "no name was collected, so none may be shown");
+        assertNull(body.get("email"), "no email was collected, so none may be shown");
+
+        Map<String, String> fields = (Map<String, String>) body.get("submittedFields");
+        assertEquals("Website", fields.get("Requirement"));
+        assertEquals("Tamil", fields.get("Page language"));
+        assertFalse(fields.containsKey("Preferred language"), "unset until the customer chooses in the conversation");
+        assertEquals("Yes", fields.get("Consent given"));
+        assertEquals("Web Form", fields.get("Consent source"));
+        assertEquals(CAPTURE_CONSENT, fields.get("Consent text"));
+        assertNotNull(fields.get("Consent recorded at"));
+        assertEquals("Website", fields.get("Source"));
+        assertEquals("/ta/grow-your-business", fields.get("Source page"));
+        assertEquals("tn-growth", fields.get("UTM campaign"));
+    }
+
+    @Test
+    void leadCaptureSupportsTheFullAdminWorkflowWithOptimisticLocking() {
+        String reference = submitLeadCapture(randomMobile(), "MARKETING_LEADS");
+        UUID id = captureIdFor(reference);
+        LoggedInSession session = loginAsNewAdmin();
+        String base = "/api/v1/admin/leads/LEAD_CAPTURE/" + id;
+
+        long leadVersion = ((Number) session.call(HttpMethod.GET, base, null, Map.class).getBody().get("leadVersion")).longValue();
+        Map<String, Object> statusBody = new LinkedHashMap<>();
+        statusBody.put("status", "CONTACTED");
+        statusBody.put("expectedVersion", leadVersion);
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, base + "/status", statusBody, Void.class).getStatusCode());
+        assertEquals("CONTACTED", jdbcTemplate.queryForObject("select status from lead_captures where id = ?", String.class, id));
+
+        // Same (now stale) version again -> 409, and nothing changes.
+        Map<String, Object> staleBody = new LinkedHashMap<>();
+        staleBody.put("status", "QUALIFIED");
+        staleBody.put("expectedVersion", leadVersion);
+        ResponseEntity<Map> stale = session.call(HttpMethod.PATCH, base + "/status", staleBody, Map.class);
+        assertEquals(HttpStatus.CONFLICT, stale.getStatusCode());
+        assertEquals("CONTACTED", jdbcTemplate.queryForObject("select status from lead_captures where id = ?", String.class, id));
+
+        Map<String, Object> followUpBody = new LinkedHashMap<>();
+        followUpBody.put("followUpAt", Instant.now().plusSeconds(3600).toString());
+        followUpBody.put("expectedVersion", 0);
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, base + "/follow-up", followUpBody, Void.class).getStatusCode());
+
+        // Management version moved to 1 with the follow-up; an assignment against version 0 is stale.
+        Map<String, Object> staleAssignment = new LinkedHashMap<>();
+        staleAssignment.put("assignedAdminId", session.adminId.toString());
+        staleAssignment.put("expectedVersion", 0);
+        assertEquals(HttpStatus.CONFLICT, session.call(HttpMethod.PATCH, base + "/assignment", staleAssignment, Map.class).getStatusCode());
+
+        long managementVersion = ((Number) ((Map<String, Object>) session.call(HttpMethod.GET, base, null, Map.class)
+                .getBody().get("managementInfo")).get("version")).longValue();
+        Map<String, Object> assignment = new LinkedHashMap<>();
+        assignment.put("assignedAdminId", session.adminId.toString());
+        assignment.put("expectedVersion", managementVersion);
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, base + "/assignment", assignment, Void.class).getStatusCode());
+
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, base + "/estimated-value",
+                Map.of("estimatedValue", 40000), Void.class).getStatusCode());
+        assertEquals(HttpStatus.CREATED, session.call(HttpMethod.POST, base + "/notes",
+                Map.of("note", "Called; prefers evenings."), Map.class).getStatusCode());
+
+        assertEquals(HttpStatus.BAD_REQUEST, session.call(HttpMethod.PATCH, base + "/status",
+                Map.of("status", "LOST"), Map.class).getStatusCode());
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, base + "/status",
+                Map.of("status", "LOST", "lostReason", "NO_RESPONSE"), Void.class).getStatusCode());
+
+        Map<String, Object> detail = session.call(HttpMethod.GET, base, null, Map.class).getBody();
+        assertEquals("LOST", detail.get("status"));
+        Map<String, Object> management = (Map<String, Object>) detail.get("managementInfo");
+        assertEquals(session.adminId.toString(), management.get("assignedAdminId"));
+        assertNotNull(management.get("followUpAt"));
+        assertEquals("NO_RESPONSE", management.get("lostReason"));
+        assertEquals("INR", management.get("estimatedValueCurrency"));
+
+        List<Map<String, Object>> notes = (List<Map<String, Object>>) detail.get("notes");
+        assertEquals(1, notes.size());
+        assertEquals("Called; prefers evenings.", notes.get(0).get("note"));
+
+        List<String> activityTypes = ((List<Map<String, Object>>) detail.get("activity")).stream()
+                .map(a -> (String) a.get("activityType")).toList();
+        for (String expected : List.of("STATUS_CHANGED", "FOLLOW_UP_SET", "ASSIGNED_CHANGED", "ESTIMATED_VALUE_SET", "NOTE_ADDED")) {
+            assertTrue(activityTypes.contains(expected), "missing activity: " + expected);
+        }
+
+        // Every overlay row was written under LEAD_CAPTURE, never under another type.
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "select count(*) from lead_management where lead_id = ? and lead_type <> 'LEAD_CAPTURE'", Integer.class, id));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "select count(*) from lead_activity where lead_id = ? and lead_type <> 'LEAD_CAPTURE'", Integer.class, id));
+    }
+
+    @Test
+    void leadCaptureAdminEndpointsRejectUnauthenticatedAndCsrfLessCalls() {
+        String reference = submitLeadCapture(randomMobile(), "WEBSITE");
+        UUID id = captureIdFor(reference);
+        String base = "/api/v1/admin/leads/LEAD_CAPTURE/" + id;
+
+        CookieJar anonymous = new CookieJar();
+        ResponseEntity<Map> list = call(anonymous, HttpMethod.GET, "/api/v1/admin/leads?leadType=LEAD_CAPTURE", null, Map.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, list.getStatusCode());
+        ResponseEntity<String> detail = call(anonymous, HttpMethod.GET, base, null, String.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, detail.getStatusCode());
+        assertFalse(detail.getBody() != null && detail.getBody().contains(reference), "no lead data before login");
+
+        ResponseEntity<Map> anonymousStatus = call(anonymous, HttpMethod.PATCH, base + "/status",
+                Map.of("status", "CONTACTED"), Map.class);
+        assertTrue(anonymousStatus.getStatusCode() == HttpStatus.UNAUTHORIZED
+                || anonymousStatus.getStatusCode() == HttpStatus.FORBIDDEN, "got " + anonymousStatus.getStatusCode());
+        ResponseEntity<Map> anonymousNote = call(anonymous, HttpMethod.POST, base + "/notes", Map.of("note", "x"), Map.class);
+        assertTrue(anonymousNote.getStatusCode() == HttpStatus.UNAUTHORIZED
+                || anonymousNote.getStatusCode() == HttpStatus.FORBIDDEN, "got " + anonymousNote.getStatusCode());
+
+        LoggedInSession session = loginAsNewAdmin();
+        ResponseEntity<Map> withoutCsrf = session.callWithoutCsrfToken(HttpMethod.PATCH, base + "/status",
+                Map.of("status", "CONTACTED"), Map.class);
+        assertEquals(HttpStatus.FORBIDDEN, withoutCsrf.getStatusCode());
+
+        assertEquals("NEW", jdbcTemplate.queryForObject("select status from lead_captures where id = ?", String.class, id));
+        assertEquals(0, jdbcTemplate.queryForObject("select count(*) from lead_notes where lead_id = ?", Integer.class, id));
+    }
+
+    @Test
+    void leadCapturesAreIsolatedFromTheOtherLeadTypes() {
+        String reference = submitLeadCapture(randomMobile(), "BUSINESS_APPLICATION");
+        UUID captureId = captureIdFor(reference);
+        DemoRequest demo = seedDemoRequest("Isolation Contact", "Isolation Kitchen");
+        LoggedInSession session = loginAsNewAdmin();
+
+        // A capture id is not a MESA demo or a project enquiry, and vice versa.
+        assertEquals(HttpStatus.NOT_FOUND, session.call(HttpMethod.GET,
+                "/api/v1/admin/leads/MESA_DEMO/" + captureId, null, Map.class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, session.call(HttpMethod.GET,
+                "/api/v1/admin/leads/PROJECT_ENQUIRY/" + captureId, null, Map.class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, session.call(HttpMethod.GET,
+                "/api/v1/admin/leads/LEAD_CAPTURE/" + demo.getId(), null, Map.class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, session.call(HttpMethod.POST,
+                "/api/v1/admin/leads/MESA_DEMO/" + captureId + "/notes", Map.of("note", "wrong type"), Map.class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, session.call(HttpMethod.PATCH,
+                "/api/v1/admin/leads/LEAD_CAPTURE/" + demo.getId() + "/status", Map.of("status", "CONTACTED"), Map.class).getStatusCode());
+
+        List<Map<String, Object>> captureOnly = (List<Map<String, Object>>) session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?leadType=LEAD_CAPTURE&page=0&size=200", null, Map.class).getBody().get("content");
+        assertTrue(captureOnly.stream().allMatch(l -> "LEAD_CAPTURE".equals(l.get("leadType"))));
+        assertTrue(captureOnly.stream().anyMatch(l -> captureId.toString().equals(l.get("id"))));
+
+        for (String otherType : List.of("MESA_DEMO", "PROJECT_ENQUIRY")) {
+            List<Map<String, Object>> other = (List<Map<String, Object>>) session.call(HttpMethod.GET,
+                    "/api/v1/admin/leads?leadType=" + otherType + "&page=0&size=200", null, Map.class).getBody().get("content");
+            assertTrue(other.stream().noneMatch(l -> captureId.toString().equals(l.get("id"))),
+                    "a capture must never be listed as " + otherType);
+        }
+
+        List<Map<String, Object>> all = (List<Map<String, Object>>) session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?page=0&size=200", null, Map.class).getBody().get("content");
+        assertTrue(all.stream().anyMatch(l -> captureId.toString().equals(l.get("id")) && "LEAD_CAPTURE".equals(l.get("leadType"))));
+        assertTrue(all.stream().anyMatch(l -> demo.getId().toString().equals(l.get("id")) && "MESA_DEMO".equals(l.get("leadType"))));
+    }
+
+    @Test
+    void dashboardAndFollowUpFiltersIncludeLeadCaptures() {
+        String reference = submitLeadCapture(randomMobile(), "CUSTOMER_ENQUIRIES");
+        UUID id = captureIdFor(reference);
+        LoggedInSession session = loginAsNewAdmin();
+
+        Map<String, Object> dashboard = session.call(HttpMethod.GET,
+                "/api/v1/admin/dashboard?timezone=Asia/Kolkata", null, Map.class).getBody();
+        long newCaptures = ((Number) dashboard.get("newLeadCaptures")).longValue();
+        assertTrue(newCaptures >= 1);
+        assertEquals(((Number) dashboard.get("newProjectEnquiries")).longValue()
+                        + ((Number) dashboard.get("newMesaDemoRequests")).longValue() + newCaptures,
+                ((Number) dashboard.get("totalNewLeads")).longValue(), "the total includes captures");
+
+        // A follow-up two days ago is overdue in every timezone.
+        assertEquals(HttpStatus.NO_CONTENT, session.call(HttpMethod.PATCH, "/api/v1/admin/leads/LEAD_CAPTURE/" + id + "/follow-up",
+                Map.of("followUpAt", Instant.now().minusSeconds(2 * 86_400).toString()), Void.class).getStatusCode());
+
+        List<Map<String, Object>> overdue = (List<Map<String, Object>>) session.call(HttpMethod.GET,
+                "/api/v1/admin/leads?leadType=LEAD_CAPTURE&followUp=OVERDUE&timezone=Asia/Kolkata&page=0&size=200",
+                null, Map.class).getBody().get("content");
+        assertTrue(overdue.stream().anyMatch(l -> id.toString().equals(l.get("id"))));
+
+        long overdueCount = ((Number) session.call(HttpMethod.GET, "/api/v1/admin/dashboard?timezone=Asia/Kolkata",
+                null, Map.class).getBody().get("overdueFollowUps")).longValue();
+        assertTrue(overdueCount >= 1);
     }
 
     @Test

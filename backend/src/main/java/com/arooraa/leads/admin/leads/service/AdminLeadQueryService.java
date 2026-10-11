@@ -17,6 +17,10 @@ import com.arooraa.leads.admin.leads.web.dto.AdminLeadSummary;
 import com.arooraa.leads.admin.leads.web.dto.FollowUpFilter;
 import com.arooraa.leads.admin.leads.web.dto.ManagementInfo;
 import com.arooraa.leads.admin.leads.web.dto.NoteResponse;
+import com.arooraa.leads.capture.domain.LeadCapture;
+import com.arooraa.leads.capture.domain.LeadCaptureStatus;
+import com.arooraa.leads.capture.domain.LeadLanguage;
+import com.arooraa.leads.capture.repository.LeadCaptureRepository;
 import com.arooraa.leads.domain.DemoRequest;
 import com.arooraa.leads.domain.LeadStatus;
 import com.arooraa.leads.project.domain.EnquiryStatus;
@@ -51,6 +55,7 @@ public class AdminLeadQueryService {
 
     private final DemoRequestRepository demoRequestRepository;
     private final ProjectEnquiryRepository projectEnquiryRepository;
+    private final LeadCaptureRepository leadCaptureRepository;
     private final LeadManagementRepository leadManagementRepository;
     private final LeadNoteRepository leadNoteRepository;
     private final LeadActivityRepository leadActivityRepository;
@@ -59,6 +64,7 @@ public class AdminLeadQueryService {
 
     public AdminLeadQueryService(DemoRequestRepository demoRequestRepository,
                                   ProjectEnquiryRepository projectEnquiryRepository,
+                                  LeadCaptureRepository leadCaptureRepository,
                                   LeadManagementRepository leadManagementRepository,
                                   LeadNoteRepository leadNoteRepository,
                                   LeadActivityRepository leadActivityRepository,
@@ -66,6 +72,7 @@ public class AdminLeadQueryService {
                                   DayWindowResolver dayWindowResolver) {
         this.demoRequestRepository = demoRequestRepository;
         this.projectEnquiryRepository = projectEnquiryRepository;
+        this.leadCaptureRepository = leadCaptureRepository;
         this.leadManagementRepository = leadManagementRepository;
         this.leadNoteRepository = leadNoteRepository;
         this.leadActivityRepository = leadActivityRepository;
@@ -107,6 +114,12 @@ public class AdminLeadQueryService {
                 merged.add(toSummary(dr));
             }
         }
+        if (leadTypeFilter == null || leadTypeFilter == LeadType.LEAD_CAPTURE) {
+            LeadCaptureStatus captureStatus = statusFilter == null ? null : LeadCaptureStatus.valueOf(statusFilter);
+            for (LeadCapture lc : leadCaptureRepository.search(captureStatus, searchPattern, PageRequest.of(0, MAX_ROWS_PER_TYPE))) {
+                merged.add(toSummary(lc));
+            }
+        }
 
         merged = decorateWithManagement(merged);
         merged.sort(Comparator.comparing(AdminLeadSummary::createdAt).reversed());
@@ -138,6 +151,7 @@ public class AdminLeadQueryService {
         return switch (leadType) {
             case PROJECT_ENQUIRY -> projectDetail(id);
             case MESA_DEMO -> mesaDetail(id);
+            case LEAD_CAPTURE -> leadCaptureDetail(id);
         };
     }
 
@@ -217,6 +231,43 @@ public class AdminLeadQueryService {
                 dr.getVersion(), dr.getCreatedAt(), dr.getContactName(), dr.getRestaurantName(), dr.getBusinessEmail(),
                 dr.getNormalizedWhatsappNumber(), dr.getCity(), fields, buildManagementInfo(LeadType.MESA_DEMO, id),
                 buildNotes(LeadType.MESA_DEMO, id), buildActivity(LeadType.MESA_DEMO, id));
+    }
+
+    /**
+     * A lead capture has no name, email, company or city by design — those stay null rather
+     * than being filled with placeholders. Internal-only columns (ip_hash, idempotency key,
+     * request fingerprint) are never exposed.
+     */
+    private AdminLeadDetail leadCaptureDetail(UUID id) {
+        LeadCapture lc = leadCaptureRepository.findById(id)
+                .orElseThrow(() -> new LeadNotFoundException("Lead capture not found"));
+
+        Map<String, String> fields = new LinkedHashMap<>();
+        putIfPresent(fields, "Requirement", humanizeEnum(lc.getRequirement()));
+        putIfPresent(fields, "Business type", lc.getBusinessType());
+        putIfPresent(fields, "Preferred call time", humanizeEnum(lc.getPreferredCallTime()));
+        putIfPresent(fields, "Preferred language", languageName(lc.getPreferredLanguage()));
+        putIfPresent(fields, "Page language", languageName(lc.getSourceLocale()));
+        fields.put("Handoff to a person requested", lc.isHandoffRequested() ? "Yes" : "No");
+        fields.put("Consent given", lc.isConsentGiven() ? "Yes" : "No");
+        putIfPresent(fields, "Consent source", humanizeEnum(lc.getConsentSource()));
+        if (lc.getConsentAt() != null) {
+            fields.put("Consent recorded at", lc.getConsentAt().toString());
+        }
+        putIfPresent(fields, "Consent text", lc.getConsentText());
+        putIfPresent(fields, "Country code", lc.getCountryCode());
+        putIfPresent(fields, "Source", humanizeEnum(lc.getSource()));
+        putIfPresent(fields, "Source page", lc.getSourcePage());
+        putIfPresent(fields, "Referrer", lc.getReferrer());
+        putIfPresent(fields, "UTM source", lc.getUtmSource());
+        putIfPresent(fields, "UTM medium", lc.getUtmMedium());
+        putIfPresent(fields, "UTM campaign", lc.getUtmCampaign());
+        putIfPresent(fields, "UTM content", lc.getUtmContent());
+
+        return new AdminLeadDetail(lc.getId(), LeadType.LEAD_CAPTURE, lc.getLeadReference(), lc.getStatus().name(),
+                lc.getVersion(), lc.getCreatedAt(), null, null, null,
+                lc.getPhone(), null, fields, buildManagementInfo(LeadType.LEAD_CAPTURE, id),
+                buildNotes(LeadType.LEAD_CAPTURE, id), buildActivity(LeadType.LEAD_CAPTURE, id));
     }
 
     private ManagementInfo buildManagementInfo(LeadType leadType, UUID leadId) {
@@ -304,6 +355,24 @@ public class AdminLeadQueryService {
         return new AdminLeadSummary(dr.getId(), LeadType.MESA_DEMO, syntheticMesaReference(dr.getId()),
                 dr.getContactName(), dr.getRestaurantName(), dr.getBusinessEmail(), dr.getNormalizedWhatsappNumber(),
                 dr.getCity(), dr.getStatus().name(), dr.getCreatedAt(), null, null, null, null, null, null, null);
+    }
+
+    /** No name/email/company/city for a capture — left null. The requirement stands in as the direction. */
+    private static AdminLeadSummary toSummary(LeadCapture lc) {
+        return new AdminLeadSummary(lc.getId(), LeadType.LEAD_CAPTURE, lc.getLeadReference(),
+                null, null, null, lc.getPhone(), null, lc.getStatus().name(), lc.getCreatedAt(),
+                null, null, null, null,
+                maskPhone(lc.getPhone()), humanizeEnum(lc.getRequirement()), null);
+    }
+
+    private static String languageName(LeadLanguage language) {
+        if (language == null) {
+            return null;
+        }
+        return switch (language) {
+            case EN -> "English";
+            case TA -> "Tamil";
+        };
     }
 
     /**

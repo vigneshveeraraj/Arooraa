@@ -37,6 +37,10 @@ export function DashboardSplit({ summary }: { summary: DashboardSummary }) {
         <span className={styles.splitValue}>{summary.newMesaDemoRequests}</span>
         <span className={styles.splitLabel}>New MESA Demo Requests</span>
       </div>
+      <div className={styles.splitCard}>
+        <span className={styles.splitValue}>{summary.newLeadCaptures ?? 0}</span>
+        <span className={styles.splitLabel}>New Lead Captures</span>
+      </div>
     </div>
   );
 }

@@ -65,7 +65,7 @@ describe("AdminLeadDetailPage", () => {
       if (url.includes("/users")) {
         return mockResponse(200, [{ id: "admin-1", email: "owner@arooraa.test", displayName: "Owner" }]);
       }
-      if (url.endsWith(`/leads/PROJECT_ENQUIRY/${LEAD_ID}`) && method === "GET") {
+      if (url.endsWith(`/leads/${detail.leadType}/${LEAD_ID}`) && method === "GET") {
         return mockResponse(200, detail);
       }
       if (url.includes("/status") && method === "PATCH") {
@@ -230,5 +230,107 @@ describe("AdminLeadDetailPage", () => {
     await user.click(screen.getByRole("button", { name: "Add note" }));
 
     expect(await screen.findByText("Called and left a voicemail.")).toBeInTheDocument();
+  });
+
+  describe("a LEAD_CAPTURE lead", () => {
+    beforeEach(() => {
+      detail = buildDetail({
+        leadType: "LEAD_CAPTURE",
+        referenceNumber: "LC-7Q2M9X",
+        customerName: null,
+        companyOrRestaurant: null,
+        email: null,
+        phone: "+919840012345",
+        cityOrCountry: null,
+        submittedFields: {
+          Requirement: "Ai Automation",
+          "Preferred language": "Tamil",
+          "Preferred call time": "Evening",
+          "Consent given": "Yes",
+          "Consent source": "Web Form",
+          Source: "Website",
+        },
+      });
+      window.history.pushState({}, "", `/admin/leads/detail?type=LEAD_CAPTURE&id=${LEAD_ID}`);
+    });
+
+    it("renders requirement, phone, language, call time and consent without inventing a name or email", async () => {
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+
+      expect(await screen.findByText("LC-7Q2M9X")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1, name: "Name not provided" })).toBeInTheDocument();
+      expect(screen.getByText("Lead Capture")).toBeInTheDocument();
+      expect(screen.queryByText("MESA Demo")).not.toBeInTheDocument();
+      expect(screen.getByText("Consultation Request")).toBeInTheDocument();
+      expect(screen.getByText("+919840012345")).toBeInTheDocument();
+      expect(screen.getByText("Ai Automation")).toBeInTheDocument();
+      expect(screen.getByText("Tamil")).toBeInTheDocument();
+      expect(screen.getByText("Evening")).toBeInTheDocument();
+      expect(screen.getByText("Web Form")).toBeInTheDocument();
+      expect(screen.queryByText("Email")).not.toBeInTheDocument();
+      expect(screen.queryByText("null")).not.toBeInTheDocument();
+    });
+
+    it("sends status and note changes to the LEAD_CAPTURE endpoints with the lead version", async () => {
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+      await screen.findByText("LC-7Q2M9X");
+
+      const user = userEvent.setup();
+      await user.selectOptions(screen.getByLabelText("Current status"), "CONTACTED");
+      await user.click(screen.getByRole("button", { name: "Update status" }));
+
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${LEAD_ID}/status`),
+          expect.objectContaining({ method: "PATCH", body: expect.stringContaining('"expectedVersion":0') }),
+        ),
+      );
+
+      await user.type(screen.getByLabelText("Add a note"), "Prefers a call after 6pm.");
+      await user.click(screen.getByRole("button", { name: "Add note" }));
+
+      expect(await screen.findByText("Prefers a call after 6pm.")).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`/leads/LEAD_CAPTURE/${LEAD_ID}/notes`),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+
+    it("sends follow-up and assignment changes to the LEAD_CAPTURE endpoints", async () => {
+      render(
+        <AdminAuthProvider>
+          <AdminLeadDetailPage />
+        </AdminAuthProvider>,
+      );
+      await screen.findByText("LC-7Q2M9X");
+      await screen.findByText("Owner", { selector: "option" });
+
+      const user = userEvent.setup();
+      await user.type(screen.getByLabelText("Next follow-up"), "2026-09-01T10:00");
+      await user.click(screen.getByRole("button", { name: "Save follow-up" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${LEAD_ID}/follow-up`),
+          expect.anything(),
+        ),
+      );
+
+      await user.selectOptions(screen.getByLabelText("Assigned to"), "admin-1");
+      await user.click(screen.getByRole("button", { name: "Save assignment" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining(`/leads/LEAD_CAPTURE/${LEAD_ID}/assignment`),
+          expect.anything(),
+        ),
+      );
+    });
   });
 });

@@ -21,7 +21,11 @@ public record AdminLeadSummary(
         String assignedTo,
         BigDecimal estimatedValue,
         String estimatedValueCurrency,
-        /** W3.2D — project-enquiry-only list fields, null for MESA_DEMO rows. */
+        /**
+         * W3.2D list fields, null for MESA_DEMO rows. LEAD_CAPTURE rows set maskedPhone and use
+         * direction for the requirement; their customerName/companyOrRestaurant/email/cityOrCountry
+         * are always null (a capture collects no identity).
+         */
         String maskedPhone,
         String direction,
         String preferredContactMethod
