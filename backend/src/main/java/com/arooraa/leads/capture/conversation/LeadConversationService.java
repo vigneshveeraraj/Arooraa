@@ -30,8 +30,10 @@ import java.util.regex.Pattern;
 /**
  * Handles one inbound message end to end, in one transaction: de-duplicate, find or start the
  * participant's conversation, link it to a lead, run the script, store both sides of the turn.
- * Channel adapters only translate in and out. Today the only adapter is the local simulator; a
- * WhatsApp webhook is NOT implemented yet (it needs Meta WhatsApp Cloud API onboarding).
+ * Channel adapters only translate in and out: the local simulator, and the WhatsApp Cloud API
+ * transport (capture.whatsapp — off by default, ops/whatsapp-integration.md), whose background
+ * processor calls this inside its own transaction so the turn, the inbox row and the reply
+ * outbox commit together.
  *
  * Linking a reference: a message carrying "LC-XXXXXX" attaches the conversation to that saved
  * lead <em>only if the lead's phone is the sender's number</em>. Otherwise anyone who saw a

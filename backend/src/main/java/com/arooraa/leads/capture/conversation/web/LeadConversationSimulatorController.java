@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Local development only: drives the same conversation path a future WhatsApp webhook would use, without
+ * Local development only: drives the same conversation path the WhatsApp transport uses, without
  * Meta, so the script and the local model can be tried end to end. Nothing is sent anywhere —
  * replies come back in the response.
  *

@@ -41,9 +41,11 @@ public class SecurityConfig {
             "/api/v1/contact/**",
             "/api/v1/lead-captures/**",
             // Local development only, off by default and token-gated — see LeadConversationSimulatorController.
-            // There is deliberately no WhatsApp webhook path here: none exists until Meta Cloud API
-            // onboarding is done (frontend-v2/docs/lead-capture.md).
             "/api/v1/lead-conversations/simulator/**",
+            // Meta WhatsApp webhook — this exact path only (no wildcard), never CORS-enabled. 404 unless
+            // arooraa.whatsapp.enabled; every POST is authenticated by its X-Hub-Signature-256 HMAC
+            // instead of a session, which is why it is CSRF-exempt — see WhatsAppWebhookController.
+            "/api/v1/whatsapp/webhook",
             "/actuator/health",
     };
 
