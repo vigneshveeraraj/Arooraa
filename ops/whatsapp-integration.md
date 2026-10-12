@@ -168,3 +168,10 @@ Local dummy-credential smoke verification subsequently passed:
 - No real Meta credentials or outbound request were used. Clipboard functions were replaced inside the smoke process; the real user clipboard was untouched.
 - Cleanup succeeded, stopping only owned backend/proxy processes and removing the disposable database; mock verify token cleared.
 - Harness/evidence: D:\Test\arooraa-whatsapp-sandbox-smoke.ps1; sandbox startup logs in D:\Test\arooraa-whatsapp-sandbox\.
+
+## 11. Owner approved temporary sandbox tunnel — 2026-10-12 15:48 IST
+- Owner explicitly approved "sandbox tunnel"; this does not authorize production publication or real-number migration.
+- Installed official cloudflared 2026.10.0 in D:\AgentOps-Pocket\tools\cloudflared\cloudflared.exe; official GitHub release asset SHA256 verified: 86aee4017b26625cee8484c113558f48effa4cd47f7aa05fcf425604e5d2b23c.
+- Opened the sandbox's interactive credential console. App Secret/access token remain owner-entered, masked local prompts.
+- Added watch-whatsapp-sandbox-tunnel.ps1. It waits up to 30 minutes for the owned loopback Node webhook proxy; only then starts cloudflared to 127.0.0.1:8099. It records the public callback URL without credentials and stops its tunnel when the proxy stops.
+- Watcher PowerShell syntax passed. At launch it reported WAITING_FOR_LOCAL_CREDENTIAL_SETUP; actual tunnel creation and live Meta callback remain pending.
