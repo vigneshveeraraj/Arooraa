@@ -64,3 +64,9 @@ Status: IMPLEMENTED_UNTESTED / LIVE_WHATSAPP_BLOCKED. Setup, flags, runbook and 
 - Local KamalHaasan advisory review executed. Its three allegations were rejected after source inspection: claim() only selects PENDING/RETRY, complete() uses lease-guarded transitions and guarded() excludes callback-proven ACCEPTED, and terminalAttempt() stops after 3 send attempts with next_attempt_at enforcing retry delays. Executed ITs cover these paths. The advisory output is not an independent expert or release sign-off.
 - User confirmed WhatsApp Business phone app only. Need Meta app/test-number onboarding, secure secrets, HTTPS sandbox callback, live delivery/receipt verification, then independent release acceptance. See ops/whatsapp-integration.md.
 - Production flags remain off; no customer messages or production activation occurred. Current code is ready for supervised sandbox setup, not production.
+
+## Meta sandbox send verified — 2026-10-12
+Status: META_SANDBOX_SEND_VERIFIED / AROORAA_CALLBACK_PENDING / PRODUCTION_NOT_READY.
+Owner's verified recipient received Meta hello_world. Owner subsequently sent Hi; callback URL is still unset, so no backend receipt/automatic response is claimed.
+Nonsecret Meta IDs and secure isolated callback preparation are recorded in whatsapp-integration.md section 10. Proxy security checks and launcher preflight passed; full local secret-backed startup is pending.
+Next: approve temporary Cloudflare exposure of the webhook-only proxy; enter credentials locally; validate callback and messages subscription; test backend English/Tamil conversations and delivery callbacks. Keep production and real-number migration unapproved.

@@ -135,3 +135,36 @@ mvn verify
 - Evidence logs: D:\AgentOps-Pocket\data\workforce\whatsapp-unit-tests.log and whatsapp-isolated-verify.log. Source code/settings used by verification match the repository source; documentation was updated afterward only.
 - Release verdict remains NOT_READY. Remaining external steps: Meta app/test-number onboarding, secure credential injection, authorized public HTTPS sandbox callback setup, live send/receive and delivery-receipt verification, independent release acceptance and owner deployment approval.
 - All production webhook/outbound/worker flags remain false by default. No real outbound WhatsApp message, production deployment, credential reset or paid API request was performed. Existing Claude subscription CLI and two bounded local Ollama tasks were used.
+
+## 10. Meta sandbox progress and local callback preparation — 2026-10-12
+Verified in the owner's Meta developer session:
+- App: Arooraa Lead Sandbox; App ID 1362359049310995.
+- Test Phone Number ID 1276820242191298; WABA ID 1074115012292548; API version v25.0.
+- Owner added and verified a sandbox recipient and generated a temporary access token.
+- Meta UI confirmed the hello_world test was sent; owner confirmed handset receipt.
+- Owner sent "Hi" from the handset. Webhook callback/subscription fields are still empty, so this is not evidence of backend receipt.
+- App remains unpublished with zero production numbers and one test number. Meta's configuration page warns that production webhooks require publication; publication is a separate release action.
+- No app secret or access token was copied into chat, repository, or supervisor logs. No Arooraa live send/receive/receipt verification is complete.
+
+Prepared (not started):
+- ops/start-whatsapp-sandbox.ps1: local interactive masked secret entry; generated verify token copied only after owner's explicit COPY input.
+- Fresh disposable PostgreSQL container on 127.0.0.1:5544, isolated backend on 127.0.0.1:8098, webhook-only proxy on 127.0.0.1:8099.
+- Existing Arooraa/MESA applications and database containers are preserved. Existing inherited AROORAA/SPRING/JVM option overrides are cleared for the sandbox child and restored on exit.
+- Initial worker and outbound flags are OFF, allowing callback validation and durable inbox checks before sending replies.
+- Proxy allows only the exact /api/v1/whatsapp/webhook path and GET/POST. It bounds bodies, preserves raw signed bytes, strips credentials/cookies/forwarded headers, and hides backend error text.
+- Proxy security integration test passed; PowerShell syntax and dependency/port preflight passed. Full launcher startup remains untested because it requires owner-entered secrets.
+- Existing verified JAR: D:\Test\arooraa-whatsapp-verify-20261012\target\lead-service.jar.
+- Proposed public connection: temporary Cloudflare Quick Tunnel to http://127.0.0.1:8099. cloudflared is not currently installed. Do not start a tunnel without owner's action-time approval for public exposure and test message routing through Cloudflare.
+- Official tunnel docs: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/ (temporary hostname, development only, no uptime guarantee).
+- Run preflight: powershell -NoProfile -File D:\Arooraa\ops\start-whatsapp-sandbox.ps1 -Preflight
+- Interactive launch after approval: powershell -NoProfile -File D:\Arooraa\ops\start-whatsapp-sandbox.ps1
+- Once ready and approved, install/use official cloudflared and target ONLY the proxy: cloudflared tunnel --url http://127.0.0.1:8099
+- Then set the generated HTTPS hostname + /api/v1/whatsapp/webhook and the secure verify token in Meta; Verify and save; subscribe messages; verify a signed test event before enabling worker/outbound replies.
+- Stop the interactive launcher to stop only its owned processes/container and clear its verify token if still in the clipboard. Its temporary sandbox test database is removed on shutdown.
+
+Local dummy-credential smoke verification subsequently passed:
+- Real isolated JAR startup + PostgreSQL migrations completed; health UP.
+- Through proxy: valid GET challenge 200 with exact challenge body, wrong verify token 403, unsigned POST 401, /actuator/health denied with 404.
+- No real Meta credentials or outbound request were used. Clipboard functions were replaced inside the smoke process; the real user clipboard was untouched.
+- Cleanup succeeded, stopping only owned backend/proxy processes and removing the disposable database; mock verify token cleared.
+- Harness/evidence: D:\Test\arooraa-whatsapp-sandbox-smoke.ps1; sandbox startup logs in D:\Test\arooraa-whatsapp-sandbox\.
