@@ -12,6 +12,8 @@ $createdDb = $false
 $backendProcess = $null
 $proxyProcess = $null
 $verifyClipboardValue = $null
+$backendEnvironment = @{}
+$tokenPath = Join-Path $runtimeDir 'verify-token.dpapi'
 $secretNames = @('AROORAA_WHATSAPP_APP_SECRET','AROORAA_WHATSAPP_ACCESS_TOKEN',
     'AROORAA_WHATSAPP_VERIFY_TOKEN','AROORAA_DB_PASSWORD','AROORAA_IP_HASH_SECRET','POSTGRES_PASSWORD')
 function New-RandomValue {
@@ -82,6 +84,15 @@ try {
     if ((Read-Host 'Type COPY to put the verify token in your clipboard for Meta') -ne 'COPY') {
         throw 'Cancelled before backend activation.'
     }
+    Add-Type -AssemblyName System.Security
+    # DPAPI binds the encrypted token to this Windows user; no plaintext token is written.
+    $entropy = [Text.Encoding]::UTF8.GetBytes('Arooraa-WhatsApp-Sandbox-1362359049310995')
+    $clearBytes = [Text.Encoding]::UTF8.GetBytes($verifyClipboardValue)
+    try {
+        $protected = [Security.Cryptography.ProtectedData]::Protect(
+            $clearBytes,$entropy,[Security.Cryptography.DataProtectionScope]::CurrentUser)
+        [IO.File]::WriteAllBytes($tokenPath,$protected)
+    } finally { [Array]::Clear($clearBytes,0,$clearBytes.Length) }
     Set-Clipboard -Value $env:AROORAA_WHATSAPP_VERIFY_TOKEN
     $env:AROORAA_IP_HASH_SECRET = New-RandomValue
     $env:AROORAA_DB_URL = 'jdbc:postgresql://127.0.0.1:5544/arooraa_whatsapp_sandbox'
@@ -100,6 +111,9 @@ try {
     foreach ($name in @('AROORAA_ADMIN_BOOTSTRAP_EMAIL','AROORAA_ADMIN_BOOTSTRAP_PASSWORD',
         'AROORAA_ADMIN_RESET_EMAIL','AROORAA_ADMIN_RESET_PASSWORD')) {
         [Environment]::SetEnvironmentVariable($name, '', 'Process')
+    }
+    foreach ($name in ($secretNames + $settingNames)) {
+        $backendEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
     $backendProcess = Start-Process java -ArgumentList @('-Xms128m','-Xmx512m','-jar',('"' + $JarPath + '"')) -WorkingDirectory $runtimeDir -RedirectStandardOutput "$runtimeDir\backend.log" -RedirectStandardError "$runtimeDir\backend-error.log" -PassThru
     foreach ($name in ($secretNames + $settingNames)) {
@@ -123,11 +137,51 @@ try {
     Write-Host 'Cloudflared must target http://127.0.0.1:8099 only, after owner approval.'
     Write-Host 'Existing apps/databases are unchanged. Outbound sends and worker remain OFF.'
     Write-Host 'Stopping this session removes only this temporary sandbox database and its test records.'
-    Read-Host 'Press ENTER to stop the sandbox and clear the verify-token clipboard' | Out-Null
+    :operatorLoop while ($true) {
+        $action = Read-Host 'Type COPY to copy verify token again, REPLIES after Meta verification, or STOP'
+        switch ($action.Trim().ToUpperInvariant()) {
+            'COPY' { & (Join-Path $PSScriptRoot 'copy-whatsapp-verify-token.ps1') }
+            'REPLIES' {
+                if ($backendEnvironment['AROORAA_WHATSAPP_OUTBOUND_ENABLED'] -eq 'true') {
+                    Write-Host 'Sandbox replies are already enabled.'
+                    continue
+                }
+                Stop-Process -Id $backendProcess.Id
+                $backendProcess.WaitForExit()
+                $backendEnvironment['AROORAA_WHATSAPP_OUTBOUND_ENABLED'] = 'true'
+                $backendEnvironment['AROORAA_WHATSAPP_WORKER_ENABLED'] = 'true'
+                foreach ($name in $backendEnvironment.Keys) {
+                    [Environment]::SetEnvironmentVariable($name,$backendEnvironment[$name],'Process')
+                }
+                try {
+                    $backendProcess = Start-Process java -ArgumentList @('-Xms128m','-Xmx512m','-jar',('"' + $JarPath + '"')) -WorkingDirectory $runtimeDir -RedirectStandardOutput "$runtimeDir\backend.log" -RedirectStandardError "$runtimeDir\backend-error.log" -PassThru
+                } finally {
+                    foreach ($name in $backendEnvironment.Keys) {
+                        [Environment]::SetEnvironmentVariable($name,$null,'Process')
+                    }
+                }
+                $ready = $false
+                for ($attempt=0; $attempt -lt 90; $attempt++) {
+                    if ($backendProcess.HasExited) { throw 'Sandbox reply backend exited.' }
+                    try {
+                        $health=Invoke-RestMethod -Uri 'http://127.0.0.1:8098/actuator/health' -TimeoutSec 2
+                        if ($health.status -eq 'UP') { $ready=$true; break }
+                    } catch { }
+                    Start-Sleep -Seconds 1
+                }
+                if (-not $ready) { throw 'Sandbox reply backend readiness timed out.' }
+                Write-Host 'SANDBOX_REPLIES_ENABLED: Meta test number only; proxy/tunnel/database preserved.'
+            }
+            'STOP' { break operatorLoop }
+            default { Write-Host 'Use COPY, REPLIES or STOP. Pressing ENTER alone keeps the sandbox running.' }
+        }
+    }
 } finally {
     if ($proxyProcess -and -not $proxyProcess.HasExited) { Stop-Process -Id $proxyProcess.Id -ErrorAction SilentlyContinue }
     if ($backendProcess -and -not $backendProcess.HasExited) { Stop-Process -Id $backendProcess.Id -ErrorAction SilentlyContinue }
     if ($createdDb) { & docker stop $containerName | Out-Null }
+    if ($verifyClipboardValue -and (Test-Path -LiteralPath $tokenPath)) { Remove-Item -LiteralPath $tokenPath }
+    $backendEnvironment.Clear()
     # Clear only the generated token if still in the clipboard; preserve anything copied afterward.
     try {
         if ($verifyClipboardValue -and (Get-Clipboard -Raw -ErrorAction SilentlyContinue) -eq $verifyClipboardValue) {

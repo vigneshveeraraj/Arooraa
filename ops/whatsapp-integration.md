@@ -182,3 +182,12 @@ Local dummy-credential smoke verification subsequently passed:
 - Restart succeeded and generated an HTTPS callback. Actual public probes: non-webhook /actuator/health returns 404; GET webhook without required challenge parameters returns 400; unsigned POST webhook returns 401.
 - Filled the nonsecret callback URL in Meta's Configuration page. Owner still needs to paste the verify token from the laptop clipboard and Verify and save; messages subscription and live inbound/automated reply are unverified.
 - Worker/outbound remain OFF. The tunnel is automatically stopped when its owned proxy stops.
+
+## 13. Recopy and staged reply controls — 2026-10-12
+- Owner requested to copy the verify token again after the clipboard had become empty. The first launcher had no recopy command; it was stopped and replaced with an operator menu.
+- The generated verify token is now kept only as a Windows DPAPI CurrentUser-encrypted runtime file, removed on normal shutdown. The Meta app secret and access token remain process-memory inputs; no plaintext credential file is created.
+- COPY decrypts the sandbox verify token locally, validates it against the active loopback webhook, and copies it without printing it. Separate helper: copy-whatsapp-verify-token.ps1.
+- ENTER alone keeps the sandbox running. STOP stops its owned processes/database and removes the encrypted token.
+- After callback verification, REPLIES restarts only the isolated backend with worker/outbound enabled, retaining the database, verify token, proxy and tunnel. No new secret entry is required within that session.
+- Updated dummy-credential smoke passed initial readiness, valid/wrong challenge, unsigned event rejection, non-webhook denial, COPY recovery, REPLIES restart with the same verify token, and cleanup. Empty test queues meant no real Meta send.
+- The old temporary callback hostname is no longer active after stopping its proxy. A new callback must be filled once owner completes the renewed masked credential prompts; existing production numbers/apps remain untouched.
