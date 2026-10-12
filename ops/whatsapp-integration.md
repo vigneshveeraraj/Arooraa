@@ -175,3 +175,10 @@ Local dummy-credential smoke verification subsequently passed:
 - Opened the sandbox's interactive credential console. App Secret/access token remain owner-entered, masked local prompts.
 - Added watch-whatsapp-sandbox-tunnel.ps1. It waits up to 30 minutes for the owned loopback Node webhook proxy; only then starts cloudflared to 127.0.0.1:8099. It records the public callback URL without credentials and stops its tunnel when the proxy stops.
 - Watcher PowerShell syntax passed. At launch it reported WAITING_FOR_LOCAL_CREDENTIAL_SETUP; actual tunnel creation and live Meta callback remain pending.
+
+## 12. Local credentials entered and approved tunnel reachable — 2026-10-12 16:26 IST
+- Owner completed both masked local credential prompts and COPY for the generated verify token; local backend 8098 and proxy 8099 are ready.
+- Corrected watcher log reading to FileShare.ReadWrite after the first live launch hit a Windows file-sharing lock. The failed watcher stopped its owned tunnel, leaving local sandbox processes intact.
+- Restart succeeded and generated an HTTPS callback. Actual public probes: non-webhook /actuator/health returns 404; GET webhook without required challenge parameters returns 400; unsigned POST webhook returns 401.
+- Filled the nonsecret callback URL in Meta's Configuration page. Owner still needs to paste the verify token from the laptop clipboard and Verify and save; messages subscription and live inbound/automated reply are unverified.
+- Worker/outbound remain OFF. The tunnel is automatically stopped when its owned proxy stops.

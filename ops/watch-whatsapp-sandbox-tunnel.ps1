@@ -32,7 +32,9 @@ try {
     for ($attempt=0; $attempt -lt 60; $attempt++) {
         if ($tunnelProcess.HasExited) { throw 'Tunnel startup failed; inspect local tunnel.log.' }
         if (Test-Path "$runtimeDir\tunnel.log") {
-            $text = [IO.File]::ReadAllText("$runtimeDir\tunnel.log")
+            $stream = [IO.File]::Open("$runtimeDir\tunnel.log", [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+            $reader = New-Object IO.StreamReader($stream)
+            try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
             $match = [regex]::Match($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
             if ($match.Success) {
                 $callback = $match.Value + '/api/v1/whatsapp/webhook'
