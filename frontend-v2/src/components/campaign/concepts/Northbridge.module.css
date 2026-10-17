@@ -1,0 +1,283 @@
+/* Desktop budget: browser viewport is 58.75cqi tall — nav 7 + hero 37 + services 14. */
+
+.site {
+  container-type: inline-size;
+  height: 100%;
+  background: #fff;
+  color: #10231f;
+}
+
+.kicker {
+  font-size: 1.15cqi;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+/* ---------- Desktop ---------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 7cqi;
+  padding: 0 4cqi;
+  border-bottom: 1px solid #e7ece9;
+  font-size: 1.3cqi;
+}
+
+.logo {
+  font-family: Georgia, serif;
+  font-size: 2.2cqi;
+}
+
+.logo span {
+  color: #0f766e;
+}
+
+.links {
+  display: flex;
+  gap: 2.6cqi;
+  color: #52615d;
+}
+
+.nav b {
+  padding: 1cqi 2cqi;
+  border-radius: 99px;
+  background: #0f766e;
+  color: #fff;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 3cqi;
+  align-items: center;
+  padding: 4cqi;
+}
+
+.hero h4 {
+  margin: 1.4cqi 0 0;
+  font-family: Georgia, serif;
+  font-size: 4.6cqi;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.hero p {
+  margin: 1.6cqi 0 0;
+  font-size: 1.4cqi;
+  color: #52615d;
+}
+
+.row {
+  display: flex;
+  gap: 1.2cqi;
+  margin-top: 2.4cqi;
+}
+
+.row span {
+  padding: 1.1cqi 2cqi;
+  border: 1px solid #c9d6d2;
+  border-radius: 99px;
+  font-size: 1.25cqi;
+  font-weight: 600;
+}
+
+.row span:first-child {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.hero img {
+  width: 100%;
+  height: 28cqi;
+  object-fit: cover;
+  border-radius: 1.4cqi;
+}
+
+.services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* The phone mock overlaps this browser's right edge; keep the text clear of it. */
+  margin: 0 15cqi 0 4cqi;
+  padding-top: 2.4cqi;
+  border-top: 1px solid #e7ece9;
+}
+
+.services small {
+  font-size: 1.05cqi;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #0f766e;
+}
+
+.services b {
+  display: block;
+  margin-top: 0.8cqi;
+  font-size: 1.6cqi;
+  font-weight: 600;
+}
+
+.services span {
+  display: block;
+  margin-top: 0.6cqi;
+  font-size: 1.2cqi;
+  color: #52615d;
+}
+
+/* ---------- Mobile (phone height ≈ 211cqi) ---------- */
+
+.mobile {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 30% 7% 7%;
+  background: #f5f8f7;
+  color: #10231f;
+}
+
+.mobile .kicker {
+  font-size: 3cqi;
+}
+
+.mobile h4 {
+  margin: 2cqi 0 0;
+  font-family: Georgia, serif;
+  font-size: 8.4cqi;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.topics {
+  display: flex;
+  gap: 2cqi;
+  margin-top: 4cqi;
+}
+
+.topics span {
+  padding: 1.8cqi 3.6cqi;
+  border: 1px solid #d8e2df;
+  border-radius: 99px;
+  background: #fff;
+  font-size: 3.2cqi;
+}
+
+.topics .on {
+  border-color: #0f766e;
+  background: #e3f1ef;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2cqi;
+  margin-top: 4cqi;
+}
+
+.days span {
+  padding: 2.4cqi 0;
+  border-radius: 3cqi;
+  background: #fff;
+  font-size: 3cqi;
+  text-align: center;
+  color: #52615d;
+}
+
+.days b {
+  display: block;
+  font-size: 5cqi;
+  color: #10231f;
+}
+
+.days .on {
+  background: #0f766e;
+  color: #cde7e3;
+}
+
+.days .on b {
+  color: #fff;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2cqi;
+  margin-top: 3cqi;
+}
+
+.slots span {
+  padding: 2.8cqi;
+  border: 1px solid #e1e8e6;
+  border-radius: 3cqi;
+  background: #fff;
+  font-size: 3.3cqi;
+  text-align: center;
+}
+
+.slots .on {
+  border-color: #0f766e;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.summary {
+  margin-top: 4cqi;
+  padding: 3.6cqi;
+  border-radius: 3cqi;
+  background: #fff;
+  box-shadow: 0 1cqi 4cqi -2cqi rgba(16, 35, 31, 0.25);
+  font-size: 3.1cqi;
+  color: #52615d;
+}
+
+.summary b {
+  display: block;
+  font-size: 4cqi;
+  color: #10231f;
+}
+
+.summary span {
+  display: flex;
+  align-items: center;
+  gap: 1.6cqi;
+  margin-top: 2cqi;
+  font-weight: 600;
+  color: #0f7d43;
+}
+
+.mIcon {
+  width: 4cqi;
+  height: 4cqi;
+}
+
+.details {
+  display: grid;
+  gap: 2cqi;
+  margin-top: 4cqi;
+}
+
+.details span {
+  padding: 3cqi 3.6cqi;
+  border: 1px solid #d8e2df;
+  border-radius: 3cqi;
+  background: #fff;
+  font-size: 3.2cqi;
+  color: #7c8a86;
+}
+
+.cta {
+  margin-top: auto;
+  padding: 4.2cqi;
+  border-radius: 99px;
+  background: #10231f;
+  font-size: 4cqi;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+}

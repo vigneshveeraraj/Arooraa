@@ -1,0 +1,297 @@
+/* Sizes are in cqi of the site's own width, so the mockup scales with its device frame.
+   Desktop budget: the laptop viewport is ~60cqi tall — nav 7.5 + hero 33 + cards 18. */
+
+.site,
+.mobile {
+  container-type: inline-size;
+  height: 100%;
+  background: #fbfaf7;
+  color: #1d1a16;
+}
+
+.logo {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.3cqi;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+}
+
+.logo small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.95cqi;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  color: #7d7262;
+}
+
+.kicker {
+  font-size: 1.15cqi;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #ecdcc0;
+}
+
+/* ---------- Desktop ---------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 7.5cqi;
+  padding: 0 4cqi;
+}
+
+.links {
+  display: flex;
+  gap: 3cqi;
+  font-size: 1.35cqi;
+  color: #4a443b;
+}
+
+.navCta {
+  padding: 1cqi 2cqi;
+  border-radius: 99px;
+  background: #1d1a16;
+  font-size: 1.25cqi;
+  font-weight: 600;
+  color: #fff;
+}
+
+.hero {
+  position: relative;
+  height: 33cqi;
+  margin: 0 2.4cqi;
+  overflow: hidden;
+  border-radius: 1.6cqi;
+}
+
+.hero img,
+.mHero img,
+.card img,
+.mList img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero img {
+  object-position: 50% 62%;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(20, 16, 10, 0.75) 0%, rgba(20, 16, 10, 0.28) 55%, transparent 82%);
+}
+
+.heroCopy {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 4.5cqi;
+  max-width: 44cqi;
+  color: #fff;
+  transform: translateY(-50%);
+}
+
+.heroCopy h4 {
+  margin: 1.4cqi 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 4.3cqi;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.heroCopy p {
+  margin: 1.4cqi 0 0;
+  font-size: 1.4cqi;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.row {
+  display: flex;
+  gap: 1.4cqi;
+  margin-top: 2.2cqi;
+}
+
+.row span {
+  padding: 1.1cqi 2.2cqi;
+  border-radius: 99px;
+  font-size: 1.3cqi;
+  font-weight: 600;
+}
+
+.light {
+  background: #fff;
+  color: #1d1a16;
+}
+
+.wa {
+  background: #0f7d43;
+  color: #fff;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.8cqi;
+  padding: 2.2cqi 2.4cqi;
+}
+
+.card {
+  overflow: hidden;
+  border-radius: 1.2cqi;
+  background: #fff;
+  box-shadow: 0 0.6cqi 2cqi -1cqi rgba(29, 26, 22, 0.25);
+}
+
+.card img {
+  height: 8.6cqi;
+}
+
+.card div {
+  padding: 1cqi 1.4cqi 1.2cqi;
+}
+
+.card b {
+  display: block;
+  font-size: 1.35cqi;
+}
+
+.card span {
+  font-size: 1.1cqi;
+  color: #7d7262;
+}
+
+/* ---------- Mobile (phone height ≈ 211cqi) ---------- */
+
+.mobile {
+  display: flex;
+  flex-direction: column;
+}
+
+.mTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14cqi 6cqi 4cqi;
+}
+
+.mTop .logo {
+  font-size: 6.6cqi;
+}
+
+.mTop .logo small {
+  font-size: 2.6cqi;
+}
+
+.mBurger {
+  display: grid;
+  place-items: center;
+  width: 9cqi;
+  height: 9cqi;
+  border-radius: 50%;
+  background: #efe9df;
+}
+
+.mBurger i {
+  width: 4cqi;
+  height: 0.9cqi;
+  border-radius: 1cqi;
+  background: #1d1a16;
+  box-shadow:
+    0 1.6cqi 0 #1d1a16,
+    0 -1.6cqi 0 #1d1a16;
+}
+
+.mHero {
+  position: relative;
+  height: 88cqi;
+  margin: 0 4cqi;
+  overflow: hidden;
+  border-radius: 6cqi;
+}
+
+.mHero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(20, 16, 10, 0.82) 0%, rgba(20, 16, 10, 0.1) 60%);
+}
+
+.mHeroCopy {
+  position: absolute;
+  z-index: 1;
+  right: 6cqi;
+  bottom: 7cqi;
+  left: 6cqi;
+  color: #fff;
+}
+
+.mHeroCopy .kicker {
+  font-size: 3cqi;
+}
+
+.mHeroCopy h4 {
+  margin: 2cqi 0 0;
+  font-family: Georgia, serif;
+  font-size: 9.5cqi;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.mList {
+  display: grid;
+  gap: 3cqi;
+  padding: 5cqi 4cqi 0;
+}
+
+.mList div {
+  display: flex;
+  align-items: center;
+  gap: 3.5cqi;
+  padding: 3cqi;
+  border-radius: 4cqi;
+  background: #fff;
+  box-shadow: 0 1cqi 4cqi -2cqi rgba(29, 26, 22, 0.3);
+}
+
+.mList img {
+  width: 16cqi;
+  height: 16cqi;
+  flex: none;
+  border-radius: 3cqi;
+}
+
+.mList span {
+  font-size: 3.2cqi;
+  color: #7d7262;
+}
+
+.mList b {
+  display: block;
+  font-size: 4cqi;
+  color: #1d1a16;
+}
+
+.mWhatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2cqi;
+  margin: auto 4cqi 6cqi;
+  padding: 4.4cqi;
+  border-radius: 99px;
+  background: #0f7d43;
+  font-size: 4.2cqi;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mIcon {
+  width: 5cqi;
+  height: 5cqi;
+}

@@ -1,0 +1,78 @@
+.section {
+  padding-block: var(--cg-section-space);
+  scroll-margin-top: 72px;
+  background: var(--cg-paper-blue);
+}
+
+.inner {
+  width: min(var(--cg-max), 100% - 2 * var(--cg-gutter));
+  margin-inline: auto;
+}
+
+/* Grid lines come from the 1px gap over the panel's border colour, so they stay correct
+   at every column count without per-breakpoint border rules. */
+.panel {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cg-line);
+  border-radius: 28px;
+  background: var(--cg-line);
+  list-style: none;
+}
+
+.panel li {
+  display: flex;
+  gap: 18px;
+  padding: 26px;
+  background: #fff;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  color: var(--cg-body);
+  transition: background-color 0.2s ease;
+}
+
+.panel li:hover {
+  background: #fafcff;
+}
+
+.panel b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1.05rem;
+  color: var(--cg-ink);
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--cg-paper-blue);
+  color: var(--cg-brand);
+}
+
+.icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+@media (min-width: 640px) {
+  .panel {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .panel li {
+    padding: 32px;
+  }
+}

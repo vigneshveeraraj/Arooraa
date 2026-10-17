@@ -1,0 +1,262 @@
+/* A light card on the dark contact section: one column at every width, large tap targets. */
+.card {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: var(--cg-shadow-lg);
+  color: var(--cg-ink);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.title:focus {
+  outline: none;
+}
+
+.title:focus-visible {
+  outline: 3px solid var(--cg-brand);
+  outline-offset: 4px;
+}
+
+.intro,
+.reference {
+  margin: 0;
+  font-size: 0.97rem;
+  line-height: 1.7;
+  color: var(--cg-body);
+}
+
+.fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend,
+.label {
+  display: block;
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cg-ink);
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--cg-line-strong);
+  border-radius: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.option:hover {
+  border-color: var(--cg-brand);
+}
+
+.option:has(input:checked) {
+  border-color: var(--cg-brand);
+  background: var(--cg-paper-blue);
+}
+
+.option input,
+.consent input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cg-brand);
+}
+
+.field {
+  display: grid;
+}
+
+.hint {
+  margin: -4px 0 10px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--cg-muted);
+}
+
+.card > .hint {
+  margin: 0;
+}
+
+.phoneRow {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--cg-line-strong);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.phoneRow:focus-within {
+  border-color: var(--cg-brand);
+  box-shadow: 0 0 0 3px rgba(31, 79, 216, 0.2);
+}
+
+.phoneRow:has(input[aria-invalid="true"]) {
+  border-color: #b42318;
+}
+
+.prefix {
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+  border-right: 1.5px solid var(--cg-line);
+  background: var(--cg-paper-warm);
+  font-weight: 700;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  color: var(--cg-ink);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.consent input {
+  margin-top: 2px;
+}
+
+.error {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #b42318;
+}
+
+.submit,
+.whatsapp,
+.call {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+.submit {
+  border: 0;
+  background: var(--cg-brand);
+  box-shadow: 0 14px 30px -16px rgba(31, 79, 216, 0.9);
+  font-size: 1.05rem;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.submit:hover {
+  background: #1a43b8;
+}
+
+.submit:disabled {
+  background: var(--cg-muted);
+  box-shadow: none;
+  cursor: progress;
+}
+
+.whatsapp {
+  background: var(--cg-whatsapp);
+  color: #fff;
+}
+
+.whatsapp:hover {
+  background: var(--cg-whatsapp-hover);
+}
+
+.call {
+  border: 1.5px solid var(--cg-line-strong);
+  color: var(--cg-ink);
+}
+
+.call:hover {
+  border-color: var(--cg-ink);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.fallback {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--cg-paper-warm);
+}
+
+.fallback p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Off-screen rather than hidden, for bots that skip invisible fields. */
+.honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

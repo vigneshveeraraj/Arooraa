@@ -1,0 +1,118 @@
+/*
+ * WhatsApp green #0f7d43 (white text 5.2:1, AA) — the same value the campaign page uses
+ * (--cg-whatsapp), so both sites read as one brand. Focus uses the site's focus ring.
+ */
+.base {
+  --whatsapp-green: #0f7d43;
+  --whatsapp-green-hover: #0b6a38;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  border-radius: var(--radius-full);
+}
+
+.base:focus-visible,
+.floating:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.button {
+  min-height: 48px;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-body-sm);
+  color: #ffffff;
+  background: var(--whatsapp-green);
+  transition: background-color var(--duration-base, 160ms) ease;
+}
+
+.button:hover {
+  background: var(--whatsapp-green-hover);
+}
+
+.link {
+  min-height: 44px;
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link .icon {
+  color: var(--whatsapp-green);
+}
+
+.link:hover {
+  color: var(--whatsapp-green);
+}
+
+.link.dark,
+.link.dark:hover {
+  color: var(--color-text);
+}
+
+.link.dark .icon {
+  color: #4fd18b;
+}
+
+.header {
+  min-height: 44px;
+  padding-inline: var(--space-3);
+  font-size: var(--text-body-sm);
+  color: var(--color-text);
+  border: var(--border-width, 1px) solid var(--color-border-strong);
+}
+
+.header .icon {
+  color: var(--whatsapp-green);
+}
+
+.header:hover {
+  border-color: var(--whatsapp-green);
+}
+
+/* Below the mobile drawer (50/55) and the Aura panel (70); never on desktop, where the header has it. */
+.floating {
+  position: fixed;
+  inset-block-end: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  inset-inline-start: calc(var(--space-5) + env(safe-area-inset-left, 0px));
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 56px;
+  block-size: 56px;
+  color: #ffffff;
+  background: #0f7d43;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+}
+
+.floating:hover {
+  background: #0b6a38;
+}
+
+@media (min-width: 1120px) {
+  .floating {
+    display: none;
+  }
+}
+
+@media print {
+  .floating {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

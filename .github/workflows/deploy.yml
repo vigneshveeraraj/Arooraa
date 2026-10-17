@@ -5,23 +5,86 @@ on:
     branches:
       - main
 
+concurrency:
+  group: arooraa-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy to VPS
+      - name: Checkout release
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend-v2/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend-v2
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify Tamil release
+        working-directory: frontend-v2
+        run: |
+          npm run typecheck
+          npx vitest run src/app/grow-your-business/page.test.tsx src/components/campaign/CampaignLeadForm.test.tsx src/lib/lead-capture/lead-capture.test.ts src/lib/whatsapp/config.test.ts src/components/whatsapp/WhatsAppLink.test.tsx
+
+      - name: Build static campaign
+        working-directory: frontend-v2
+        env:
+          NEXT_PUBLIC_LEAD_CAPTURE_ENABLED: 'false'
+          NEXT_PUBLIC_ENQUIRY_ASSISTANT_ENABLED: 'false'
+        run: |
+          npm run build
+          test -s out/grow-your-business.html
+          test -d out/_next/static
+          test -d out/images/campaign
+
+      - name: Upload staged static build
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: frontend-v2/out
+          target: /tmp/arooraa-release-${{ github.sha }}
+
+      - name: Deploy static site and Tamil campaign
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -e
-            cd /opt/arooraa/app/arooraa-web
-            git pull origin main
-            rm -rf /var/www/arooraa/*
-            cp -r /opt/arooraa/app/arooraa-web/deploy/* /var/www/arooraa/
-            chown -R www-data:www-data /var/www/arooraa
+            set -eu
+            APP=/opt/arooraa/app/arooraa-web
+            ARTIFACT=/tmp/arooraa-release-${{ github.sha }}/frontend-v2/out
+            STAGE=/var/www/arooraa-stage-${{ github.sha }}
+            PREVIOUS=/var/www/arooraa-previous-${{ github.sha }}
+            cd "$APP"
+            git pull --ff-only origin main
+            test -s "$ARTIFACT/grow-your-business.html"
+            test -d "$ARTIFACT/_next/static"
+            test -d "$ARTIFACT/images/campaign"
+            mkdir -p "$STAGE/_next/static" "$STAGE/images"
+            cp -a "$APP/deploy/." "$STAGE/"
+            cp -a "$ARTIFACT/_next/static/." "$STAGE/_next/static/"
+            cp -a "$ARTIFACT/images/." "$STAGE/images/"
+            cp "$ARTIFACT/grow-your-business.html" "$STAGE/grow-your-business.html"
+            chown -R www-data:www-data "$STAGE"
             nginx -t
-            systemctl reload nginx
+            mv /var/www/arooraa "$PREVIOUS"
+            mv "$STAGE" /var/www/arooraa
+            if ! systemctl reload nginx || ! curl -kfsS --max-time 20 --resolve arooraa.com:443:127.0.0.1 https://arooraa.com/grow-your-business -o /tmp/arooraa-tamil-health-${{ github.sha }} || ! grep -q 'AROORAA' /tmp/arooraa-tamil-health-${{ github.sha }}; then
+              mv /var/www/arooraa "$STAGE"
+              mv "$PREVIOUS" /var/www/arooraa
+              systemctl reload nginx
+              echo "Production smoke failed: rolled back"
+              exit 1
+            fi
+            rm -rf "$ARTIFACT"
+            echo "Tamil campaign release successful"
